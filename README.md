@@ -10,7 +10,7 @@
 ```r
 > devtools::install_github("YinLiLin/hibayes")
 ```
-The package is on its way to R CRAN, and it would be coming soon.
+The package is on its way to R CRAN, and would be coming soon.
 
 ## Usage
 ## Not done yet
