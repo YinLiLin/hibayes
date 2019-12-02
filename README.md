@@ -57,6 +57,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </p>
 
 ```r
+> highlight <- map[pve>0.001,1]
 > CMplot(cbind(map,nonZeroRate), type="h", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained (%)",
         highlight=highlight, highlight.col=NULL)
 ```
@@ -70,16 +71,25 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 **WPPA** is defined to be the window posterior probability of association ([Fernando and Garrick (2013)](https://link.springer.com/protocol/10.1007/978-1-62703-447-0_10)), it is the ratio of the number of iterations that ***Pw*** (the proportion of the total genetic variance explained by the window ***w***) > 1% divided by the total number of MCMC iterations.
 ```r
 > fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, wppa=0.01, model="BayesR", niter=20000, nburn=10000, outfreq=10)
-> gwas <- fit$GWAS
+> gwas <- fit$gwas
 > head(gwas)
+   WIND CHR NUM   START     END wppa         wgve
+1 wind1   1   3 1198554 1825948    0 4.500114e-05
+2 wind2   1   1 3428453 3428453    0 8.286156e-06
+3 wind3   1   8 4195032 4916148    0 6.749507e-05
+4 wind4   1   7 5109162 5881216    0 2.985705e-05
+5 wind5   1   3 6705835 6952985    0 2.150887e-05
+6 wind6   1   7 7075618 7863025    0 6.133333e-05
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```r
-> CMplot(cbind(map, pve), type="h", plot.type="m", LOG10=FALSE, ylab="WPPA")
+> highlight <- gwas[gwas$wppa>0.95, 1]
+> CMplot(gwas[,c(1,2,4,6)], type="h", plot.type="m", LOG10=FALSE, ylab="WPPA", ylim=c(0,1.2), 
+        highlight=highlight, highlight.col=NULL, highlight.text=highlight)
 ```
 <p align="center">
-<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/3.jpg">
-<img src="Figure/3.jpg" height="385px" width="900px">
+<a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/3.jpg">
+<img src="figure/3.jpg" height="385px" width="900px">
 </a>
 </p>
 
