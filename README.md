@@ -3,7 +3,7 @@
 
 ```hibayes``` is an user-friendly tool ([R](https://www.r-project.org) version of [GCTB](http://cnsgenomics.com/software/gctb/#Overview)) to fit BAYES model using individual-level data and summary-level data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1)genetic variance, 2)residual variance, 3)heritability, 4)joint distribution of effect size, 5)phenotype/genetic variance explained (PVE) for single or multiple SNPs, and 6)posterior probability of association of the genomic window (WPPA). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
 
-```hibayes``` is developed by [Lilin Yin](https://github.com/YinLiLin) with the support of [Haohao Zhang](https://github.com/hyacz), [Xiaolei Liu](https://github.com/XiaoleiLiuBio), [Jian Zeng](http://researchers.uq.edu.au/researcher/14033) and [Jian Yang](https://researchers.uq.edu.au/researcher/2713). If you have any bug reports or questions, please send an email to Lilin Yin ([ylilin@163.com](mailto:ylilin@163.com)).
+```hibayes``` is developed by [Lilin Yin](https://github.com/YinLiLin) with the support of [Haohao Zhang](https://github.com/hyacz), [Xiaolei Liu](https://github.com/XiaoleiLiuBio), [Jian Zeng](http://researchers.uq.edu.au/researcher/14033) and [Jian Yang](https://researchers.uq.edu.au/researcher/2713). If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
 
 ## Installation
 ```hibayes``` can be installed from GitHub as folowing, please ensure ```devtools``` has been installed prior to ```hibayes```.
@@ -21,7 +21,7 @@ To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, 
   ## bfile: the prefix of binary files
   ## model: "A" (addtive) or "D" (dominant)
 > pheno = data$pheno
-> geno = data$geno
+> geno = as.matrix(data$geno)
 > map = data$map
 ```
 
@@ -42,7 +42,7 @@ Type ```?bayes``` to see details of all parameters.
 > fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesB", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 > SNPeffect <- fit$g
 > gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
-> pve <- apply(as.matrix(geno), 2, var) * fit$g^2    # the phenotypic variance explained for each SNPs
+> pve <- apply(geno,2,var) * (fit$g^2) / var(pheno[,1])    # the phenotypic variance explained for each SNPs
 > nonZeroRate <- fit$nzrate    # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
@@ -51,17 +51,18 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 > CMplot(cbind(map, SNPeffect), type="h", plot.type="m", LOG10=FALSE, ylab="SNP effect")
 ```
 <p align="center">
-<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/3.jpg">
-<img src="Figure/3.jpg" height="385px" width="900px">
+<a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/1.jpg">
+<img src="figure/1.jpg" height="385px" width="900px">
 </a>
 </p>
 
 ```r
-> CMplot(cbind(map, pve), type="p", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained")
+> CMplot(cbind(map,nonZeroRate), type="h", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained (%)",
+        highlight=highlight, highlight.col=NULL)
 ```
 <p align="center">
-<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/3.jpg">
-<img src="Figure/3.jpg" height="385px" width="900px">
+<a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/2.jpg">
+<img src="figure/2.jpg" height="385px" width="900px">
 </a>
 </p>
 
