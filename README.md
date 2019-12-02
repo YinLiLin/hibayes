@@ -66,9 +66,20 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </p>
 
 #### (2) Gemone-Wide association study
+**WPPA** is defined to be the window posterior probability of association ([Fernando and Garrick (2013)](https://link.springer.com/protocol/10.1007/978-1-62703-447-0_10)), it is the ratio of the number of iterations that ***Pw*** (the proportion of the total genetic variance explained by the window ***w***) > 1% divided by the total number of MCMC iterations.
 ```r
-> fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000, outfreq=10)
+> fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, wppa=0.01, model="BayesR", niter=20000, nburn=10000, outfreq=10)
+> gwas <- fit$GWAS
+> head(gwas)
 ```
-
+View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
+```r
+> CMplot(cbind(map, pve), type="h", plot.type="m", LOG10=FALSE, ylab="WPPA")
+```
+<p align="center">
+<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/3.jpg">
+<img src="Figure/3.jpg" height="385px" width="900px">
+</a>
+</p>
 
 ## Not done yet
