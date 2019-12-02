@@ -41,8 +41,9 @@ Type ```?bayes``` to see details of all parameters.
 ```r
 > fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesB", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 > SNPeffect <- fit$g
+> gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
 > pve <- apply(as.matrix(geno), 2, var) * fit$g^2    # the phenotypic variance explained by each SNPs
-> nonZeroRate <- fit$nzrate.   # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
+> nonZeroRate <- fit$nzrate    # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```r
@@ -50,8 +51,8 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 > CMplot(cbind(map, SNPeffect), type="h", plot.type="m", LOG10=FALSE, ylab="SNP effect")
 ```
 <p align="center">
-<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/11.jpg">
-<img src="Figure/11.jpg" height="480px" width="480px">
+<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/3.jpg">
+<img src="Figure/3.jpg" height="385px" width="900px">
 </a>
 </p>
 
@@ -59,8 +60,8 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 > CMplot(cbind(map, pve), type="p", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained")
 ```
 <p align="center">
-<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/11.jpg">
-<img src="Figure/11.jpg" height="480px" width="480px">
+<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/3.jpg">
+<img src="Figure/3.jpg" height="385px" width="900px">
 </a>
 </p>
 
