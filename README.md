@@ -10,7 +10,7 @@
 ```r
 > devtools::install_github("YinLiLin/hibayes")
 ```
-The package is on its way to R CRAN, and would be coming soon.
+After installed successfully, type ```library(hibayes)``` to use. The package is on its way to R CRAN, and would be coming soon.
 
 ## Usage
 ### Individual level bayes model
@@ -24,7 +24,7 @@ To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, 
 > geno = data$geno
 > map = data$map
 ```
-#### (1) Gemonic prediction/selection
+
 Total 8 bayes models are available currently, including:
  - ***"BayesRR" (ridge regression):*** all SNPs have non-zero effects and share the same variance, equals to GBLUP.
  - ***"BayesA":*** all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution.
@@ -37,9 +37,33 @@ Total 8 bayes models are available currently, including:
  
 Type ```?bayes``` to see details of all parameters.
 
+#### (1) Gemonic prediction/selection
 ```r
 > fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesB", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
+> SNPeffect <- fit$g
+> pve <- apply(as.matrix(geno), 2, var) * fit$g^2    # the phenotypic variance explained by each SNPs
+> nonZeroRate <- fit$nzrate.   # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
 ```
+View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
+```r
+> source("https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/R/CMplot.r")
+> CMplot(cbind(map, SNPeffect), type="h", plot.type="m", LOG10=FALSE, ylab="SNP effect")
+```
+<p align="center">
+<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/11.jpg">
+<img src="Figure/11.jpg" height="480px" width="480px">
+</a>
+</p>
+
+```r
+> CMplot(cbind(map, pve), type="p", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained")
+```
+<p align="center">
+<a href="https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/Figure/11.jpg">
+<img src="Figure/11.jpg" height="480px" width="480px">
+</a>
+</p>
+
 #### (2) Gemone-Wide association study
 ```r
 > fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000, outfreq=10)
