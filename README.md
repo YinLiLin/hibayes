@@ -42,7 +42,7 @@ Type ```?bayes``` to see details of all parameters.
 > fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesB", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 > SNPeffect <- fit$g
 > gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
-> pve <- apply(as.matrix(geno), 2, var) * fit$g^2    # the phenotypic variance explained by each SNPs
+> pve <- apply(as.matrix(geno), 2, var) * fit$g^2    # the phenotypic variance explained for each SNPs
 > nonZeroRate <- fit$nzrate    # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
