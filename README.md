@@ -13,4 +13,37 @@
 The package is on its way to R CRAN, and would be coming soon.
 
 ## Usage
+### Individual level bayes model
+To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, n is the number of individuals, m is the number of SNPs) should be provided. Uses can load the data that coded by other softwares by 'read.table' to fit model. Additionally, we pertinently provide a function ```read_plink``` to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in ```hibayes```:
+```r
+> bfile_path = system.file("extdata", "example", package = "hibayes")
+> data = read_plink(bfile=bfile_path, mode="A", threads=4)
+  ## bfile: the prefix of binary files
+  ## model: "A" (addtive) or "D" (dominant)
+> pheno = data$pheno
+> geno = data$geno
+> map = data$map
+```
+#### (1) Gemonic prediction/selection
+Total 8 bayes models are available currently, including:
+ - ***"BayesRR" (ridge regression):*** all SNPs have non-zero effects and share the same variance, equals to GBLUP.
+ - ***"BayesA":*** all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution.
+ - ***"BayesLASSO":*** all SNPs have non-zero effects but use different variance which follows an exponential distribution.
+ - ***"BayesB":*** only a small part of SNPs (1-pi) have non-zero effects but use different variance which follows an inverse chi-square distribution.
+ - ***"BayesBpi":*** the same with "BayesB", but 'pi' is not fixed.
+ - ***"BayesC":*** only a small part of SNPs (1-pi) have non-zero effects and share the same variance.
+ - ***"BayesCpi":*** the same with "BayesC", but 'pi' is not fixed.
+ - ***"BayesR":*** only a small part of SNPs have non-zero effects, but the SNPs are allocated into different groups, each group has the same variance.
+ 
+Type ```?bayes``` to see details of all parameters.
+
+```r
+> fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesB", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
+```
+#### (2) Gemone-Wide association study
+```r
+> fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000, outfreq=10)
+```
+
+
 ## Not done yet
