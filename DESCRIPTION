@@ -1,0 +1,36 @@
+Package: hibayes
+Title: Individual and summary level data based BAYES regression model
+Version: 0.99.1
+Date: 2019-11-01
+Authors@R: c(
+    person("Lilin", "Yin", email = "ylilin@163.com", 
+           role = c("aut", "cre", "cph")),
+    person("Haohao", "Zhang", email = "haohaozhang@whut.edu.cn", 
+           role = c("aut")),
+    person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
+           role = c("aut")),
+    person("Jian", "Zeng", email = " j.zeng@imb.uq.edu.au", 
+           role = c("aut")),
+    person("Jian", "Yang", email = "jian.yang@uq.edu.au", 
+           role = c("aut")) 
+    )
+Description: Individual and summary level data based BAYES regression model for Genome-Wide Association and Genomic Prediction.
+License: GPL-3
+Maintainer: Lilin Yin <ylilin@163.com>
+URL: https://github.com/YinLiLin/hibayes
+BugReports: https://github.com/YinLiLin/hibayes/issues
+Encoding: UTF-8
+Imports: utils, stats, methods, Rcpp
+Depends: R (>= 3.3.0), bigmemory, Matrix
+LinkingTo: Rcpp, RcppArmadillo (>= 0.9.600.0.0), RcppProgress, BH,
+        bigmemory, Matrix
+RoxygenNote: 6.1.1
+Roxygen: list(markdown = TRUE)
+SystemRequirements: C++11
+NeedsCompilation: yes
+Packaged: 2019-12-03 05:28:46 UTC; lxl
+Author: Lilin Yin [aut, cre, cph],
+  Haohao Zhang [aut],
+  Xiaolei Liu [aut],
+  Jian Zeng [aut],
+  Jian Yang [aut]
