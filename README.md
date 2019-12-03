@@ -1,9 +1,12 @@
 # hibayes [![](https://img.shields.io/badge/Issues-%2B-brightgreen.svg)](https://github.com/YinLiLin/hibayes/issues/new) [![](https://img.shields.io/badge/Release-v0.99.1-darkred.svg)](https://github.com/YinLiLin/hibayes)
 ## Individual and summary level data based BAYES model for Genome-Wide Association and Genomic Prediction
 
-```hibayes``` is an user-friendly tool ([R](https://www.r-project.org) version of [GCTB](http://cnsgenomics.com/software/gctb/#Overview)) to fit BAYES model using individual-level data and summary-level data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1)genetic variance, 2)residual variance, 3)heritability, 4)joint distribution of effect size, 5)phenotype/genetic variance explained (PVE) for single or multiple SNPs, and 6)posterior probability of association of the genomic window (WPPA). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
+```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit BAYES model using individual-level data and summary-level data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1)genetic variance, 2)residual variance, 3)heritability, 4)joint distribution of effect size, 5)phenotype/genetic variance explained (PVE) for single or multiple SNPs, and 6)posterior probability of association of the genomic window (WPPA). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
 
+<!--
 ```hibayes``` is developed by [Lilin Yin](https://github.com/YinLiLin) with the support of [Jian Zeng](http://researchers.uq.edu.au/researcher/14033), [Haohao Zhang](https://github.com/hyacz), [Xiaolei Liu](https://github.com/XiaoleiLiuBio), and [Jian Yang](https://researchers.uq.edu.au/researcher/2713). If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
+-->
+```hibayes``` is written in c++ by aid of Rcpp and some time-consuming functions are enhanced with [LAPACK](http://www.netlib.org/lapack/) package, I suggest to run ```hibayes``` in [***MRO***](https://mran.microsoft.com) instead of ***R***, as the BLAS/LAPACK library can be accelerated automatically in multi-threads by MKL library, which would significantly reduce computation times. If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
 
 ## Installation
 ```hibayes``` can be installed from GitHub as folowing, please ensure ```devtools``` has been installed prior to ```hibayes```.
@@ -14,7 +17,7 @@ After installed successfully, type ```library(hibayes)``` to use. The package is
 
 ## Usage
 ### Individual level bayes model
-To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, n is the number of individuals, m is the number of SNPs) should be provided. Uses can load the data that coded by other softwares by 'read.table' to fit model. Additionally, we pertinently provide a function ```read_plink``` to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in ```hibayes```:
+To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, n is the number of individuals, m is the number of SNPs) should be provided. Users can load the data that coded by other softwares by 'read.table' to fit model. Additionally, we pertinently provide a function ```read_plink``` to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in ```hibayes```:
 ```r
 > bfile_path = system.file("extdata", "example", package = "hibayes")
 > data = read_plink(bfile=bfile_path, mode="A", threads=4)
@@ -57,7 +60,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 
 ```r
 > highlight <- map[pve>0.001,1]
-> CMplot(cbind(map,nonZeroRate), type="h", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained (%)",
+> CMplot(cbind(map,pve), type="h", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained (%)",
         highlight=highlight, highlight.col=NULL)
 ```
 <p align="center">
@@ -140,7 +143,9 @@ if the order of SNPs in genotype is not consistent with the order in summary dat
 6 snp6  C  A 0.14130  0.2241 0.4441 0.61390  4798
 > if(!all(map[,1] == sumstat[,1])){sumstat = sumstat[match(map[,1], sumstat[,1]), ]}
 ```
-Note that ```hibayes``` only use the 'BETA', 'SE' and 'MISS' columns.
+Note that ```hibayes``` only use the 'BETA', 'SE' and 'NMISS' columns.
+
+Type ```?bayes``` to see details of all parameters.
 
 (1) Gemonic prediction/selection
 ```r
