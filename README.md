@@ -146,7 +146,7 @@ if the order of SNPs in genotype is not consistent with the order in summary dat
 ```
 Note that ```hibayes``` only use the 'BETA', 'SE' and 'NMISS' columns.
 
-Type ```?bayes``` to see details of all parameters.
+Type ```?sbayes``` to see details of all parameters.
 
 (1) Gemonic prediction/selection
 ```r
