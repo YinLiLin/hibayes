@@ -151,9 +151,13 @@ if the order of SNPs in genotype is not consistent with the order in summary dat
 ## Citation
 **For individual level bayes model:** <br>
 BayesA,B,Bpi: <br>
+Meuwissen et al. (2001) Prediction of total genetic value using genome-wide dense marker maps. Genetics, 157: 1819-1829.<br>
 BayesC,Cpi: <br>
+Habier et al. (2011) Extension of the Bayesian alphabet for genomic selection. BMC Bioinformatics, 12: 186.<br>
 BayesLASSO: <br>
+Legarra, Andrés, et al. "Improved Lasso for genomic selection." Genetics research 93.1 (2011): 77-87.<br>
 BayesR: <br>
+Moser et al. (2015) Simultaneous discovery, estimation and prediction analysis of complex traits using a Bayesian mixture model. PLoS Genetics, 11: e1004969.
 
 **For summary level bayes model:** <br>
 Lloyd-Jones, Zeng et al. (2019) Improved polygenic prediction by Bayesian multiple regression on summary statistics. Nature Communications, doi: 10.1101/522961.<br>
