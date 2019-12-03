@@ -6,8 +6,8 @@
 <!--
 ```hibayes``` is developed by [Lilin Yin](https://github.com/YinLiLin) with the support of [Jian Zeng](http://researchers.uq.edu.au/researcher/14033), [Haohao Zhang](https://github.com/hyacz), [Xiaolei Liu](https://github.com/XiaoleiLiuBio), and [Jian Yang](https://researchers.uq.edu.au/researcher/2713). If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
 -->
-```hibayes``` is written in c++ by aid of Rcpp and some time-consuming functions are enhanced with [LAPACK](http://www.netlib.org/lapack/) package, I suggest to run ```hibayes``` in [***MRO***](https://mran.microsoft.com) instead of ***R***, as the BLAS/LAPACK library can be accelerated automatically in multi-threads by MKL library, which would significantly reduce computation times. <br>
-If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
+```hibayes``` is written in c++ by aid of Rcpp and some time-consuming functions are enhanced with [LAPACK](http://www.netlib.org/lapack/) package, I suggest to run ```hibayes``` in [**MRO**](https://mran.microsoft.com) instead of **R**, as the BLAS/LAPACK library can be accelerated automatically in multi-threads by MKL library, which would significantly reduce computation times. <br>
+***If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.***
 
 ## Installation
 ```hibayes``` can be installed from GitHub as folowing, please ensure ```devtools``` has been installed prior to ```hibayes```.
