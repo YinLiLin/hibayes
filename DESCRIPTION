@@ -5,11 +5,11 @@ Date: 2019-11-01
 Authors@R: c(
     person("Lilin", "Yin", email = "ylilin@163.com", 
            role = c("aut", "cre", "cph")),
+    person("Jian", "Zeng", email = " j.zeng@imb.uq.edu.au", 
+           role = c("aut")),
     person("Haohao", "Zhang", email = "haohaozhang@whut.edu.cn", 
            role = c("aut")),
     person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
-           role = c("aut")),
-    person("Jian", "Zeng", email = " j.zeng@imb.uq.edu.au", 
            role = c("aut")),
     person("Jian", "Yang", email = "jian.yang@uq.edu.au", 
            role = c("aut")) 
