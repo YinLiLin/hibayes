@@ -110,6 +110,7 @@ Differently, to fit summary level data based bayes model (SBayes), the reference
 The available models for SBayes include "SBayesRR", "SBayesA", "SBayesLASSO", "SBayesB", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG" (conjuction gradient). For 'CG' model, parameter 'lambda' should be assigned with m * (1 / h2 - 1), where m is the total number of SNPs and h2 is the heritability that can be estimated from LD score regression analysis of the summary data.
 
 #### Step1 construct full/sparse LD variance-covariance matrix
+Sparse matrix could significantly reduce the memory cost by setting some of elements of full matrix to zero, on condition that ```n*r^2 < chisq```, where n is the number of individuals, r is the LD correlation of pairs of SNPs, some low LD values would be set to zero。
 ```r
 > # load reference panel
 > bfile_path = system.file("extdata", "example", package = "hibayes")
@@ -139,6 +140,8 @@ if the order of SNPs in genotype is not consistent with the order in summary dat
 6 snp6  C  A 0.14130  0.2241 0.4441 0.61390  4798
 > if(!all(map[,1] == sumstat[,1])){sumstat = sumstat[match(map[,1], sumstat[,1]), ]}
 ```
+Note that ```hibayes``` only use the 'BETA', 'SE' and 'MISS' columns.
+
 (1) Gemonic prediction/selection
 ```r
 > fit = sbayes(sumstat=sumstat, ldm=ldm1, model="SBayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
