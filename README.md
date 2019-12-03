@@ -114,7 +114,7 @@ Differently, to fit summary level data based bayes model (SBayes), the reference
 The available models for SBayes include "SBayesRR", "SBayesA", "SBayesLASSO", "SBayesB", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG" (conjuction gradient). For 'CG' model, parameter 'lambda' should be assigned with m * (1 / h2 - 1), where m is the total number of SNPs and h2 is the heritability that can be estimated from LD score regression analysis of the summary data.
 
 #### Step1 construct full/sparse LD variance-covariance matrix
-Sparse matrix could significantly reduce the memory cost by setting some of elements of full matrix to zero, on condition that ```n*r^2 < chisq```, where n is the number of individuals, r is the LD correlation of pairs of SNPs, some low LD values would be set to zero。
+Sparse matrix could significantly reduce the memory cost by setting some of elements of full matrix to zero, on condition that ```n*r^2 < chisq```, where n is the number of individuals, r is the LD correlation of pairs of SNPs, some low LD values would be replaced with 0.
 ```r
 > # load reference panel
 > bfile_path = system.file("extdata", "example", package = "hibayes")
@@ -164,7 +164,7 @@ Meuwissen et al. (2001) Prediction of total genetic value using genome-wide dens
 ```BayesC,Cpi:``` <br>
 Habier et al. (2011) Extension of the Bayesian alphabet for genomic selection. BMC Bioinformatics, 12: 186.<br>
 ```BayesLASSO:``` <br>
-Legarra, Andrés, et al. "Improved Lasso for genomic selection." Genetics research 93.1 (2011): 77-87.<br>
+Legarra, Andrés, et al. (2011) Improved Lasso for genomic selection. Genetics research, 93.1: 77-87.<br>
 ```BayesR:``` <br>
 Moser et al. (2015) Simultaneous discovery, estimation and prediction analysis of complex traits using a Bayesian mixture model. PLoS Genetics, 11: e1004969.
 
