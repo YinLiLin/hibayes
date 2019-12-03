@@ -73,7 +73,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 > fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, wppa=0.01, model="BayesR", niter=20000, nburn=10000, outfreq=10)
 > gwas <- fit$gwas
 > head(gwas)
-   WIND CHR NUM   START     END wppa         wgve
+   WIND CHR NUM   START     END WPPA         WGVE
 1 wind1   1   3 1198554 1825948    0 4.500114e-05
 2 wind2   1   1 3428453 3428453    0 8.286156e-06
 3 wind3   1   8 4195032 4916148    0 6.749507e-05
@@ -93,4 +93,18 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </a>
 </p>
 
+```r
+> # view the average proportion of Genetic Variance Explained for each Window
+> CMplot(cbind(gwas[,c(1,2,4)],gwas$WGVE), type="p", plot.type="m", LOG10=FALSE, ylab="Genetic Variance Explained (%)")
+> # the average proportion of Phenotypic Variance Explained for each Window cound be derived as following:
+> WPVE <- gwas$WGVE * fit$vara / var(pheno[,1])
+```
+<p align="center">
+<a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/4.jpg">
+<img src="figure/4.jpg" height="385px" width="900px">
+</a>
+</p>
+
+### Summary level bayes model
+Differently, to fit summary level data based bayes model (SBayes), the reference panel which is used to calculate LD matrix, and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided.
 ## Not done yet
