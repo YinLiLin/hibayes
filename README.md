@@ -149,3 +149,12 @@ if the order of SNPs in genotype is not consistent with the order in summary dat
 ```
 
 ## Citation
+**For individual level bayes model:** <br>
+BayesA,B,Bpi: <br>
+BayesC,Cpi: <br>
+BayesLASSO: <br>
+BayesR: <br>
+
+**For summary level bayes model:** <br>
+Lloyd-Jones, Zeng et al. (2019) Improved polygenic prediction by Bayesian multiple regression on summary statistics. Nature Communications, doi: 10.1101/522961.<br>
+Zeng et al. (2019) Bayesian analysis of GWAS summary data reveals differential signatures of natural selection across human complex traits and functional genomic categories. bioRxiv, dio: 10.1101/752527.
