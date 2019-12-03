@@ -24,7 +24,6 @@ To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, 
 > geno = as.matrix(data$geno)
 > map = data$map
 ```
-
 Total 8 bayes models are available currently, including:
  - ***"BayesRR" (ridge regression):*** all SNPs have non-zero effects and share the same variance, equals to GBLUP.
  - ***"BayesA":*** all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution.
@@ -106,5 +105,47 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </p>
 
 ### Summary level bayes model
-Differently, to fit summary level data based bayes model (SBayes), the reference panel which is used to calculate LD matrix, and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided.
-## Not done yet
+Differently, to fit summary level data based bayes model (SBayes), the reference panel which is used to calculate LD matrix, and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided. Specially, if the summary data is derived from reference panel, means that all data come from the same population, then summary data level based bayes model equals to the individual level bayes model. 
+
+The available models for SBayes include "SBayesRR", "SBayesA", "SBayesLASSO", "SBayesB", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG" (conjuction gradient). For 'CG' model, parameter 'lambda' should be assigned with m * (1 / h2 - 1), where m is the total number of SNPs and h2 is the heritability that can be estimated from LD score regression analysis of the summary data.
+
+#### Step1 construct full/sparse LD variance-covariance matrix
+```r
+> # load reference panel
+> bfile_path = system.file("extdata", "example", package = "hibayes")
+> data = read_plink(bfile_path)
+> geno = data$geno
+> map = data$map
+> # construct LD variance-covariance matrix
+> ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
+> ldm2 = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
+> ldm3 = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
+> ldm4 = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
+```
+From ```ldm1``` to ```ldm4```, the memory cost less, but the model stability of SBayes would be worse.
+
+#### Step2 fit SBayes model
+if the order of SNPs in genotype is not consistent with the order in summary data file, prior adjusting is necessary.
+```r
+> sumstat_path = system.file("extdata", "example.ma", package = "hibayes")
+> sumstat = read.table(sumstat_path, header=TRUE)
+> head(sumstat)
+   SNP A1 A2     MAF    BETA     SE       P NMISS
+1 snp1  C  A 0.25160 -0.4235 0.3594 0.23870  4798
+2 snp2  C  A 0.08285 -0.2620 0.5579 0.63870  4798
+3 snp3  C  A 0.17750 -0.7149 0.4099 0.08122  4798
+4 snp4  C  A 0.35780 -0.5602 0.3230 0.08290  4798
+5 snp5  C  A 0.08441  0.2736 0.5505 0.61920  4798
+6 snp6  C  A 0.14130  0.2241 0.4441 0.61390  4798
+> if(!all(map[,1] == sumstat[,1])){sumstat = sumstat[match(map[,1], sumstat[,1]), ]}
+```
+(1) Gemonic prediction/selection
+```r
+> fit = sbayes(sumstat=sumstat, ldm=ldm1, model="SBayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
+```
+(2) Gemone-Wide association study
+```r
+> fit = sbayes(sumstat=sumstat, ldm=ldm1, map=map, model="SBayesR", windsize=1e6, wppa=0.01, niter=20000, nburn=10000)
+```
+
+## Citation
