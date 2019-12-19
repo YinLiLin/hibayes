@@ -28,7 +28,7 @@ ldmat <- function(
 	gwas.map = NULL,
 	chisq = NULL,
 	ldchr = FALSE,
-	threads = NULL,
+	threads = 0,
 	verbose = TRUE
 ){
 	if(!is.big.matrix(geno)){
