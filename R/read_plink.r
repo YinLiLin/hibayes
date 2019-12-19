@@ -25,7 +25,7 @@ function(
 	backingpath = NULL,
 	descriptorfile = NULL,
 	backingfile = NULL,
-	threads = 1
+	threads = 0
 ){
 	map <- read.table(paste(bfile, ".bim", sep=""), head=FALSE)[,c(2, 1, 4)]
 	pheno <- read.table(paste(bfile, ".fam", sep=""), head=FALSE)[,-c(1:5), drop=FALSE]
