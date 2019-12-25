@@ -355,8 +355,8 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 	if(sparse){
 		arma::sp_mat ldmat(m, m);
 		arma::vec r2vec(m); r2vec.zeros();
-		MinimalProgressBar pb;
-		Progress p(m, verbose, pb);
+		MinimalProgressBar pb1;
+		Progress p(m, verbose, pb1);
 
 		for (j = 0; j < m; j++){
 			if ( ! Progress::check_abort() ) {
@@ -395,8 +395,8 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 			}
 		}
 		if(verbose)	Rcerr << "Update LD for typed SNPs" << endl;
-		MinimalProgressBar pb;
-		Progress p(mgwas, verbose, pb);
+		MinimalProgressBar pb2;
+		Progress p(mgwas, verbose, pb2);
 	
 		for (j = 0; j < mgwas; j++){
 			if ( ! Progress::check_abort() ) {
@@ -432,8 +432,8 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 		return wrap(ldmat);
 	}else{
 		arma::mat ldmat(m, m);
-		MinimalProgressBar pb;
-		Progress p(m, verbose, pb);
+		MinimalProgressBar pb1;
+		Progress p(m, verbose, pb1);
 	
 		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 		for (j = 0; j < m; j++){
@@ -463,8 +463,8 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 		}
 		
 		if(verbose)	Rcerr << "Update LD for typed SNPs" << endl;
-		MinimalProgressBar pb;
-		Progress p(mgwas, verbose, pb);
+		MinimalProgressBar pb2;
+		Progress p(mgwas, verbose, pb2);
 	
 		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 		for (j = 0; j < mgwas; j++){
