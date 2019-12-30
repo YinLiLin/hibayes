@@ -355,76 +355,81 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 	if(sparse){
 		arma::sp_mat ldmat(m, m);
 		arma::vec r2vec(m); r2vec.zeros();
-		MinimalProgressBar pb1;
-		Progress pp1(m, verbose, pb1);
+		for(int xx = 0; xx < 2; xx++){
+			if(xx == 0){
+				MinimalProgressBar pb;
+				Progress p(m, verbose, pb);
 
-		for (j = 0; j < m; j++){
-			if ( ! Progress::check_abort() ) {
-				pp1.increment();
-				p1 = xx_all[j];
-				m1 = mean_all[j];
-				sum1 = sum_all[j];
-				ldmat(j, j) = p1 * p1 / ind;
-				#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
-				for(i = j + 1; i < m; i++){
-					if(refindx[j] && refindx[i]){
-						// nothing
-					}else{
-						p12 = 0;
-						p2 = xx_all[i];
-						m2 = mean_all[i];
-						sum2 = sum_all[i];
-						for(k = 0; k < ind; k++){
-							p12 += (genomat[i][k]) * (genomat[j][k]);
+				for (j = 0; j < m; j++){
+					if ( ! Progress::check_abort() ) {
+						p.increment();
+						p1 = xx_all[j];
+						m1 = mean_all[j];
+						sum1 = sum_all[j];
+						ldmat(j, j) = p1 * p1 / ind;
+						#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
+						for(i = j + 1; i < m; i++){
+							if(refindx[j] && refindx[i]){
+								// nothing
+							}else{
+								p12 = 0;
+								p2 = xx_all[i];
+								m2 = mean_all[i];
+								sum2 = sum_all[i];
+								for(k = 0; k < ind; k++){
+									p12 += (genomat[i][k]) * (genomat[j][k]);
+								}
+								p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
+								r = p12 / (p1 * p2);
+								if(r * r * ind <= chisq_){
+									// nothing
+								}else{
+									r2vec[i] = p12 / ind;
+								}
+							}
 						}
-						p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
-						r = p12 / (p1 * p2);
-						if(r * r * ind <= chisq_){
-							// nothing
-						}else{
-							r2vec[i] = p12 / ind;
+						for(i = j + 1; i < m; i++){
+							if(r2vec[i]){
+								ldmat(i, j) = ldmat(j, i) = r2vec[i];
+								r2vec[i] = 0;
+							}
 						}
 					}
 				}
-				for(i = j + 1; i < m; i++){
-					if(r2vec[i]){
-						ldmat(i, j) = ldmat(j, i) = r2vec[i];
-						r2vec[i] = 0;
-					}
-				}
-			}
-		}
-		if(verbose)	Rcerr << "Update LD for typed SNPs" << endl;
-		MinimalProgressBar pb2;
-		Progress pp2(mgwas, verbose, pb2);
-	
-		for (j = 0; j < mgwas; j++){
-			if ( ! Progress::check_abort() ) {
-				pp2.increment();
-				p1 = xx_all_gwas[j];
-				m1 = mean_all_gwas[j];
-				sum1 = sum_all_gwas[j];
-				#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
-				for(i = j; i < mgwas; i++){
-					p12 = 0;
-					p2 = xx_all_gwas[i];
-					m2 = mean_all_gwas[i];
-					sum2 = sum_all_gwas[i];
-					for(k = 0; k < indgwas; k++){
-						p12 += (gwasgenomat[i][k]) * (gwasgenomat[j][k]);
-					}
-					p12 -= sum1 * m2 + sum2 * m1 - indgwas * m1 * m2;
-					r = p12 / (p1 * p2);
-					if(r * r * ind <= chisq_){
-						// nothing
-					}else{
-						r2vec[gwasindx[i]] = p12 / indgwas;
-					}
-				}
-				for(i = j; i < mgwas; i++){
-					if(r2vec[gwasindx[i]]){
-						ldmat(gwasindx[i], gwasindx[j]) = ldmat(gwasindx[j], gwasindx[i]) = r2vec[gwasindx[i]];
-						r2vec[gwasindx[i]] = 0;
+			}else{
+				if(verbose)	Rcerr << "Update LD for SNPs in GWAS panel" << endl;
+				MinimalProgressBar pb;
+				Progress p(mgwas, verbose, pb);
+
+				for (j = 0; j < mgwas; j++){
+					if ( ! Progress::check_abort() ) {
+						p.increment();
+						p1 = xx_all_gwas[j];
+						m1 = mean_all_gwas[j];
+						sum1 = sum_all_gwas[j];
+						#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
+						for(i = j; i < mgwas; i++){
+							p12 = 0;
+							p2 = xx_all_gwas[i];
+							m2 = mean_all_gwas[i];
+							sum2 = sum_all_gwas[i];
+							for(k = 0; k < indgwas; k++){
+								p12 += (gwasgenomat[i][k]) * (gwasgenomat[j][k]);
+							}
+							p12 -= sum1 * m2 + sum2 * m1 - indgwas * m1 * m2;
+							r = p12 / (p1 * p2);
+							if(r * r * ind <= chisq_){
+								// nothing
+							}else{
+								r2vec[gwasindx[i]] = p12 / indgwas;
+							}
+						}
+						for(i = j; i < mgwas; i++){
+							if(r2vec[gwasindx[i]]){
+								ldmat(gwasindx[i], gwasindx[j]) = ldmat(gwasindx[j], gwasindx[i]) = r2vec[gwasindx[i]];
+								r2vec[gwasindx[i]] = 0;
+							}
+						}
 					}
 				}
 			}
@@ -432,58 +437,62 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 		return wrap(ldmat);
 	}else{
 		arma::mat ldmat(m, m);
-		MinimalProgressBar pb1;
-		Progress pp1(m, verbose, pb1);
-	
-		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
-		for (j = 0; j < m; j++){
-			if ( ! Progress::check_abort() ) {
-				pp1.increment();
-				p1 = xx_all[j];
-				m1 = mean_all[j];
-				sum1 = sum_all[j];
-				ldmat(j, j) = p1 * p1 / ind;
-				for(i = j + 1; i < m; i++){
-					if(refindx[j] && refindx[i]){
-						// nothing
-					}else{
-						p12 = 0;
-						p2 = xx_all[i];
-						m2 = mean_all[i];
-						sum2 = sum_all[i];
-						for(k = 0; k < ind; k++){
-							p12 += (genomat[i][k]) * (genomat[j][k]);
+		for(int xx = 0; xx < 2; xx++){
+			if(xx == 0){
+				MinimalProgressBar pb;
+				Progress p(m, verbose, pb);
+
+				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
+				for (j = 0; j < m; j++){
+					if ( ! Progress::check_abort() ) {
+						p.increment();
+						p1 = xx_all[j];
+						m1 = mean_all[j];
+						sum1 = sum_all[j];
+						ldmat(j, j) = p1 * p1 / ind;
+						for(i = j + 1; i < m; i++){
+							if(refindx[j] && refindx[i]){
+								// nothing
+							}else{
+								p12 = 0;
+								p2 = xx_all[i];
+								m2 = mean_all[i];
+								sum2 = sum_all[i];
+								for(k = 0; k < ind; k++){
+									p12 += (genomat[i][k]) * (genomat[j][k]);
+								}
+								p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
+								// r = p12 / (p1 * p2);
+								ldmat(i, j) = ldmat(j, i) = p12 / ind;
+							}
 						}
-						p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
-						// r = p12 / (p1 * p2);
-						ldmat(i, j) = ldmat(j, i) = p12 / ind;
 					}
 				}
-			}
-		}
-		
-		if(verbose)	Rcerr << "Update LD for typed SNPs" << endl;
-		MinimalProgressBar pb2;
-		Progress pp2(mgwas, verbose, pb2);
-	
-		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
-		for (j = 0; j < mgwas; j++){
-			if ( ! Progress::check_abort() ) {
-				pp2.increment();
-				p1 = xx_all_gwas[j];
-				m1 = mean_all_gwas[j];
-				sum1 = sum_all_gwas[j];
-				for(i = j; i < mgwas; i++){
-					p12 = 0;
-					p2 = xx_all_gwas[i];
-					m2 = mean_all_gwas[i];
-					sum2 = sum_all_gwas[i];
-					for(k = 0; k < indgwas; k++){
-						p12 += (gwasgenomat[i][k]) * (gwasgenomat[j][k]);
+			}else{
+				if(verbose)	Rcerr << "Update LD for SNPs in GWAS panel" << endl;
+				MinimalProgressBar pb;
+				Progress p(mgwas, verbose, pb);
+
+				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
+				for (j = 0; j < mgwas; j++){
+					if ( ! Progress::check_abort() ) {
+						p.increment();
+						p1 = xx_all_gwas[j];
+						m1 = mean_all_gwas[j];
+						sum1 = sum_all_gwas[j];
+						for(i = j; i < mgwas; i++){
+							p12 = 0;
+							p2 = xx_all_gwas[i];
+							m2 = mean_all_gwas[i];
+							sum2 = sum_all_gwas[i];
+							for(k = 0; k < indgwas; k++){
+								p12 += (gwasgenomat[i][k]) * (gwasgenomat[j][k]);
+							}
+							p12 -= sum1 * m2 + sum2 * m1 - indgwas * m1 * m2;
+							// r = p12 / (p1 * p2);
+							ldmat(gwasindx[i], gwasindx[j]) = ldmat(gwasindx[j], gwasindx[i]) = p12 / indgwas;
+						}
 					}
-					p12 -= sum1 * m2 + sum2 * m1 - indgwas * m1 * m2;
-					// r = p12 / (p1 * p2);
-					ldmat(gwasindx[i], gwasindx[j]) = ldmat(gwasindx[j], gwasindx[i]) = p12 / indgwas;
 				}
 			}
 		}
@@ -716,7 +725,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 			}
 			chrindx = find(vecgwaschr == unichr[cc]);
 			if(chrindx.n_elem > 0){
-				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS sample" << chrindx.n_elem << std::endl;
+				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
 				MinimalProgressBar pb;
 				Progress p(chrindx.n_elem, verbose, pb);
 				for (j = 0; j < chrindx.n_elem; j++){
@@ -789,7 +798,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 			}
 			chrindx = find(vecgwaschr == unichr[cc]);
 			if(chrindx.n_elem > 0){
-				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS sample" << chrindx.n_elem << std::endl;
+				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
 				MinimalProgressBar pb;
 				Progress p(chrindx.n_elem, verbose, pb);
 				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
