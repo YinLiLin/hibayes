@@ -118,7 +118,7 @@ function(
 		windindx <- cutwind(map[,1], map[,2], windsize)
 		windrange <- do.call(rbind, tapply(map[, 2], windindx, range))
 		windsnpN <- tapply(map[, 2], windindx, length)
-		windchr <- unique(chr)[tapply(map[, 1], windindx, unique)]
+		windchr <- unique(chr)[match(tapply(map[, 1], windindx, unique), unique(sort(map[,1])))]
 		windinfo <- data.frame(paste0("wind", 1:max(windindx)), windchr, windsnpN, windrange)
 		colnames(windinfo) <- c("WIND", "CHR", "NUM", "START", "END")
 	}else{
