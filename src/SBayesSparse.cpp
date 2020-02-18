@@ -79,9 +79,9 @@ Rcpp::List SBayesRR_spa(
 	double xx, gi, rhs, lhs, uhat, v, hsq;
 	double vara_, vargi, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, sumvargi;
 	arma::vec g(m); g.zeros();
-	arma::vec g_store(m);
-	arma::vec xpx(m);
-	arma::vec vx(m);
+	arma::vec g_store(m); g_store.zeros();
+	arma::vec xpx(m); xpx.zeros();
+	arma::vec vx(m); vx.zeros();
 	for(int i = 0; i < m; i++){
 		vx[i] = ldm(i, i);
 		xpx[i] = vx[i] * n;
@@ -398,9 +398,9 @@ Rcpp::List SBayesA_spa(
 	double xx, gi, rhs, lhs, uhat, v, hsq;
 	double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg;
 	arma::vec g(m); g.zeros();
-	arma::vec g_store(m);
-	arma::vec xpx(m);
-	arma::vec vx(m);
+	arma::vec g_store(m); g_store.zeros();
+	arma::vec xpx(m); xpx.zeros();
+	arma::vec vx(m); vx.zeros();
 	for(int i = 0; i < m; i++){
 		vx[i] = ldm(i, i);
 		xpx[i] = vx[i] * n;
@@ -703,9 +703,9 @@ Rcpp::List SBayesBpi_spa(
 	NumericVector snptracker(m);
 	NumericVector nzrate(m);
 	arma::vec g(m); g.zeros();
-	arma::vec g_store(m);
-	arma::vec xpx(m);
-	arma::vec vx(m);
+	arma::vec g_store(m); g_store.zeros();
+	arma::vec xpx(m); xpx.zeros();
+	arma::vec vx(m); vx.zeros();
 	for(int i = 0; i < m; i++){
 		vx[i] = ldm(i, i);
 		xpx[i] = vx[i] * n;
@@ -1135,9 +1135,9 @@ Rcpp::List SBayesCpi_spa(
 	NumericVector snptracker(m);
 	NumericVector nzrate(m);
 	arma::vec g(m); g.zeros();
-	arma::vec g_store(m);
-	arma::vec xpx(m);
-	arma::vec vx(m);
+	arma::vec g_store(m); g_store.zeros();
+	arma::vec xpx(m); xpx.zeros();
+	arma::vec vx(m); vx.zeros();
 	// if(sparse){
 		for(int i = 0; i < m; i++){
 			vx[i] = ldm(i, i);
@@ -1609,9 +1609,9 @@ Rcpp::List SBayesLASSO_spa(
 	double xx, gi, rhs, lhs, uhat, v, hsq;
 	double vara_, vargi, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg;
 	arma::vec g(m); g.zeros();
-	arma::vec g_store(m);
-	arma::vec xpx(m);
-	arma::vec vx(m);
+	arma::vec g_store(m); g_store.zeros();
+	arma::vec xpx(m); xpx.zeros();
+	arma::vec vx(m); vx.zeros();
 	// if(sparse){
 		for(int i = 0; i < m; i++){
 			vx[i] = ldm(i, i);
@@ -1994,9 +1994,9 @@ Rcpp::List SBayesR_spa(
 	IntegerVector snptracker(m);
 	NumericVector nzrate(m);
 	arma::vec g(m); g.zeros();
-	arma::vec g_store(m);
-	arma::vec xpx(m);
-	arma::vec vx(m);
+	arma::vec g_store(m); g_store.zeros();
+	arma::vec xpx(m); xpx.zeros();
+	arma::vec vx(m); vx.zeros();
 	// if(sparse){
 		for(int i = 0; i < m; i++){
 			vx[i] = ldm(i, i);
