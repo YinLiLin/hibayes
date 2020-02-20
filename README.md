@@ -61,7 +61,7 @@ Type ```?bayes``` to see details of all parameters.
 
 #### (1) Gemonic prediction/selection
 ```r
-> fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesB", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
+> fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 > SNPeffect <- fit$g
 > gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
 > pve <- apply(geno,2,var) * (fit$g^2) / var(pheno[,1])    # the phenotypic variance explained for each SNPs
@@ -92,7 +92,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 #### (2) Gemone-Wide association study
 **WPPA** is defined to be the window posterior probability of association ([Fernando and Garrick (2013)](https://link.springer.com/protocol/10.1007/978-1-62703-447-0_10)), it is the ratio of the number of iterations that ***Pw*** (the proportion of the total genetic variance explained by the window ***w***) > 1% divided by the total number of MCMC iterations.
 ```r
-> fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, wppa=0.01, model="BayesR", niter=20000, nburn=10000, outfreq=10)
+> fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, wppa=0.01, model="BayesCpi", niter=20000, nburn=10000, outfreq=10)
 > gwas <- fit$gwas
 > head(gwas)
    WIND CHR NUM   START     END WPPA         WGVE
@@ -127,10 +127,10 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </a>
 </p>
 
-We can also use the probability of none-zero effect for each SNP in whole MCMC procedure as the assciation significance.
+We can also derive the assciation significance from the probability of none-zero effect for each SNP in whole MCMC procedure.
 ```r
 > # view the probability of none-zero effect for each SNP
-> CMplot(cbind(map, 1-fit$nzrate), plot.type="m", LOG10=TRUE, threshold=0.01, amplify=FALSE)
+> CMplot(cbind(map, 1-fit$nzrate), plot.type="m", LOG10=TRUE, threshold=0.05, amplify=FALSE)
 ```
 <p align="center">
 <a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/5.jpg">
