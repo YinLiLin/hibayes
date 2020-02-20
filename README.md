@@ -25,8 +25,27 @@ To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, 
   ## bfile: the prefix of binary files
   ## model: "A" (addtive) or "D" (dominant)
 > pheno = data$pheno
+> nrow(pheno) # number of individuals
+[1] 4798
 > geno = as.matrix(data$geno)
+> dim(geno) # number of individuals and markers
+[1] 4798 7385
+> geno[1:5,1:5]
+     [,1] [,2] [,3] [,4] [,5]
+[1,]    0    0    0    0    1
+[2,]    0    0    0    0    0
+[3,]    0    0    0    0    1
+[4,]    1    1    0    1    0
+[5,]    1    0    1    1    0
 > map = data$map
+> head(map)
+  SNPid Chr     Pos
+1  snp1   1 1198554
+2  snp2   1 1720354
+3  snp3   1 1825948
+4  snp4   1 3428453
+5  snp5   1 4195032
+6  snp6   1 4412357
 ```
 Total 8 bayes models are available currently, including:
  - ***"BayesRR" (ridge regression):*** all SNPs have non-zero effects and share the same variance, equals to GBLUP.
