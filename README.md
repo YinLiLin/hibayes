@@ -127,6 +127,16 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </a>
 </p>
 
+We can also use the probability of none-zero effect for each SNP in whole MCMC procedure as the assciation significance.
+```r
+> # view the probability of none-zero effect for each SNP
+> CMplot(cbind(map, 1-fit$nzrate), plot.type="m", LOG10=TRUE, threshold=0.01, amplify=FALSE)
+```
+<p align="center">
+<a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/5.jpg">
+<img src="figure/5.jpg" height="385px" width="900px">
+</a>
+</p>
 ### Summary level bayes model
 Differently, to fit summary level data based bayes model (SBayes), the reference panel which is used to calculate LD matrix, and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided. Specially, if the summary data is derived from reference panel, means that all data come from the same population, then summary data level based bayes model equals to the individual level bayes model. 
 
