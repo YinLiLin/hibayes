@@ -96,6 +96,8 @@ SEXP BigStat(SEXP pBigMat, const int threads = 0){
 		return BigStat<short>(xpMat, threads);
 	case 4:
 		return BigStat<int>(xpMat, threads);
+	case 6:
+		return BigStat<float>(xpMat, threads);
 	case 8:
 		return BigStat<double>(xpMat, threads);
 	default:
@@ -208,6 +210,8 @@ SEXP tXXmat_Geno(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, const 
 		return tXXmat_Geno<short>(xpMat, chisq, threads, verbose);
 	case 4:
 		return tXXmat_Geno<int>(xpMat, chisq, threads, verbose);
+	case 6:
+		return BigStat<float>(xpMat, chisq, threads, verbose);
 	case 8:
 		return tXXmat_Geno<double>(xpMat, chisq, threads, verbose);
 	default:
@@ -312,6 +316,8 @@ SEXP tXXmat_Geno_1(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, cons
 		return tXXmat_Geno_1<short>(xpMat, chisq, threads, verbose);
 	case 4:
 		return tXXmat_Geno_1<int>(xpMat, chisq, threads, verbose);
+	case 6:
+		return BigStat<float>(xpMat, chisq, threads, verbose);
 	case 8:
 		return tXXmat_Geno_1<double>(xpMat, chisq, threads, verbose);
 	default:
@@ -512,6 +518,8 @@ SEXP tXXmat_Geno_gwas(SEXP pBigMat, SEXP gwasgeno, const LogicalVector refindx, 
 		return tXXmat_Geno_gwas<short>(xpMat, gwasgeno, refindx, gwasindx, chisq, threads, verbose);
 	case 4:
 		return tXXmat_Geno_gwas<int>(xpMat, gwasgeno, refindx, gwasindx, chisq, threads, verbose);
+	case 6:
+		return tXXmat_Geno_gwas<float>(xpMat, gwasgeno, refindx, gwasindx, chisq, threads, verbose);
 	case 8:
 		return tXXmat_Geno_gwas<double>(xpMat, gwasgeno, refindx, gwasindx, chisq, threads, verbose);
 	default:
@@ -635,6 +643,8 @@ SEXP tXXmat_Chr(SEXP pBigMat, const NumericVector chr, const Nullable<double> ch
 		return tXXmat_Chr<short>(xpMat, chr, chisq, threads, verbose);
 	case 4:
 		return tXXmat_Chr<int>(xpMat, chr, chisq, threads, verbose);
+	case 6:
+		return tXXmat_Chr<float>(xpMat, chr, chisq, threads, verbose);
 	case 8:
 		return tXXmat_Chr<double>(xpMat, chr, chisq, threads, verbose);
 	default:
@@ -840,6 +850,8 @@ SEXP tXXmat_Chr_gwas(SEXP pBigMat, const NumericVector chr, SEXP gwasgeno, const
 		return tXXmat_Chr_gwas<short>(xpMat, chr, gwasgeno, gwaschr, refindx, gwasindx, chisq, threads, verbose);
 	case 4:
 		return tXXmat_Chr_gwas<int>(xpMat, chr, gwasgeno, gwaschr, refindx, gwasindx, chisq, threads, verbose);
+	case 6:
+		return tXXmat_Chr_gwas<float>(xpMat, chr, gwasgeno, gwaschr, refindx, gwasindx, chisq, threads, verbose);
 	case 8:
 		return tXXmat_Chr_gwas<double>(xpMat, chr, gwasgeno, gwaschr, refindx, gwasindx, chisq, threads, verbose);
 	default:
