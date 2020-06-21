@@ -173,9 +173,9 @@ tXXmat_Geno <- function(pBigMat, chisq = NULL, threads = 0L, verbose = TRUE) {
     .Call(`_hibayes_tXXmat_Geno`, pBigMat, chisq, threads, verbose)
 }
 
-tXXmat_Geno_1 <- function(pBigMat, chisq = NULL, threads = 0L, verbose = TRUE) {
-    .Call(`_hibayes_tXXmat_Geno_1`, pBigMat, chisq, threads, verbose)
-}
+# tXXmat_Geno_1 <- function(pBigMat, chisq = NULL, threads = 0L, verbose = TRUE) {
+#     .Call(`_hibayes_tXXmat_Geno_1`, pBigMat, chisq, threads, verbose)
+# }
 
 tXXmat_Geno_gwas <- function(pBigMat, gwasgeno, refindx, gwasindx, chisq = NULL, threads = 0L, verbose = TRUE) {
     .Call(`_hibayes_tXXmat_Geno_gwas`, pBigMat, gwasgeno, refindx, gwasindx, chisq, threads, verbose)
