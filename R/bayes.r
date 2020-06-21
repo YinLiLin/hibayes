@@ -132,6 +132,7 @@ function(
 			pi <- 0.95
 		}
 	}
+	if(!is.numeric(y)){y <- as.matrix(y)[,1,drop=TRUE]}
 	X <- as.matrix(X); gc()
 	switch(
 		match.arg(model), 
