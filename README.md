@@ -65,7 +65,7 @@ Type ```?bayes``` to see details of all parameters.
 > SNPeffect <- fit$g
 > gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
 > pve <- apply(geno,2,var) * (fit$g^2) / var(pheno[,1])    # the phenotypic variance explained for each SNPs
-> pip <- fit$pip    # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
+> pip <- 1-fit$nzrate   # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```r
@@ -130,7 +130,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 We can also derive the assciation significance from the posterior inclusive probability (PIP) for each SNP in whole MCMC procedure.
 ```r
 > # view the probability of none-zero effect for each SNP
-> CMplot(cbind(map, fit$pip), plot.type="m", LOG10=TRUE, threshold=0.05, amplify=FALSE)
+> CMplot(cbind(map, 1-fit$nzrate), plot.type="m", ylab=expression(-log[10](italic(PIP))), LOG10=TRUE, threshold=0.05, amplify=FALSE)
 ```
 <p align="center">
 <a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/5.jpg">
