@@ -61,7 +61,7 @@ Type ```?bayes``` to see details of all parameters.
 
 #### (1) Gemonic prediction/selection
 ```r
-> fit <- bayes(y=pheno[, 1], X=geno, pi=0.95, model="BayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
+> fit <- bayes(y=pheno[, 1], X=geno, model="BayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 > SNPeffect <- fit$g
 > gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
 > pve <- apply(geno,2,var) * (fit$g^2) / var(pheno[,1])    # the phenotypic variance explained for each SNPs
