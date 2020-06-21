@@ -848,19 +848,19 @@ BEGIN_RCPP
 END_RCPP
 }
 // tXXmat_Geno_1
-SEXP tXXmat_Geno_1(SEXP pBigMat, const Nullable<double> chisq, const int threads, const bool verbose);
-RcppExport SEXP _hibayes_tXXmat_Geno_1(SEXP pBigMatSEXP, SEXP chisqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type pBigMat(pBigMatSEXP);
-    Rcpp::traits::input_parameter< const Nullable<double> >::type chisq(chisqSEXP);
-    Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(tXXmat_Geno_1(pBigMat, chisq, threads, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
+// SEXP tXXmat_Geno_1(SEXP pBigMat, const Nullable<double> chisq, const int threads, const bool verbose);
+// RcppExport SEXP _hibayes_tXXmat_Geno_1(SEXP pBigMatSEXP, SEXP chisqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+// BEGIN_RCPP
+//     Rcpp::RObject rcpp_result_gen;
+//     Rcpp::RNGScope rcpp_rngScope_gen;
+//     Rcpp::traits::input_parameter< SEXP >::type pBigMat(pBigMatSEXP);
+//     Rcpp::traits::input_parameter< const Nullable<double> >::type chisq(chisqSEXP);
+//     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
+//     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+//     rcpp_result_gen = Rcpp::wrap(tXXmat_Geno_1(pBigMat, chisq, threads, verbose));
+//     return rcpp_result_gen;
+// END_RCPP
+// }
 // tXXmat_Geno_gwas
 SEXP tXXmat_Geno_gwas(SEXP pBigMat, SEXP gwasgeno, const LogicalVector refindx, const NumericVector gwasindx, const Nullable<double> chisq, const int threads, const bool verbose);
 RcppExport SEXP _hibayes_tXXmat_Geno_gwas(SEXP pBigMatSEXP, SEXP gwasgenoSEXP, SEXP refindxSEXP, SEXP gwasindxSEXP, SEXP chisqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
@@ -957,7 +957,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_rdirichlet_sample", (DL_FUNC) &_hibayes_rdirichlet_sample, 2},
     {"_hibayes_BigStat", (DL_FUNC) &_hibayes_BigStat, 2},
     {"_hibayes_tXXmat_Geno", (DL_FUNC) &_hibayes_tXXmat_Geno, 4},
-    {"_hibayes_tXXmat_Geno_1", (DL_FUNC) &_hibayes_tXXmat_Geno_1, 4},
+//     {"_hibayes_tXXmat_Geno_1", (DL_FUNC) &_hibayes_tXXmat_Geno_1, 4},
     {"_hibayes_tXXmat_Geno_gwas", (DL_FUNC) &_hibayes_tXXmat_Geno_gwas, 7},
     {"_hibayes_tXXmat_Chr", (DL_FUNC) &_hibayes_tXXmat_Chr, 5},
     {"_hibayes_tXXmat_Chr_gwas", (DL_FUNC) &_hibayes_tXXmat_Chr_gwas, 9},
