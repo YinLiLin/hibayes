@@ -1,7 +1,7 @@
 # hibayes [![](https://img.shields.io/badge/Issues-%2B-brightgreen.svg)](https://github.com/YinLiLin/hibayes/issues/new) [![](https://img.shields.io/badge/Release-v0.99.1-darkred.svg)](https://github.com/YinLiLin/hibayes)
 ## Individual and summary level data based BAYES model for Genome-Wide Association and Genomic Prediction
 
-```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit BAYES model using individual-level data and summary-level data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1)genetic variance, 2)residual variance, 3)heritability, 4)joint distribution of effect size, 5)phenotype/genetic variance explained (PVE) for single or multiple SNPs, and 6)posterior probability of association of the genomic window (WPPA). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
+```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit BAYES model using individual-level data and summary-level data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1)genetic variance, 2)residual variance, 3)heritability, 4)joint distribution of effect size, 5)phenotype/genetic variance explained (PVE) for single or multiple SNPs, 6)posterior probability of association of the genomic window (WPPA), and 7)posterior inclusive probability (PIP). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
 
 <!--
 ```hibayes``` is developed by [Lilin Yin](https://github.com/YinLiLin) with the support of [Jian Zeng](http://researchers.uq.edu.au/researcher/14033), [Haohao Zhang](https://github.com/hyacz), [Xiaolei Liu](https://github.com/XiaoleiLiuBio), and [Jian Yang](https://researchers.uq.edu.au/researcher/2713). If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
@@ -65,7 +65,7 @@ Type ```?bayes``` to see details of all parameters.
 > SNPeffect <- fit$g
 > gebv <- geno %*% SNPeffect    # calculate the estimated genomic breeding value
 > pve <- apply(geno,2,var) * (fit$g^2) / var(pheno[,1])    # the phenotypic variance explained for each SNPs
-> nonZeroRate <- fit$nzrate    # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
+> pip <- fit$pip    # the rate of stepping into non-zero effects in MCMC iteration for each SNPs
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```r
@@ -127,10 +127,10 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </a>
 </p>
 
-We can also derive the assciation significance from the probability of none-zero effect for each SNP in whole MCMC procedure.
+We can also derive the assciation significance from the posterior inclusive probability (PIP) for each SNP in whole MCMC procedure.
 ```r
 > # view the probability of none-zero effect for each SNP
-> CMplot(cbind(map, 1-fit$nzrate), plot.type="m", LOG10=TRUE, threshold=0.05, amplify=FALSE)
+> CMplot(cbind(map, fit$pip), plot.type="m", LOG10=TRUE, threshold=0.05, amplify=FALSE)
 ```
 <p align="center">
 <a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/5.jpg">
