@@ -21,27 +21,36 @@ using namespace Rcpp;
 using namespace arma;
 
 class MinimalProgressBar: public ProgressBar{
-	public:
-	MinimalProgressBar()  {
-		_finalized = false;
-	}
-	~MinimalProgressBar() {}
-	void display() {}
-	void update(float progress) {
-		if (_finalized) return;
-		REprintf("\r");
-		REprintf("Calculating in process...(finished %.2f%)", progress * 100);
-	}
-	void end_display() {
-	if (_finalized) return;
-		REprintf("\r");
-		
-		REprintf("Calculating in process...(finished 100.00%)");
-		REprintf("\n");
-		_finalized = true;
-	}
-	private:
-	bool _finalized;
+    public:
+    MinimalProgressBar(const char *str = "Calculating in process")  {
+        _finalized = false;
+        _str = str;
+    }
+    ~MinimalProgressBar() {}
+    void display() {}
+    void update(float progress) {
+        if (_finalized) return;
+        int pi = (int)(progress * point_length);
+        if(point[pi]){
+            point[pi] = false;
+            REprintf("\r");
+            REprintf(_str);
+            REprintf("...[finished %u%]", (int)(progress * 100));
+        }
+    }
+    void end_display() {
+    if (_finalized) return;
+        REprintf("\r");
+        REprintf(_str);
+        REprintf("...[finished 100%]");
+        REprintf("\n");
+        _finalized = true;
+    }
+    private:
+    bool _finalized;
+    const char *_str;
+    int point_length = 100;
+    LogicalVector point = rep(true, point_length);
 };
 
 template <typename T>
@@ -137,15 +146,15 @@ SEXP tXXmat_Geno(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue
 		arma::sp_mat ldmat(m, m);
 		arma::vec r2vec(m); r2vec.zeros();
 
+		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, k, p12, p2, m2, sum2, r)
 		for (j = 0; j < m; j++){
 			if ( ! Progress::check_abort() ) {
 				p.increment();
 				p1 = xx_all[j];
 				m1 = mean_all[j];
 				sum1 = sum_all[j];
-				ldmat(j, j) = p1 * p1 / ind;
-				#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
-				for(i = j + 1; i < m; i++){
+
+				for(i = j; i < m; i++){
 					p12 = 0;
 					p2 = xx_all[i];
 					m2 = mean_all[i];
@@ -158,13 +167,9 @@ SEXP tXXmat_Geno(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue
 					if(r * r * ind <= chisq_){
 						// nothing
 					}else{
-						r2vec[i] = p12 / ind;
-					}
-				}
-				for(i = j + 1; i < m; i++){
-					if(r2vec[i]){
-						ldmat(i, j) = ldmat(j, i) = r2vec[i];
-						r2vec[i] = 0;
+
+						#pragma omp critical
+						ldmat(j, i) = ldmat(i, j) = p12 / ind;
 					}
 				}
 			}
@@ -211,7 +216,7 @@ SEXP tXXmat_Geno(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, const 
 	case 4:
 		return tXXmat_Geno<int>(xpMat, chisq, threads, verbose);
 	case 6:
-		return BigStat<float>(xpMat, chisq, threads, verbose);
+		return tXXmat_Geno<float>(xpMat, chisq, threads, verbose);
 	case 8:
 		return tXXmat_Geno<double>(xpMat, chisq, threads, verbose);
 	default:
@@ -219,111 +224,111 @@ SEXP tXXmat_Geno(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, const 
 	}
 }
 
-template <typename T>
-SEXP tXXmat_Geno_1(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
+// template <typename T>
+// SEXP tXXmat_Geno_1(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
 
-	if (threads == 0) {
-		omp_set_num_threads(omp_get_num_procs());
-	}else if(threads > 0) {
-		omp_set_num_threads(threads);
-	}
+// 	if (threads == 0) {
+// 		omp_set_num_threads(omp_get_num_procs());
+// 	}else if(threads > 0) {
+// 		omp_set_num_threads(threads);
+// 	}
 
-	MatrixAccessor<T> genomat = MatrixAccessor<T>(*pMat);
+// 	MatrixAccessor<T> genomat = MatrixAccessor<T>(*pMat);
 
-	int m = pMat->ncol();
-	int ind = pMat->nrow();
-	int i, j, k;
-	bool sparse = false;
-	double m1, m2, sum1, sum2, p1, p2, p12, r, chisq_;
-	MinimalProgressBar pb;
-	List Stat = BigStat(pMat, threads);
-	NumericVector mean_all = Stat[0];
-	NumericVector sum_all = Stat[1];
-	NumericVector xx_all = Stat[2];
-	if(chisq.isNotNull()){
-		chisq_ = as<double>(chisq);
-		if(chisq_ > 0)	sparse = true;
-	}
+// 	int m = pMat->ncol();
+// 	int ind = pMat->nrow();
+// 	int i, j, k;
+// 	bool sparse = false;
+// 	double m1, m2, sum1, sum2, p1, p2, p12, r, chisq_;
+// 	MinimalProgressBar pb;
+// 	List Stat = BigStat(pMat, threads);
+// 	NumericVector mean_all = Stat[0];
+// 	NumericVector sum_all = Stat[1];
+// 	NumericVector xx_all = Stat[2];
+// 	if(chisq.isNotNull()){
+// 		chisq_ = as<double>(chisq);
+// 		if(chisq_ > 0)	sparse = true;
+// 	}
 	
-	Progress p(m, verbose, pb);
+// 	Progress p(m, verbose, pb);
 	
-	if(sparse){
-		arma::sp_mat ldmat(m, m);
-		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
-		for (j = 0; j < m; j++){
-			if ( ! Progress::check_abort() ) {
-				p.increment();
-				p1 = xx_all[j];
-				m1 = mean_all[j];
-				sum1 = sum_all[j];
-				ldmat(j, j) = p1 * p1 / ind;
-				for(i = j + 1; i < m; i++){
-					p12 = 0;
-					p2 = xx_all[i];
-					m2 = mean_all[i];
-					sum2 = sum_all[i];
-					for(k = 0; k < ind; k++){
-						p12 += (genomat[i][k]) * (genomat[j][k]);
-					}
-					p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
-					r = p12 / (p1 * p2);
-					if(r * r * ind <= chisq_){
-						// nothing
-					}else{
-						ldmat(i, j) = ldmat(j, i) = p12 / ind;
-					}
-				}
-			}
-		}
-		return wrap(ldmat);
-	}else{
-		arma::mat ldmat(m, m);
-		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
-		for (j = 0; j < m; j++){
-			if ( ! Progress::check_abort() ) {
-				p.increment();
-				p1 = xx_all[j];
-				m1 = mean_all[j];
-				sum1 = sum_all[j];
-				ldmat(j, j) = p1 * p1 / ind;
-				for(i = j + 1; i < m; i++){
-					p12 = 0;
-					p2 = xx_all[i];
-					m2 = mean_all[i];
-					sum2 = sum_all[i];
-					for(k = 0; k < ind; k++){
-						p12 += (genomat[i][k]) * (genomat[j][k]);
-					}
-					p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
-					// r = p12 / (p1 * p2);
-					ldmat(i, j) = ldmat(j, i) = p12 / ind;
-				}
-			}
-		}
-		return wrap(ldmat);
-	}
-}
+// 	if(sparse){
+// 		arma::sp_mat ldmat(m, m);
+// 		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
+// 		for (j = 0; j < m; j++){
+// 			if ( ! Progress::check_abort() ) {
+// 				p.increment();
+// 				p1 = xx_all[j];
+// 				m1 = mean_all[j];
+// 				sum1 = sum_all[j];
+// 				ldmat(j, j) = p1 * p1 / ind;
+// 				for(i = j + 1; i < m; i++){
+// 					p12 = 0;
+// 					p2 = xx_all[i];
+// 					m2 = mean_all[i];
+// 					sum2 = sum_all[i];
+// 					for(k = 0; k < ind; k++){
+// 						p12 += (genomat[i][k]) * (genomat[j][k]);
+// 					}
+// 					p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
+// 					r = p12 / (p1 * p2);
+// 					if(r * r * ind <= chisq_){
+// 						// nothing
+// 					}else{
+// 						ldmat(i, j) = ldmat(j, i) = p12 / ind;
+// 					}
+// 				}
+// 			}
+// 		}
+// 		return wrap(ldmat);
+// 	}else{
+// 		arma::mat ldmat(m, m);
+// 		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
+// 		for (j = 0; j < m; j++){
+// 			if ( ! Progress::check_abort() ) {
+// 				p.increment();
+// 				p1 = xx_all[j];
+// 				m1 = mean_all[j];
+// 				sum1 = sum_all[j];
+// 				ldmat(j, j) = p1 * p1 / ind;
+// 				for(i = j + 1; i < m; i++){
+// 					p12 = 0;
+// 					p2 = xx_all[i];
+// 					m2 = mean_all[i];
+// 					sum2 = sum_all[i];
+// 					for(k = 0; k < ind; k++){
+// 						p12 += (genomat[i][k]) * (genomat[j][k]);
+// 					}
+// 					p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
+// 					// r = p12 / (p1 * p2);
+// 					ldmat(i, j) = ldmat(j, i) = p12 / ind;
+// 				}
+// 			}
+// 		}
+// 		return wrap(ldmat);
+// 	}
+// }
 
-// [[Rcpp::export]]
-SEXP tXXmat_Geno_1(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
+// // [[Rcpp::export]]
+// SEXP tXXmat_Geno_1(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
 
-	XPtr<BigMatrix> xpMat(pBigMat);
+// 	XPtr<BigMatrix> xpMat(pBigMat);
 
-	switch(xpMat->matrix_type()){
-	case 1:
-		return tXXmat_Geno_1<char>(xpMat, chisq, threads, verbose);
-	case 2:
-		return tXXmat_Geno_1<short>(xpMat, chisq, threads, verbose);
-	case 4:
-		return tXXmat_Geno_1<int>(xpMat, chisq, threads, verbose);
-	case 6:
-		return BigStat<float>(xpMat, chisq, threads, verbose);
-	case 8:
-		return tXXmat_Geno_1<double>(xpMat, chisq, threads, verbose);
-	default:
-		throw Rcpp::exception("unknown type detected for big.matrix object!");
-	}
-}
+// 	switch(xpMat->matrix_type()){
+// 	case 1:
+// 		return tXXmat_Geno_1<char>(xpMat, chisq, threads, verbose);
+// 	case 2:
+// 		return tXXmat_Geno_1<short>(xpMat, chisq, threads, verbose);
+// 	case 4:
+// 		return tXXmat_Geno_1<int>(xpMat, chisq, threads, verbose);
+// 	case 6:
+// 		return BigStat<float>(xpMat, chisq, threads, verbose);
+// 	case 8:
+// 		return tXXmat_Geno_1<double>(xpMat, chisq, threads, verbose);
+// 	default:
+// 		throw Rcpp::exception("unknown type detected for big.matrix object!");
+// 	}
+// }
 
 template <typename T>
 SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector refindx, const NumericVector gwasindx, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
@@ -360,21 +365,19 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 
 	if(sparse){
 		arma::sp_mat ldmat(m, m);
-		arma::vec r2vec(m); r2vec.zeros();
 		for(int xx = 0; xx < 2; xx++){
 			if(xx == 0){
 				MinimalProgressBar pb;
 				Progress p(m, verbose, pb);
 
+				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 				for (j = 0; j < m; j++){
 					if ( ! Progress::check_abort() ) {
 						p.increment();
 						p1 = xx_all[j];
 						m1 = mean_all[j];
 						sum1 = sum_all[j];
-						ldmat(j, j) = p1 * p1 / ind;
-						#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
-						for(i = j + 1; i < m; i++){
+						for(i = j; i < m; i++){
 							if(refindx[j] && refindx[i]){
 								// nothing
 							}else{
@@ -390,14 +393,10 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 								if(r * r * ind <= chisq_){
 									// nothing
 								}else{
-									r2vec[i] = p12 / ind;
+									
+									#pragma omp critical
+									ldmat(j, i) = ldmat(i, j) = p12 / ind;
 								}
-							}
-						}
-						for(i = j + 1; i < m; i++){
-							if(r2vec[i]){
-								ldmat(i, j) = ldmat(j, i) = r2vec[i];
-								r2vec[i] = 0;
 							}
 						}
 					}
@@ -407,13 +406,13 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 				MinimalProgressBar pb;
 				Progress p(mgwas, verbose, pb);
 
+				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 				for (j = 0; j < mgwas; j++){
 					if ( ! Progress::check_abort() ) {
 						p.increment();
 						p1 = xx_all_gwas[j];
 						m1 = mean_all_gwas[j];
 						sum1 = sum_all_gwas[j];
-						#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
 						for(i = j; i < mgwas; i++){
 							p12 = 0;
 							p2 = xx_all_gwas[i];
@@ -427,13 +426,9 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 							if(r * r * ind <= chisq_){
 								// nothing
 							}else{
-								r2vec[gwasindx[i]] = p12 / indgwas;
-							}
-						}
-						for(i = j; i < mgwas; i++){
-							if(r2vec[gwasindx[i]]){
-								ldmat(gwasindx[i], gwasindx[j]) = ldmat(gwasindx[j], gwasindx[i]) = r2vec[gwasindx[i]];
-								r2vec[gwasindx[i]] = 0;
+								
+								#pragma omp critical
+								ldmat(gwasindx[j], gwasindx[i]) = ldmat(gwasindx[i], gwasindx[j]) = p12 / indgwas;
 							}
 						}
 					}
@@ -556,21 +551,20 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 	
 	if(sparse){
 		arma::sp_mat ldmat(m, m);
-		arma::vec r2vec(m); r2vec.zeros();
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
 			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs " << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
 			Progress p(chrindx.n_elem, verbose, pb);
+
+			#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 			for (j = 0; j < chrindx.n_elem; j++){
 				if ( ! Progress::check_abort() ) {
 					p.increment();
 					p1 = xx_all[chrindx[j]];
 					m1 = mean_all[chrindx[j]];
 					sum1 = sum_all[chrindx[j]];
-					ldmat(chrindx[j], chrindx[j]) = p1 * p1 / ind;
-					#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
-					for(i = j + 1; i < chrindx.n_elem; i++){
+					for(i = j; i < chrindx.n_elem; i++){
 						p12 = 0;
 						p2 = xx_all[chrindx[i]];
 						m2 = mean_all[chrindx[i]];
@@ -583,13 +577,9 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 						if(r * r * ind <= chisq_){
 							// nothing
 						}else{
-							r2vec[chrindx[i]] = p12 / ind;
-						}
-					}
-					for(i = j + 1; i < chrindx.n_elem; i++){
-						if(r2vec[chrindx[i]]){
-							ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = r2vec[chrindx[i]];
-							r2vec[chrindx[i]] = 0;
+							
+							#pragma omp critical
+							ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = p12 / ind;
 						}
 					}
 				}
@@ -691,21 +681,20 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 	
 	if(sparse){
 		arma::sp_mat ldmat(m, m);
-		arma::vec r2vec(m); r2vec.zeros();
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
 			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in reference panel" << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
 			Progress p(chrindx.n_elem, verbose, pb);
+
+			#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 			for (j = 0; j < chrindx.n_elem; j++){
 				if ( ! Progress::check_abort() ) {
 					p.increment();
 					p1 = xx_all[chrindx[j]];
 					m1 = mean_all[chrindx[j]];
 					sum1 = sum_all[chrindx[j]];
-					ldmat(chrindx[j], chrindx[j]) = p1 * p1 / ind;
-					#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
-					for(i = j + 1; i < chrindx.n_elem; i++){
+					for(i = j; i < chrindx.n_elem; i++){
 						if(refindx[j] && refindx[i]){
 						// nothing
 						}else{
@@ -717,18 +706,16 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 								p12 += (genomat[chrindx[i]][k]) * (genomat[chrindx[j]][k]);
 							}
 							p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
+							// r = p12 / (p1 * p2);
 							r = p12 / (p1 * p2);
 							if(r * r * ind <= chisq_){
 								// nothing
 							}else{
-								r2vec[chrindx[i]] = p12 / ind;
+								
+								#pragma omp critical
+								ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = p12 / ind;
 							}
-						}
-					}
-					for(i = j + 1; i < chrindx.n_elem; i++){
-						if(r2vec[chrindx[i]]){
-							ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = r2vec[chrindx[i]];
-							r2vec[chrindx[i]] = 0;
+							
 						}
 					}
 				}
@@ -738,13 +725,13 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
 				MinimalProgressBar pb;
 				Progress p(chrindx.n_elem, verbose, pb);
+				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 				for (j = 0; j < chrindx.n_elem; j++){
 					if ( ! Progress::check_abort() ) {
 						p.increment();
 						p1 = xx_all_gwas[chrindx[j]];
 						m1 = mean_all_gwas[chrindx[j]];
 						sum1 = sum_all_gwas[chrindx[j]];
-						#pragma omp parallel for schedule(dynamic) private(i, k, p12, p2, m2, sum2, r)
 						for(i = j; i < chrindx.n_elem; i++){
 							p12 = 0;
 							p2 = xx_all_gwas[chrindx[i]];
@@ -758,18 +745,14 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 							if(r * r * ind <= chisq_){
 								// nothing
 							}else{
-								r2vec[gwasindx[chrindx[i]]] = p12 / indgwas;
-							}
-						}
-						for(i = j; i < chrindx.n_elem; i++){
-							if(r2vec[gwasindx[chrindx[i]]]){
-								ldmat(gwasindx[chrindx[i]], gwasindx[chrindx[j]]) = ldmat(gwasindx[chrindx[j]], gwasindx[chrindx[i]]) = r2vec[gwasindx[chrindx[i]]];
-								r2vec[gwasindx[chrindx[i]]] = 0;
+								
+								#pragma omp critical
+								ldmat(gwasindx[chrindx[i]], gwasindx[chrindx[j]]) = ldmat(gwasindx[chrindx[j]], gwasindx[chrindx[i]]) = p12 / indgwas;
 							}
 						}
 					}
 				}
-			}	
+			}
 		}
 		return wrap(ldmat);
 	}else{
