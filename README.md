@@ -10,7 +10,7 @@
 ***If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.***
 
 ## Installation
-```hibayes``` can be installed from GitHub as folowing, please ensure ```devtools``` has been installed prior to ```hibayes```.
+```hibayes``` can be installed from GitHub as following, please ensure ```devtools``` has been installed prior to ```hibayes```.
 ```r
 > devtools::install_github("YinLiLin/hibayes")
 ```
@@ -127,7 +127,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </a>
 </p>
 
-We can also derive the assciation significance from the posterior inclusive probability (PIP) for each SNP in whole MCMC procedure.
+We can also derive the association significance from the posterior inclusive probability (PIP) for each SNP in whole MCMC procedure.
 ```r
 > # view the probability of none-zero effect for each SNP
 > CMplot(cbind(map, 1-fit$nzrate), plot.type="m", ylab=expression(-log[10](italic(PIP))), LOG10=TRUE, threshold=0.05, amplify=FALSE)
