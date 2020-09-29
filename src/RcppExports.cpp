@@ -207,65 +207,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// conjgt_spa
-Rcpp::List conjgt_spa(const NumericMatrix sumstat, const arma::sp_mat ldm, const Nullable<NumericVector> lambda, const double esp, const int outfreq, const bool verbose);
-RcppExport SEXP _hibayes_conjgt_spa(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP lambdaSEXP, SEXP espSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix >::type sumstat(sumstatSEXP);
-    Rcpp::traits::input_parameter< const arma::sp_mat >::type ldm(ldmSEXP);
-    Rcpp::traits::input_parameter< const Nullable<NumericVector> >::type lambda(lambdaSEXP);
-    Rcpp::traits::input_parameter< const double >::type esp(espSEXP);
-    Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(conjgt_spa(sumstat, ldm, lambda, esp, outfreq, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// conjgt_den
-Rcpp::List conjgt_den(const NumericMatrix sumstat, const arma::mat ldm, const Nullable<NumericVector> lambda, const double esp, const int outfreq, const bool verbose);
-RcppExport SEXP _hibayes_conjgt_den(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP lambdaSEXP, SEXP espSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix >::type sumstat(sumstatSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type ldm(ldmSEXP);
-    Rcpp::traits::input_parameter< const Nullable<NumericVector> >::type lambda(lambdaSEXP);
-    Rcpp::traits::input_parameter< const double >::type esp(espSEXP);
-    Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(conjgt_den(sumstat, ldm, lambda, esp, outfreq, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cutwind
-arma::vec cutwind(const arma::vec& chr, const arma::vec& pos, double bp);
-RcppExport SEXP _hibayes_cutwind(SEXP chrSEXP, SEXP posSEXP, SEXP bpSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::vec& >::type chr(chrSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type pos(posSEXP);
-    Rcpp::traits::input_parameter< double >::type bp(bpSEXP);
-    rcpp_result_gen = Rcpp::wrap(cutwind(chr, pos, bp));
-    return rcpp_result_gen;
-END_RCPP
-}
-// read_bed
-void read_bed(std::string bfile, const SEXP pBigMat, const long maxLine, const bool d, const int threads);
-RcppExport SEXP _hibayes_read_bed(SEXP bfileSEXP, SEXP pBigMatSEXP, SEXP maxLineSEXP, SEXP dSEXP, SEXP threadsSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type bfile(bfileSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type pBigMat(pBigMatSEXP);
-    Rcpp::traits::input_parameter< const long >::type maxLine(maxLineSEXP);
-    Rcpp::traits::input_parameter< const bool >::type d(dSEXP);
-    Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
-    read_bed(bfile, pBigMat, maxLine, d, threads);
-    return R_NilValue;
-END_RCPP
-}
 // SBayesRR_den
 Rcpp::List SBayesRR_den(const NumericMatrix sumstat, const NumericMatrix ldm, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vara, const Nullable<double> dfvara, const Nullable<double> s2vara, const Nullable<double> vare, const Nullable<double> dfvare, const Nullable<double> s2vare, const int outfreq, const bool verbose);
 RcppExport SEXP _hibayes_SBayesRR_den(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP varaSEXP, SEXP dfvaraSEXP, SEXP s2varaSEXP, SEXP vareSEXP, SEXP dfvareSEXP, SEXP s2vareSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
@@ -668,6 +609,78 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// conjgt_spa
+Rcpp::List conjgt_spa(const NumericMatrix sumstat, const arma::sp_mat ldm, const Nullable<NumericVector> lambda, const double esp, const int outfreq, const bool verbose);
+RcppExport SEXP _hibayes_conjgt_spa(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP lambdaSEXP, SEXP espSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix >::type sumstat(sumstatSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat >::type ldm(ldmSEXP);
+    Rcpp::traits::input_parameter< const Nullable<NumericVector> >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< const double >::type esp(espSEXP);
+    Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjgt_spa(sumstat, ldm, lambda, esp, outfreq, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// conjgt_den
+Rcpp::List conjgt_den(const NumericMatrix sumstat, const arma::mat ldm, const Nullable<NumericVector> lambda, const double esp, const int outfreq, const bool verbose);
+RcppExport SEXP _hibayes_conjgt_den(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP lambdaSEXP, SEXP espSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix >::type sumstat(sumstatSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type ldm(ldmSEXP);
+    Rcpp::traits::input_parameter< const Nullable<NumericVector> >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< const double >::type esp(espSEXP);
+    Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjgt_den(sumstat, ldm, lambda, esp, outfreq, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cutwind
+arma::vec cutwind(const arma::vec& chr, const arma::vec& pos, double bp);
+RcppExport SEXP _hibayes_cutwind(SEXP chrSEXP, SEXP posSEXP, SEXP bpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type chr(chrSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pos(posSEXP);
+    Rcpp::traits::input_parameter< double >::type bp(bpSEXP);
+    rcpp_result_gen = Rcpp::wrap(cutwind(chr, pos, bp));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rMap_c
+List rMap_c(std::string map_file, const Nullable<std::string> out);
+RcppExport SEXP _hibayes_rMap_c(SEXP map_fileSEXP, SEXP outSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type map_file(map_fileSEXP);
+    Rcpp::traits::input_parameter< const Nullable<std::string> >::type out(outSEXP);
+    rcpp_result_gen = Rcpp::wrap(rMap_c(map_file, out));
+    return rcpp_result_gen;
+END_RCPP
+}
+// read_bed
+void read_bed(std::string bfile, const SEXP pBigMat, const long maxLine, const bool impt, const bool d, const int threads);
+RcppExport SEXP _hibayes_read_bed(SEXP bfileSEXP, SEXP pBigMatSEXP, SEXP maxLineSEXP, SEXP imptSEXP, SEXP dSEXP, SEXP threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type bfile(bfileSEXP);
+    Rcpp::traits::input_parameter< const SEXP >::type pBigMat(pBigMatSEXP);
+    Rcpp::traits::input_parameter< const long >::type maxLine(maxLineSEXP);
+    Rcpp::traits::input_parameter< const bool >::type impt(imptSEXP);
+    Rcpp::traits::input_parameter< const bool >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
+    read_bed(bfile, pBigMat, maxLine, impt, d, threads);
+    return R_NilValue;
+END_RCPP
+}
 // uniform_sample
 double uniform_sample(const double start, const double end);
 RcppExport SEXP _hibayes_uniform_sample(SEXP startSEXP, SEXP endSEXP) {
@@ -847,20 +860,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// tXXmat_Geno_1
-// SEXP tXXmat_Geno_1(SEXP pBigMat, const Nullable<double> chisq, const int threads, const bool verbose);
-// RcppExport SEXP _hibayes_tXXmat_Geno_1(SEXP pBigMatSEXP, SEXP chisqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
-// BEGIN_RCPP
-//     Rcpp::RObject rcpp_result_gen;
-//     Rcpp::RNGScope rcpp_rngScope_gen;
-//     Rcpp::traits::input_parameter< SEXP >::type pBigMat(pBigMatSEXP);
-//     Rcpp::traits::input_parameter< const Nullable<double> >::type chisq(chisqSEXP);
-//     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
-//     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-//     rcpp_result_gen = Rcpp::wrap(tXXmat_Geno_1(pBigMat, chisq, threads, verbose));
-//     return rcpp_result_gen;
-// END_RCPP
-// }
 // tXXmat_Geno_gwas
 SEXP tXXmat_Geno_gwas(SEXP pBigMat, SEXP gwasgeno, const LogicalVector refindx, const NumericVector gwasindx, const Nullable<double> chisq, const int threads, const bool verbose);
 RcppExport SEXP _hibayes_tXXmat_Geno_gwas(SEXP pBigMatSEXP, SEXP gwasgenoSEXP, SEXP refindxSEXP, SEXP gwasindxSEXP, SEXP chisqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
@@ -922,10 +921,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_BayesC", (DL_FUNC) &_hibayes_BayesC, 15},
     {"_hibayes_BayesLASSO", (DL_FUNC) &_hibayes_BayesLASSO, 14},
     {"_hibayes_BayesR", (DL_FUNC) &_hibayes_BayesR, 17},
-    {"_hibayes_conjgt_spa", (DL_FUNC) &_hibayes_conjgt_spa, 6},
-    {"_hibayes_conjgt_den", (DL_FUNC) &_hibayes_conjgt_den, 6},
-    {"_hibayes_cutwind", (DL_FUNC) &_hibayes_cutwind, 3},
-    {"_hibayes_read_bed", (DL_FUNC) &_hibayes_read_bed, 5},
     {"_hibayes_SBayesRR_den", (DL_FUNC) &_hibayes_SBayesRR_den, 14},
     {"_hibayes_SBayesA_den", (DL_FUNC) &_hibayes_SBayesA_den, 14},
     {"_hibayes_SBayesBpi_den", (DL_FUNC) &_hibayes_SBayesBpi_den, 16},
@@ -942,6 +937,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_SBayesC_spa", (DL_FUNC) &_hibayes_SBayesC_spa, 15},
     {"_hibayes_SBayesLASSO_spa", (DL_FUNC) &_hibayes_SBayesLASSO_spa, 14},
     {"_hibayes_SBayesR_spa", (DL_FUNC) &_hibayes_SBayesR_spa, 17},
+    {"_hibayes_conjgt_spa", (DL_FUNC) &_hibayes_conjgt_spa, 6},
+    {"_hibayes_conjgt_den", (DL_FUNC) &_hibayes_conjgt_den, 6},
+    {"_hibayes_cutwind", (DL_FUNC) &_hibayes_cutwind, 3},
+    {"_hibayes_rMap_c", (DL_FUNC) &_hibayes_rMap_c, 2},
+    {"_hibayes_read_bed", (DL_FUNC) &_hibayes_read_bed, 6},
     {"_hibayes_uniform_sample", (DL_FUNC) &_hibayes_uniform_sample, 2},
     {"_hibayes_norm_sample", (DL_FUNC) &_hibayes_norm_sample, 2},
     {"_hibayes_gamma_sample", (DL_FUNC) &_hibayes_gamma_sample, 2},
@@ -957,7 +957,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_rdirichlet_sample", (DL_FUNC) &_hibayes_rdirichlet_sample, 2},
     {"_hibayes_BigStat", (DL_FUNC) &_hibayes_BigStat, 2},
     {"_hibayes_tXXmat_Geno", (DL_FUNC) &_hibayes_tXXmat_Geno, 4},
-//     {"_hibayes_tXXmat_Geno_1", (DL_FUNC) &_hibayes_tXXmat_Geno_1, 4},
     {"_hibayes_tXXmat_Geno_gwas", (DL_FUNC) &_hibayes_tXXmat_Geno_gwas, 7},
     {"_hibayes_tXXmat_Chr", (DL_FUNC) &_hibayes_tXXmat_Chr, 5},
     {"_hibayes_tXXmat_Chr_gwas", (DL_FUNC) &_hibayes_tXXmat_Chr_gwas, 9},

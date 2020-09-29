@@ -4,13 +4,29 @@
 \alias{sbayes}
 \title{SBayes model}
 \usage{
-sbayes(sumstat, ldm, model = c("SBayesB", "SBayesA", "SBayesLASSO",
-  "SBayesRR", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG"),
-  map = NULL, pi = NULL, lambda = NULL, fold = NULL,
-  niter = 20000, nburn = 12000, windsize = NULL, wppa = 0.01,
-  vara = NULL, dfvara = NULL, s2vara = NULL, vare = NULL,
-  dfvare = NULL, s2vare = NULL, outfreq = 10, seed = 666666,
-  verbose = TRUE)
+sbayes(
+  sumstat,
+  ldm,
+  model = c("SBayesB", "SBayesA", "SBayesLASSO", "SBayesRR", "SBayesBpi", "SBayesC",
+    "SBayesCpi", "SBayesR", "CG"),
+  map = NULL,
+  pi = NULL,
+  lambda = NULL,
+  fold = NULL,
+  niter = 20000,
+  nburn = 12000,
+  windsize = NULL,
+  wppa = 0.01,
+  vara = NULL,
+  dfvara = NULL,
+  s2vara = NULL,
+  vare = NULL,
+  dfvare = NULL,
+  s2vare = NULL,
+  outfreq = 10,
+  seed = 666666,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{sumstat}{matrix of summary data, details refer to https://cnsgenomics.com/software/gcta/#COJO.}
@@ -58,7 +74,7 @@ Bayes linear regression model using summary level data
 }
 \examples{
 bfile_path = system.file("extdata", "example", package = "hibayes")
-data = read_plink(bfile_path)
+data = read_plink(bfile_path, out=tempfile())
 geno = data$geno
 map = data$map
 head(map)
@@ -70,7 +86,8 @@ head(sumstat)
 # ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
 # ldm2 = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
 
-## if the order of SNPs in genotype is not consistent with the order in sumstat file, prior adjusting is necessary.
+## if the order of SNPs in genotype is not consistent with the order in sumstat file, 
+## prior adjusting is necessary.
 # indx = match(sumstat[, 1], map[, 1])
 # ldm1 = ldm1[indx, indx]
 

@@ -4,12 +4,28 @@
 \alias{bayes}
 \title{Bayes model}
 \usage{
-bayes(y, X, model = c("BayesB", "BayesA", "BayesLASSO", "BayesRR",
-  "BayesBpi", "BayesC", "BayesCpi", "BayesR"), map = NULL, pi = NULL,
-  fold = NULL, niter = 20000, nburn = 12000, windsize = NULL,
-  wppa = 0.01, vara = NULL, dfvara = NULL, s2vara = NULL,
-  vare = NULL, dfvare = NULL, s2vare = NULL, outfreq = 10,
-  seed = 666666, verbose = TRUE)
+bayes(
+  y,
+  X,
+  model = c("BayesB", "BayesA", "BayesLASSO", "BayesRR", "BayesBpi", "BayesC",
+    "BayesCpi", "BayesR"),
+  map = NULL,
+  pi = NULL,
+  fold = NULL,
+  niter = 20000,
+  nburn = 12000,
+  windsize = NULL,
+  wppa = 0.01,
+  vara = NULL,
+  dfvara = NULL,
+  s2vara = NULL,
+  vare = NULL,
+  dfvare = NULL,
+  s2vare = NULL,
+  outfreq = 10,
+  seed = 666666,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{y}{vector of phenotype, NAs are not allowed.}
@@ -78,7 +94,7 @@ plot(fit$g, betaTrue)
 
 #####load plink binary file#####
 # bfile_path = system.file("extdata", "example", package = "hibayes")
-# data = read_plink(bfile_path)
+# data = read_plink(bfile_path, out=tempfile())
 # pheno = data$pheno
 # geno = data$geno
 # map = data$map

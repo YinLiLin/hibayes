@@ -47,7 +47,7 @@
 #' 
 #' #####load plink binary file#####
 #' # bfile_path = system.file("extdata", "example", package = "hibayes")
-#' # data = read_plink(bfile_path)
+#' # data = read_plink(bfile_path, out=tempfile())
 #' # pheno = data$pheno
 #' # geno = data$geno
 #' # map = data$map
@@ -55,6 +55,8 @@
 #' # fit = bayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
 #' ## For GWAS
 #' # fit = bayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
+
+#' @export
 
 bayes <- 
 function(

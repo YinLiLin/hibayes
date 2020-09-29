@@ -25,7 +25,7 @@
 
 #' @examples
 #' bfile_path = system.file("extdata", "example", package = "hibayes")
-#' data = read_plink(bfile_path)
+#' data = read_plink(bfile_path, out=tempfile())
 #' geno = data$geno
 #' map = data$map
 #' head(map)
@@ -37,12 +37,15 @@
 #' # ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
 #' # ldm2 = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
 #' 
-#' ## if the order of SNPs in genotype is not consistent with the order in sumstat file, prior adjusting is necessary.
+#' ## if the order of SNPs in genotype is not consistent with the order in sumstat file, 
+#' ## prior adjusting is necessary.
 #' # indx = match(sumstat[, 1], map[, 1])
 #' # ldm1 = ldm1[indx, indx]
 #' 
 #' ## fit model
 #' # fit = sbayes(sumstat=sumstat, ldm=ldm1, model="SBayesR")
+
+#' @export
 
 sbayes <- 
 function(

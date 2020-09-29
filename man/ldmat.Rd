@@ -4,8 +4,16 @@
 \alias{ldmat}
 \title{LD variance-covariance matrix calculation}
 \usage{
-ldmat(geno, map = NULL, gwas.geno = NULL, gwas.map = NULL,
-  chisq = NULL, ldchr = FALSE, threads = NULL, verbose = TRUE)
+ldmat(
+  geno,
+  map = NULL,
+  gwas.geno = NULL,
+  gwas.map = NULL,
+  chisq = NULL,
+  ldchr = FALSE,
+  threads = 0,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{geno}{the reference genotype panel in bigmemory format.}
@@ -29,7 +37,7 @@ To calculate density or sparse LD variance-covariance matrix with genotype in bi
 }
 \examples{
 bfile_path = system.file("extdata", "example", package = "hibayes")
-data = read_plink(bfile_path)
+data = read_plink(bfile_path, out=tempfile())
 geno = data$geno
 map = data$map
 # xx = ldmat(geno, threads=4)   #chromosome wide full ld matrix

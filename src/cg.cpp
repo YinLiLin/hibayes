@@ -1,6 +1,6 @@
-// #if !defined(ARMA_64BIT_WORD)
-// #define ARMA_64BIT_WORD 1
-// #endif
+#if !defined(ARMA_64BIT_WORD)
+#define ARMA_64BIT_WORD 1
+#endif
 
 #include <RcppArmadillo.h>
 #include <iostream>
@@ -12,6 +12,59 @@
 using namespace std;
 using namespace Rcpp;
 using namespace arma;
+
+
+// solve the equation Ax=b, x is a variables
+arma::vec PCGv(mat A, vec b, size_t maxiter, const double tol){
+	vec dA = A.diag();
+	// stable checking, using available func to speed up
+	for(size_t i = 0; i < dA.n_elem; i++){
+		if(dA[i] == 0)
+			dA[i] = 1e-4;
+	}// end for i
+	vec Minv = 1.0/dA;
+	// initialize
+	vec x = zeros<vec>(b.n_elem);
+	vec r = zeros<vec>(b.n_elem);
+	vec r1 = zeros<vec>(b.n_elem);
+	vec z1 = zeros<vec>(b.n_elem);
+	r = b;
+	vec z = Minv % r;
+	vec p = z;
+	size_t iter = 0;
+	double sumr2 = norm(r, 2);
+	// PCG main loop 
+	while( sumr2 > tol && iter < maxiter){
+		iter += 1;
+		// move direction
+		vec Ap = A*p;
+		// step size
+		double a = dot(r,z)/dot(p,Ap);
+		// move
+		x = x + a * p;
+		r1 = r - a * Ap;
+		z1 = Minv % r1;
+		double bet = dot(z1, r1)/dot(z, r);
+		p = z1 + bet * p;
+		z = z1;
+		r = r1;
+		sumr2 = norm(r, 2);
+	}// end while loop
+	if (iter >= maxiter){
+		Rcerr << "ERROR: Matrix is Singular!" << endl;
+	}
+	return(x);
+}// end function
+
+arma::mat PCGm(mat A, mat B, size_t maxiter, const double tol){
+	
+	size_t n_iter = B.n_cols;
+	mat x = zeros<mat>(A.n_rows, n_iter);
+	for (size_t i = 0; i < n_iter; i++){
+		x.col(i) = PCGv(A, B.col(i), maxiter, tol);
+	}// end for loop
+	return(x);
+}// end function
 
 arma::vec solver_ma(
 	const arma::mat A, 

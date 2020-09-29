@@ -13,13 +13,15 @@
 
 #' @examples
 #' bfile_path = system.file("extdata", "example", package = "hibayes")
-#' data = read_plink(bfile_path)
+#' data = read_plink(bfile_path, out=tempfile())
 #' geno = data$geno
 #' map = data$map
 #' # xx = ldmat(geno, threads=4)   #chromosome wide full ld matrix
 #' # xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
 #' # xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
 #' # xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
+
+#' @export
 
 ldmat <- function(
 	geno,
@@ -85,6 +87,7 @@ ldmat <- function(
 	}else{
 		if(is.null(map))	stop("map information for reference should be provided.")
 		if(is.null(gwas.map))	stop("map information for gwas sample should be provided.")
+		gwassnpid <- gwas.map[, 1]
 		refindx <- snpid %in% gwassnpid
 		if(sum(refindx) == 0)	stop("No shared SNPs between 'geno' and 'gwas.geno'. ")
 		gwasindx <- gwassnpid %in% snpid

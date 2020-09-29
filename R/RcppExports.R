@@ -33,22 +33,6 @@ BayesR <- function(y, X, pi = NULL, fold = NULL, niter = 50000L, nburn = 20000L,
     .Call(`_hibayes_BayesR`, y, X, pi, fold, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, fixpi, verbose)
 }
 
-conjgt_spa <- function(sumstat, ldm, lambda = NULL, esp = 1e-6, outfreq = 100L, verbose = TRUE) {
-    .Call(`_hibayes_conjgt_spa`, sumstat, ldm, lambda, esp, outfreq, verbose)
-}
-
-conjgt_den <- function(sumstat, ldm, lambda = NULL, esp = 1e-6, outfreq = 100L, verbose = TRUE) {
-    .Call(`_hibayes_conjgt_den`, sumstat, ldm, lambda, esp, outfreq, verbose)
-}
-
-cutwind <- function(chr, pos, bp) {
-    .Call(`_hibayes_cutwind`, chr, pos, bp)
-}
-
-read_bed <- function(bfile, pBigMat, maxLine, d = FALSE, threads = 0L) {
-    invisible(.Call(`_hibayes_read_bed`, bfile, pBigMat, maxLine, d, threads))
-}
-
 SBayesRR_den <- function(sumstat, ldm, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vara = NULL, dfvara = NULL, s2vara = NULL, vare = NULL, dfvare = NULL, s2vare = NULL, outfreq = 100L, verbose = TRUE) {
     .Call(`_hibayes_SBayesRR_den`, sumstat, ldm, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, verbose)
 }
@@ -113,6 +97,26 @@ SBayesR_spa <- function(sumstat, ldm, pi = NULL, fold = NULL, niter = 50000L, nb
     .Call(`_hibayes_SBayesR_spa`, sumstat, ldm, pi, fold, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, fixpi, verbose)
 }
 
+conjgt_spa <- function(sumstat, ldm, lambda = NULL, esp = 1e-6, outfreq = 100L, verbose = TRUE) {
+    .Call(`_hibayes_conjgt_spa`, sumstat, ldm, lambda, esp, outfreq, verbose)
+}
+
+conjgt_den <- function(sumstat, ldm, lambda = NULL, esp = 1e-6, outfreq = 100L, verbose = TRUE) {
+    .Call(`_hibayes_conjgt_den`, sumstat, ldm, lambda, esp, outfreq, verbose)
+}
+
+cutwind <- function(chr, pos, bp) {
+    .Call(`_hibayes_cutwind`, chr, pos, bp)
+}
+
+rMap_c <- function(map_file, out = NULL) {
+    .Call(`_hibayes_rMap_c`, map_file, out)
+}
+
+read_bed <- function(bfile, pBigMat, maxLine, impt = TRUE, d = FALSE, threads = 0L) {
+    invisible(.Call(`_hibayes_read_bed`, bfile, pBigMat, maxLine, impt, d, threads))
+}
+
 uniform_sample <- function(start = 0, end = 1) {
     .Call(`_hibayes_uniform_sample`, start, end)
 }
@@ -172,10 +176,6 @@ BigStat <- function(pBigMat, threads = 0L) {
 tXXmat_Geno <- function(pBigMat, chisq = NULL, threads = 0L, verbose = TRUE) {
     .Call(`_hibayes_tXXmat_Geno`, pBigMat, chisq, threads, verbose)
 }
-
-# tXXmat_Geno_1 <- function(pBigMat, chisq = NULL, threads = 0L, verbose = TRUE) {
-#     .Call(`_hibayes_tXXmat_Geno_1`, pBigMat, chisq, threads, verbose)
-# }
 
 tXXmat_Geno_gwas <- function(pBigMat, gwasgeno, refindx, gwasindx, chisq = NULL, threads = 0L, verbose = TRUE) {
     .Call(`_hibayes_tXXmat_Geno_gwas`, pBigMat, gwasgeno, refindx, gwasindx, chisq, threads, verbose)

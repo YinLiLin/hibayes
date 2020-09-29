@@ -95,9 +95,9 @@ Rcpp::List BayesRR(
     if(yhasNA(y)){
         throw Rcpp::exception("NAs are not allowed in y.");
     }
-    if(xhasNA(X)){
-        throw Rcpp::exception("NAs are not allowed in X.");
-    }
+    // if(xhasNA(X)){
+    //     throw Rcpp::exception("NAs are not allowed in X.");
+    // }
     if(y.length() != X.nrow()){
         throw Rcpp::exception("Number of individuals not equals.");
     }
@@ -402,9 +402,9 @@ Rcpp::List BayesA(
     if(yhasNA(y)){
         throw Rcpp::exception("NAs are not allowed in y.");
     }
-    if(xhasNA(X)){
-        throw Rcpp::exception("NAs are not allowed in X.");
-    }
+    // if(xhasNA(X)){
+    //     throw Rcpp::exception("NAs are not allowed in X.");
+    // }
     if(y.length() != X.nrow()){
         throw Rcpp::exception("Number of individuals not equals.");
     }
@@ -711,9 +711,9 @@ Rcpp::List BayesBpi(
     if(yhasNA(y)){
         throw Rcpp::exception("NAs are not allowed in y.");
     }
-    if(xhasNA(X)){
-        throw Rcpp::exception("NAs are not allowed in X.");
-    }
+    // if(xhasNA(X)){
+    //     throw Rcpp::exception("NAs are not allowed in X.");
+    // }
     if(y.length() != X.nrow()){
         throw Rcpp::exception("Number of individuals not equals.");
     }
@@ -1124,9 +1124,9 @@ Rcpp::List BayesCpi(
     if(yhasNA(y)){
         throw Rcpp::exception("NAs are not allowed in y.");
     }
-    if(xhasNA(X)){
-        throw Rcpp::exception("NAs are not allowed in X.");
-    }
+    // if(xhasNA(X)){
+    //     throw Rcpp::exception("NAs are not allowed in X.");
+    // }
     if(y.length() != X.nrow()){
         throw Rcpp::exception("Number of individuals not equals.");
     }
@@ -1537,9 +1537,9 @@ Rcpp::List BayesLASSO(
     if(yhasNA(y)){
         throw Rcpp::exception("NAs are not allowed in y.");
     }
-    if(xhasNA(X)){
-        throw Rcpp::exception("NAs are not allowed in X.");
-    }
+    // if(xhasNA(X)){
+    //     throw Rcpp::exception("NAs are not allowed in X.");
+    // }
     if(y.length() != X.nrow()){
         throw Rcpp::exception("Number of individuals not equals.");
     }
@@ -1604,7 +1604,7 @@ Rcpp::List BayesLASSO(
     double lambda2 = 2 * (1 - R2) / (R2) * sum(vx);
     double lambda = sqrt(lambda2); 
     double shape, shape0 = 1.1;
-    double rate, rate0 = (shape - 1) / lambda2;
+    double rate, rate0 = (shape0 - 1) / lambda2;
 
     // for gwas
     R_xlen_t nw;
@@ -1863,9 +1863,9 @@ Rcpp::List BayesR(
     if(yhasNA(y)){
         throw Rcpp::exception("NAs are not allowed in y.");
     }
-    if(xhasNA(X)){
-        throw Rcpp::exception("NAs are not allowed in X.");
-    }
+    // if(xhasNA(X)){
+    //     throw Rcpp::exception("NAs are not allowed in X.");
+    // }
     if(y.length() != X.nrow()){
         throw Rcpp::exception("Number of individuals not equals.");
     }

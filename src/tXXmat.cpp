@@ -1,9 +1,9 @@
-// #if !defined(ARMA_64BIT_WORD)
-// #define ARMA_64BIT_WORD 1
-// #endif
+#if !defined(ARMA_64BIT_WORD)
+#define ARMA_64BIT_WORD 1
+#endif
 
 #include <RcppArmadillo.h>
-#include <omp.h>
+#include "omp_set.h"
 #include <iostream>
 #include <R_ext/Print.h>
 #include <bigmemory/BigMatrix.h>
@@ -56,11 +56,7 @@ class MinimalProgressBar: public ProgressBar{
 template <typename T>
 SEXP BigStat(XPtr<BigMatrix> pMat, const int threads = 0){
 
-    if (threads == 0) {
-        omp_set_num_threads(omp_get_num_procs());
-    }else if(threads > 0) {
-        omp_set_num_threads(threads);
-    }
+    omp_setup(threads);
 
 	MatrixAccessor<T> bigm = MatrixAccessor<T>(*pMat);
 
@@ -117,11 +113,7 @@ SEXP BigStat(SEXP pBigMat, const int threads = 0){
 template <typename T>
 SEXP tXXmat_Geno(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
 
-	if (threads == 0) {
-		omp_set_num_threads(omp_get_num_procs());
-	}else if(threads > 0) {
-		omp_set_num_threads(threads);
-	}
+	omp_setup(threads);
 
 	MatrixAccessor<T> genomat = MatrixAccessor<T>(*pMat);
 
@@ -333,11 +325,7 @@ SEXP tXXmat_Geno(SEXP pBigMat, const Nullable<double> chisq = R_NilValue, const 
 template <typename T>
 SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector refindx, const NumericVector gwasindx, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
 
-	if (threads == 0) {
-		omp_set_num_threads(omp_get_num_procs());
-	}else if(threads > 0) {
-		omp_set_num_threads(threads);
-	}
+	omp_setup(threads);
 
 	MatrixAccessor<T> genomat = MatrixAccessor<T>(*pMat);
 	XPtr<BigMatrix> gwasMat(gwasgeno);
@@ -525,11 +513,7 @@ SEXP tXXmat_Geno_gwas(SEXP pBigMat, SEXP gwasgeno, const LogicalVector refindx, 
 template <typename T>
 SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
 
-	if (threads == 0) {
-		omp_set_num_threads(omp_get_num_procs());
-	}else if(threads > 0) {
-		omp_set_num_threads(threads);
-	}
+	omp_setup(threads);
 
 	MatrixAccessor<T> genomat = MatrixAccessor<T>(*pMat);
 
@@ -645,11 +629,7 @@ SEXP tXXmat_Chr(SEXP pBigMat, const NumericVector chr, const Nullable<double> ch
 template <typename T>
 SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgeno, const NumericVector gwaschr, const LogicalVector refindx, const NumericVector gwasindx, const Nullable<double> chisq = R_NilValue, const int threads=0, const bool verbose=true){
 
-	if (threads == 0) {
-		omp_set_num_threads(omp_get_num_procs());
-	}else if(threads > 0) {
-		omp_set_num_threads(threads);
-	}
+	omp_setup(threads);
 
 	MatrixAccessor<T> genomat = MatrixAccessor<T>(*pMat);
 	XPtr<BigMatrix> gwasMat(gwasgeno);
@@ -657,7 +637,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 
 	int m = pMat->ncol();
 	int ind = pMat->nrow();
-	int mgwas = gwasMat->ncol();
+	// int mgwas = gwasMat->ncol();
 	int indgwas = gwasMat->nrow();
 	int i, j, k;
 	bool sparse = false;

@@ -1,6 +1,6 @@
-// #if !defined(ARMA_64BIT_WORD)
-// #define ARMA_64BIT_WORD 1
-// #endif
+#if !defined(ARMA_64BIT_WORD)
+#define ARMA_64BIT_WORD 1
+#endif
 
 #include <RcppArmadillo.h>
 #include <iostream>
@@ -76,7 +76,7 @@ Rcpp::List SBayesRR_spa(
 	int n = mean(na_omit(sumstat(_, 3)));
 	bool WPPA = false;
 	int count = 0;
-	double xx, gi, rhs, lhs, uhat, v, hsq;
+	double xx, gi, rhs, lhs, v, hsq;
 	double vara_, vargi, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, sumvargi;
 	arma::vec g(m); g.zeros();
 	arma::vec g_store(m); g_store.zeros();
@@ -103,7 +103,7 @@ Rcpp::List SBayesRR_spa(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
 	if(dfvara.isNotNull()){
 		dfvara_ = as<double>(dfvara);
 	}else{
@@ -161,7 +161,6 @@ Rcpp::List SBayesRR_spa(
 
     // for gwas
     R_xlen_t nw;
-    int ni;
     double varw;
     arma::vec windindx_(m);
     Rcpp::List windx(m);
@@ -395,7 +394,7 @@ Rcpp::List SBayesA_spa(
 	int n = mean(na_omit(sumstat(_, 3)));
 	bool WPPA = false;
 	int count = 0;
-	double xx, gi, rhs, lhs, uhat, v, hsq;
+	double xx, gi, rhs, lhs, v, hsq;
 	double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg;
 	arma::vec g(m); g.zeros();
 	arma::vec g_store(m); g_store.zeros();
@@ -478,7 +477,7 @@ Rcpp::List SBayesA_spa(
 
     // for gwas
     R_xlen_t nw;
-    int ni;
+    // int ni;
     double varw;
     arma::vec windindx_(m);
     Rcpp::List windx(m);
@@ -727,7 +726,7 @@ Rcpp::List SBayesBpi_spa(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
     if(pi <= 0 || pi >= 1){
         throw Rcpp::exception("pi should be at 0 < pi < 1.");
     }else{
@@ -791,7 +790,7 @@ Rcpp::List SBayesBpi_spa(
 
     // for gwas
     R_xlen_t nw;
-    int ni;
+    // int ni;
     double varw;
     arma::vec windindx_(m);
     Rcpp::List windx(m);
@@ -1232,7 +1231,7 @@ Rcpp::List SBayesCpi_spa(
 
     // for gwas
     R_xlen_t nw;
-    int ni;
+    // int ni;
     double varw;
     arma::vec windindx_(m);
     Rcpp::List windx(m);
@@ -1606,7 +1605,7 @@ Rcpp::List SBayesLASSO_spa(
 	int n = mean(na_omit(sumstat(_, 3)));
 	bool WPPA = false;
 	int count = 0;
-	double xx, gi, rhs, lhs, uhat, v, hsq;
+	double xx, gi, rhs, lhs, v, hsq;
 	double vara_, vargi, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg;
 	arma::vec g(m); g.zeros();
 	arma::vec g_store(m); g_store.zeros();
@@ -1638,7 +1637,7 @@ Rcpp::List SBayesLASSO_spa(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
 	if(dfvara.isNotNull()){
 		dfvara_ = as<double>(dfvara);
 	}else{
@@ -1698,11 +1697,11 @@ Rcpp::List SBayesLASSO_spa(
     double lambda2 = 2 * (1 - R2) / (R2) * (sum(xpx) / (n - 1));
     double lambda = sqrt(lambda2); 
     double shape, shape0 = 1.1;
-    double rate, rate0 = (shape - 1) / lambda2;
+    double rate, rate0 = (shape0 - 1) / lambda2;
 
     // for gwas
     R_xlen_t nw;
-    int ni;
+    // int ni;
     double varw;
     arma::vec windindx_(m);
     Rcpp::List windx(m);
@@ -2112,7 +2111,7 @@ Rcpp::List SBayesR_spa(
 
     // for gwas
     R_xlen_t nw;
-    int ni;
+    // int ni;
     double varw;
     arma::vec windindx_(m);
     Rcpp::List windx(m);

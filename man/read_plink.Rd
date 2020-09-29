@@ -4,22 +4,25 @@
 \alias{read_plink}
 \title{data load}
 \usage{
-read_plink(bfile = "", maxLine = 10000, mode = c("A", "D"),
-  backingpath = NULL, descriptorfile = NULL, backingfile = NULL,
-  threads = 1)
+read_plink(
+  bfile = "",
+  maxLine = 10000,
+  impute = TRUE,
+  mode = c("A", "D"),
+  out = NULL,
+  threads = 0
+)
 }
 \arguments{
 \item{bfile}{character, prefix of Plink binary format data.}
 
 \item{maxLine}{number, set the number of lines to read at a time.}
 
+\item{impute}{logical, whether to impute missing values in genotype by major alleles.}
+
 \item{mode}{"A" or "D", additive effect or dominant effect.}
 
-\item{backingpath}{the path to the directory containing the file backing cache.}
-
-\item{descriptorfile}{the name of the file to hold the backingfile description, for subsequent use with ‘attach.big.matrix’; if ‘NULL’, the ‘backingfile’ is used as the root part of the descriptor file name.  The descriptor file is placed in the same directory as the backing files.}
-
-\item{backingfile}{the root name for the file(s) for the cache.}
+\item{out}{character, path and prefix of output file}
 
 \item{threads}{number, the number of used threads for parallel process}
 }
@@ -28,7 +31,7 @@ To load plink binary data
 }
 \examples{
 bfile_path = system.file("extdata", "example", package = "hibayes")
-data = read_plink(bfile_path, mode="A")
+data = read_plink(bfile_path, out=tempfile(), mode="A")
 pheno = data$pheno
 geno = data$geno
 map = data$map

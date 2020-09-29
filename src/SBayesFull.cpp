@@ -18,7 +18,7 @@ using namespace std;
 using namespace Rcpp;
 
 double gXXg(NumericVector g, NumericMatrix W, IntegerVector indx){
-	double res1;
+	double res1 = 0.0;
 	for(int i = 0; i < indx.size(); i++){
 		double res2 = 0;
 		for(int j = 0; j < indx.size(); j++){
@@ -57,7 +57,7 @@ Rcpp::List SBayesRR_den(
 	int n = mean(na_omit(sumstat(_, 3)));
 	bool WPPA = false;
 	int count = 0;
-	double xx, gi, gi_, rhs, lhs, uhat, v, hsq;
+	double xx, gi, gi_, rhs, lhs, v, hsq;
 	double vara_, vargi, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, sumvargi;
 	NumericVector g(m); g.fill(0);
 	NumericVector g_store(m);
@@ -85,7 +85,7 @@ Rcpp::List SBayesRR_den(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
 	if(dfvara.isNotNull()){
 		dfvara_ = as<double>(dfvara);
 	}else{
@@ -355,7 +355,7 @@ Rcpp::List SBayesA_den(
 	int n = mean(na_omit(sumstat(_, 3)));
 	bool WPPA = false;
 	int count = 0;
-	double xx, gi, gi_, rhs, lhs, uhat, v, hsq;
+	double xx, gi, gi_, rhs, lhs, v, hsq;
 	double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg;
 	NumericVector g(m); g.fill(0);
 	NumericVector g_store(m);
@@ -679,7 +679,7 @@ Rcpp::List SBayesBpi_den(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
     if(pi <= 0 || pi >= 1){
         throw Rcpp::exception("pi should be at 0 < pi < 1.");
     }else{
@@ -1066,7 +1066,7 @@ Rcpp::List SBayesCpi_den(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
     if(pi <= 0 || pi >= 1){
         throw Rcpp::exception("pi should be at 0 < pi < 1.");
     }else{
@@ -1423,7 +1423,7 @@ Rcpp::List SBayesLASSO_den(
 	int n = mean(na_omit(sumstat(_, 3)));
 	bool WPPA = false;
 	int count = 0;
-	double xx, gi, gi_, rhs, lhs, uhat, v, hsq;
+	double xx, gi, gi_, rhs, lhs, v, hsq;
 	double vara_, vargi, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg;
 	NumericVector g(m); g.fill(0);
 	NumericVector g_store(m);
@@ -1451,7 +1451,7 @@ Rcpp::List SBayesLASSO_den(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
 	if(dfvara.isNotNull()){
 		dfvara_ = as<double>(dfvara);
 	}else{
@@ -1502,7 +1502,7 @@ Rcpp::List SBayesLASSO_den(
     double lambda2 = 2 * (1 - R2) / (R2) * (sum(xpx) / (n - 1));
     double lambda = sqrt(lambda2); 
     double shape, shape0 = 1.1;
-    double rate, rate0 = (shape - 1) / lambda2;
+    double rate, rate0 = (shape0 - 1) / lambda2;
 
     // for gwas
     R_xlen_t nw;
@@ -1769,7 +1769,7 @@ Rcpp::List SBayesR_den(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	double vary = yy / n;
+	// double vary = yy / n;
 	if(pi.isNotNull()){
 		pi_ = as<NumericVector>(pi);
 	}else{
