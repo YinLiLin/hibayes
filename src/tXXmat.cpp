@@ -135,6 +135,7 @@ SEXP tXXmat_Geno(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue
 	Progress p(m, verbose, pb);
 	
 	if(sparse){
+		if(verbose)	Rcerr << "Genome-Wide sparse matrix" << endl;
 		arma::sp_mat ldmat(m, m);
 		arma::vec r2vec(m); r2vec.zeros();
 
@@ -168,6 +169,7 @@ SEXP tXXmat_Geno(XPtr<BigMatrix> pMat, const Nullable<double> chisq = R_NilValue
 		}
 		return wrap(ldmat);
 	}else{
+		if(verbose)	Rcerr << "Genome-Wide dense matrix" << endl;
 		arma::mat ldmat(m, m);
 		#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 		for (j = 0; j < m; j++){
@@ -352,6 +354,7 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 	}
 
 	if(sparse){
+		if(verbose)	Rcerr << "Genome-Wide sparse matrix" << endl;
 		arma::sp_mat ldmat(m, m);
 		for(int xx = 0; xx < 2; xx++){
 			if(xx == 0){
@@ -425,6 +428,7 @@ SEXP tXXmat_Geno_gwas(XPtr<BigMatrix> pMat, SEXP gwasgeno, const LogicalVector r
 		}
 		return wrap(ldmat);
 	}else{
+		if(verbose)	Rcerr << "Genome-Wide dense matrix" << endl;
 		arma::mat ldmat(m, m);
 		for(int xx = 0; xx < 2; xx++){
 			if(xx == 0){
@@ -534,6 +538,7 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 	arma::vec unichr = unique(vecchr);
 	
 	if(sparse){
+		if(verbose)	Rcerr << "Chromosome-Wide sparse matrix" << endl;
 		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
@@ -571,11 +576,13 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 		}
 		return wrap(ldmat);
 	}else{
-		arma::mat ldmat(m, m);
+		if(verbose)	Rcerr << "Chromosome-Wide dense matrix" << endl;
+		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
 			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs " << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
+			arma::mat ldmat_chr(chrindx.n_elem, chrindx.n_elem);
 			Progress p(chrindx.n_elem, verbose, pb);
 
 			#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
@@ -585,7 +592,7 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 					p1 = xx_all[chrindx[j]];
 					m1 = mean_all[chrindx[j]];
 					sum1 = sum_all[chrindx[j]];
-					ldmat(chrindx[j], chrindx[j]) = p1 * p1 / ind;
+					ldmat_chr(j, j) = p1 * p1 / ind;
 					for(i = j + 1; i < chrindx.n_elem; i++){
 						p12 = 0;
 						p2 = xx_all[chrindx[i]];
@@ -596,8 +603,13 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 						}
 						p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
 						// r = p12 / (p1 * p2);
-						ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = p12 / ind;
+						ldmat_chr(i, j) = ldmat_chr(j, i) = p12 / ind;
 					}
+				}
+			}
+			for (j = 0; j < chrindx.n_elem; j++){
+				for(i = j; i < chrindx.n_elem; i++){
+					ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = ldmat_chr(i, j);
 				}
 			}
 		}
@@ -660,6 +672,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 	arma::vec unigwaschr = unique(vecgwaschr);
 	
 	if(sparse){
+		if(verbose)	Rcerr << "Chromosome-Wide sparse matrix" << endl;
 		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
@@ -736,11 +749,13 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 		}
 		return wrap(ldmat);
 	}else{
-		arma::mat ldmat(m, m);
+		if(verbose)	Rcerr << "Chromosome-Wide dense matrix" << endl;
+		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
 			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in reference panel" << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
+			arma::mat ldmat_chr(chrindx.n_elem, chrindx.n_elem);
 			Progress p(chrindx.n_elem, verbose, pb);
 
 			#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
@@ -750,7 +765,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 					p1 = xx_all[chrindx[j]];
 					m1 = mean_all[chrindx[j]];
 					sum1 = sum_all[chrindx[j]];
-					ldmat(chrindx[j], chrindx[j]) = p1 * p1 / ind;
+					ldmat_chr(j, j) = p1 * p1 / ind;
 					for(i = j + 1; i < chrindx.n_elem; i++){
 						if(refindx[j] && refindx[i]){
 						// nothing
@@ -764,16 +779,23 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 							}
 							p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
 							// r = p12 / (p1 * p2);
-							ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = p12 / ind;
+							ldmat_chr(i, j) = ldmat_chr(j, i) = p12 / ind;
 						}
 					}
 				}
 			}
+			for (j = 0; j < chrindx.n_elem; j++){
+				for(i = j; i < chrindx.n_elem; i++){
+					ldmat(chrindx[i], chrindx[j]) = ldmat(chrindx[j], chrindx[i]) = ldmat_chr(i, j);
+				}
+			}
+
 			chrindx = find(vecgwaschr == unichr[cc]);
 			if(chrindx.n_elem > 0){
 				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
 				MinimalProgressBar pb;
 				Progress p(chrindx.n_elem, verbose, pb);
+				arma::mat ldmat_chr(chrindx.n_elem, chrindx.n_elem);
 				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
 				for (j = 0; j < chrindx.n_elem; j++){
 					if ( ! Progress::check_abort() ) {
@@ -790,12 +812,20 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 								p12 += (gwasgenomat[chrindx[i]][k]) * (gwasgenomat[chrindx[j]][k]);
 							}
 							p12 -= sum1 * m2 + sum2 * m1 - ind * m1 * m2;
+
+							ldmat_chr(i, j) = ldmat_chr(j, i) = p12 / indgwas;
 							// r = p12 / (p1 * p2);
 							ldmat(gwasindx[chrindx[i]], gwasindx[chrindx[j]]) = ldmat(gwasindx[chrindx[j]], gwasindx[chrindx[i]]) = p12 / indgwas;
 						}
 					}
 				}
 			}
+			for (j = 0; j < chrindx.n_elem; j++){
+				for(i = j; i < chrindx.n_elem; i++){
+					ldmat(gwasindx[chrindx[i]], gwasindx[chrindx[j]]) = ldmat(gwasindx[chrindx[j]], gwasindx[chrindx[i]]) = ldmat_chr(i, j);
+				}
+			}
+
 		}
 		return wrap(ldmat);
 	}

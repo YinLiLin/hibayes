@@ -37,11 +37,11 @@ ldmat <- function(
 		geno <- as.big.matrix(geno)
 	}
 	if(!is.null(chisq)){
-		if(chisq < 0)	chisq = 0
+		if(chisq < 0)	chisq = NULL
 	}
-	if(!ldchr){
-		if(is.null(chisq))	chisq = 0
-	}
+	# if(!ldchr){
+	# 	if(is.null(chisq))	chisq = 0
+	# }
 	if(!is.null(map)){
 		if(length(unique(map[,2])) == 1)	ldchr <- TRUE;
 		if(!is.null(chisq)){
