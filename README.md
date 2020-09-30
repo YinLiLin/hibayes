@@ -27,9 +27,18 @@ To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, 
 > pheno = data$pheno
 > nrow(pheno) # number of individuals
 [1] 4798
-> geno = as.matrix(data$geno)
+> geno = data$geno
 > dim(geno) # number of individuals and markers
 [1] 4798 7385
+```
+Missing genotype will be replaced by the major genotype of each allele. By default, the memory-mapped files are directed into work directory, users could redirect to new path as following:
+```r
+> data <- read_plink(bfile=bfile_path, out="./test", threads=1)
+
+# directly use the genotype for the next time, no need to use 'read_plink' again:
+> geno <- attach.big.matrix("./test.desc")
+> map <- read.table("./test.map", header=TRUE)
+
 > geno[1:5,1:5]
      [,1] [,2] [,3] [,4] [,5]
 [1,]    0    0    0    0    1
