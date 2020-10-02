@@ -1,7 +1,7 @@
 # hibayes [![](https://img.shields.io/badge/Issues-%2B-brightgreen.svg)](https://github.com/YinLiLin/hibayes/issues/new) [![](https://img.shields.io/badge/Release-v0.99.1-darkred.svg)](https://github.com/YinLiLin/hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
 ## Individual and summary level data based BAYES model for Genome-Wide Association and Genomic Prediction
 
-```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit 3 types of BAYES model using [individual-level] (```bayes```), [summary-level] (```sbayes```), and [individual + pedigree-level] data (single-step, ```ssbayes```) for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1) genetic variance, 2) residual variance, 3) heritability, 4) joint distribution of effect size, 5) phenotype/genetic variance explained (PVE) for single or multiple SNPs, 6) posterior probability of association of the genomic window (WPPA), and 7) posterior inclusive probability (PIP). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
+```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit 3 types of BAYES model using **[individual-level]** (```bayes```), **[summary-level]** (```sbayes```), and **[individual + pedigree-level]** data (single-step, ```ssbayes```) for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including 1) genetic variance, 2) residual variance, 3) heritability, 4) joint distribution of effect size, 5) phenotype/genetic variance explained (PVE) for single or multiple SNPs, 6) posterior probability of association of the genomic window (WPPA), and 7) posterior inclusive probability (PIP). The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
 
 <!--
 ```hibayes``` is developed by [Lilin Yin](https://github.com/YinLiLin) with the support of [Jian Zeng](http://researchers.uq.edu.au/researcher/14033), [Haohao Zhang](https://github.com/hyacz), [Xiaolei Liu](https://github.com/XiaoleiLiuBio), and [Jian Yang](https://researchers.uq.edu.au/researcher/2713). If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.
@@ -17,7 +17,7 @@
 After installed successfully, type ```library(hibayes)``` to use. The package is on its way to R CRAN, and would be coming soon.
 
 ## Usage
-### Individual level bayes model
+### 1. Individual level bayes model
 To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, n is the number of individuals, m is the number of SNPs) should be provided. Users can load the data that coded by other softwares by 'read.table' to fit model. Additionally, we pertinently provide a function ```read_plink``` to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in ```hibayes```:
 ```r
 > bfile_path = system.file("extdata", "example", package = "hibayes")
@@ -68,7 +68,7 @@ Total 8 bayes models are available currently, including:
  
 Type ```?bayes``` to see details of all parameters.
 
-#### (1) Gemonic prediction/selection
+#### (a) Gemonic prediction/selection
 ```r
 > fit <- bayes(y=pheno[, 1], X=geno, model="BayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 > SNPeffect <- fit$g
@@ -98,7 +98,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 </a>
 </p>
 
-#### (2) Gemone-Wide association study
+#### (b) Gemone-Wide association study
 **WPPA** is defined to be the window posterior probability of association ([Fernando and Garrick (2013)](https://link.springer.com/protocol/10.1007/978-1-62703-447-0_10)), it is the ratio of the number of iterations that ***Pw*** (the proportion of the total genetic variance explained by the window ***w***) > 1% divided by the total number of MCMC iterations.
 ```r
 > fit <- bayes(y=pheno[, 1], X=geno, map=map, windsize=1e6, wppa=0.01, model="BayesCpi", niter=20000, nburn=10000, outfreq=10)
@@ -147,7 +147,9 @@ We can also derive the association significance from the posterior inclusive pro
 </a>
 </p>
 
-### Summary level bayes model
+-----
+
+### 2. Summary level bayes model
 Differently, to fit summary level data based bayes model (SBayes), the reference panel which is used to calculate LD matrix, and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided. Specially, if the summary data is derived from reference panel, means that all data come from the same population, then summary data level based bayes model equals to the individual level bayes model. 
 
 The available models for SBayes include "SBayesRR", "SBayesA", "SBayesLASSO", "SBayesB", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG" (conjuction gradient). For 'CG' model, parameter 'lambda' should be assigned with m * (1 / h2 - 1), where m is the total number of SNPs and h2 is the heritability that can be estimated from LD score regression analysis of the summary data.
@@ -187,14 +189,22 @@ Note that ```hibayes``` only use the 'BETA', 'SE' and 'NMISS' columns.
 
 Type ```?sbayes``` to see details of all parameters.
 
-(1) Gemonic prediction/selection
+(a) Gemonic prediction/selection
 ```r
 > fit = sbayes(sumstat=sumstat, ldm=ldm1, model="SBayesR", niter=20000, nburn=10000, outfreq=10, verbose=TRUE)
 ```
-(2) Gemone-Wide association study
+(b) Gemone-Wide association study
 ```r
 > fit = sbayes(sumstat=sumstat, ldm=ldm1, map=map, model="SBayesR", windsize=1e6, wppa=0.01, niter=20000, nburn=10000)
 ```
+
+-----
+
+### 3. Individual + pedigree level bayes model
+
+***Under developing***
+
+-----
 
 ## Citation
 **For individual level bayes model:** <br>
