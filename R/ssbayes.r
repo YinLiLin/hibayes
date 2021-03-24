@@ -60,7 +60,7 @@
 
 ssbayes <- 
 function(
-	y,
+    y,
     X,
     Ped,
     mode = c("A", "D"),

@@ -60,7 +60,7 @@
 
 bayes <- 
 function(
-	y,
+    y,
     X,
     model = c("BayesB", "BayesA", "BayesLASSO", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR"),
     map = NULL,

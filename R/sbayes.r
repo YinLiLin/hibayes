@@ -49,7 +49,7 @@
 
 sbayes <- 
 function(
-	sumstat,
+    sumstat,
     ldm,
     model = c("SBayesB", "SBayesA", "SBayesLASSO", "SBayesRR", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG"),
     map = NULL,
