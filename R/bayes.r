@@ -3,7 +3,8 @@
 #' Bayes linear regression model using individual level data
 #'
 #' @param y vector of phenotype, NAs are not allowed.
-#' @param X numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.
+#' @param Z numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.
+#' @param X (optional) covariate matrix of all individuals, all values should be in digits, characters and NAs are not allowed.
 #' @param model bayes model including: "BayesRR", "BayesA", "BayesLASSO", "BayesB", "BayesBpi", "BayesC", "BayesCpi", "BayesR".
 #' @param map (optional, only for GWAS) the map information of genotype, columns are: SNPs, chromosome, physical position. 
 #' @param pi percentage of zero effect SNPs. For bayesR, it is a vector for groups of SNPs, the default is c(0.95, 0.02, 0.02, 0.01).
@@ -28,18 +29,18 @@
 #' m = 100                         # number of SNPs
 #' k = 10                          # number of causal SNPs
 #' h2 = 0.5                        # heritability
-#' X = matrix(sample(c(0, 1, 2), n*m, prob=c(0.25, 0.5, 0.25), replace=TRUE), n)
-#' X = apply(X, 2, function(x){x-mean(x)})
+#' Z = matrix(sample(c(0, 1, 2), n*m, prob=c(0.25, 0.5, 0.25), replace=TRUE), n)
+#' Z = apply(Z, 2, function(x){x-mean(x)})
 #' qtl = sort(sample(1:m, k))
 #' betaTrue = array(0,m)
 #' betaTrue[qtl] = rnorm(k)
-#' g = X%*%betaTrue
+#' g = Z%*%betaTrue
 #' vg = var(g)
 #' ve = (1-h2)/h2 * vg
 #' y = g + rnorm(n,0,sqrt(ve))
 #' 
 #' ## fit model
-#' fit = bayes(y=y, X=X, model="BayesCpi", niter=1000, nburn=500)
+#' fit = bayes(y=y, Z=Z, model="BayesCpi", niter=1000, nburn=500)
 #' 
 #' ## check results
 #' cor(fit$g, betaTrue)
@@ -52,16 +53,17 @@
 #' # geno = data$geno
 #' # map = data$map
 #' ## For GS/GP
-#' # fit = bayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
+#' # fit = bayes(y=pheno[,1], Z=geno, model="BayesR", niter=20000, nburn=10000)
 #' ## For GWAS
-#' # fit = bayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
+#' # fit = bayes(y=pheno[,1], Z=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
 
 #' @export
 
 bayes <- 
 function(
     y,
-    X,
+	Z,
+    X = NULL,
     model = c("BayesB", "BayesA", "BayesLASSO", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR"),
     map = NULL,
     pi = NULL,
@@ -135,32 +137,35 @@ function(
 		}
 	}
 	if(!is.numeric(y)){y <- as.matrix(y)[,1,drop=TRUE]}
-	X <- as.matrix(X); gc()
+	if(!is.matrix(Z)){Z <- as.matrix(Z); gc()}
+	if(!is.null(X)){
+
+	}
 	switch(
 		match.arg(model), 
 		"BayesRR"={
-			res = BayesRR(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesRR(y=y, X=Z, C=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesA"={
-			res = BayesA(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesA(y=y, X=Z, C=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesLASSO"={
-			res = BayesLASSO(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesLASSO(y=y, X=Z, C=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesB"={
-			res = BayesB(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesB(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesBpi"={
-			res = BayesBpi(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesBpi(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesC"={
-			res = BayesC(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesC(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesCpi"={
-			res = BayesCpi(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesCpi(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesR"={
-			res = BayesR(y=y, X=X, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesR(y=y, X=Z, C=X, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
 		}
 	)
 

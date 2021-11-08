@@ -1,12 +1,16 @@
 Package: hibayes
-Title: Individual and Summary Level Data Based BAYES Regression Model
+Title: Individual and Summary Level Data Based Bayesian Regression Model
 Version: 1.0.0
-Date: 2020-10-01
+Date: 2021-10-25
 Authors@R: c(
     person("Lilin", "Yin", email = "ylilin@163.com", 
-           role = c("aut", "cre", "cph"))
+           role = c("aut", "cre", "cph")),
+    person("Haohao", "Zhang", email = "haohaozhang@whut.edu.cn", 
+           role = c("aut", "cph")),
+    person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
+           role = c("aut", "cph"))
     )
-Description: Individual and summary level data based BAYES regression model for Genome-Wide Association and Genomic Prediction.
+Description: Individual and summary level data based Bayesian regression model for Genome-Wide Association and Genomic Prediction.
 License: GPL-3
 Maintainer: Lilin Yin <ylilin@163.com>
 URL: https://github.com/YinLiLin/hibayes

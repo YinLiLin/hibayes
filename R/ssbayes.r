@@ -1,6 +1,6 @@
-#' Bayes model
+#' Single-step Bayes model
 #'
-#' Bayes linear regression model using individual level data
+#' Single-step Bayes linear regression model using individual level data and pedigree information
 #'
 #' @param y vector of phenotype, NAs are not allowed.
 #' @param X numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.
@@ -39,7 +39,7 @@
 #' y = g + rnorm(n,0,sqrt(ve))
 #' 
 #' ## fit model
-#' fit = bayes(y=y, X=X, model="BayesCpi", niter=1000, nburn=500)
+#' fit = ssbayes(y=y, X=X, model="BayesCpi", niter=1000, nburn=500)
 #' 
 #' ## check results
 #' cor(fit$g, betaTrue)
@@ -52,9 +52,9 @@
 #' # geno = data$geno
 #' # map = data$map
 #' ## For GS/GP
-#' # fit = bayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
+#' # fit = ssbayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
 #' ## For GWAS
-#' # fit = bayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
+#' # fit = ssbayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
 
 #' @export
 
