@@ -4,7 +4,18 @@
 #'
 #' @param sumstat matrix of summary data, details refer to https://cnsgenomics.com/software/gcta/#COJO.
 #' @param ldm dense or sparse matrix, ld for reference panel (m * m, m is the number of SNPs), note that the order of SNPs should be consistent with summary data.
-#' @param model sbayes model including: "SBayesRR", "SBayesA", "SBayesLASSO", "SBayesB", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG".
+#' @param model bayes model including: "B", "A", "L", "RR", "Bpi", "C", "Cpi", "R", "CG".
+#' \itemize{
+#' \item "RR" - Bayes Ridge Regression: all SNPs have non-zero effects and share the same variance, equals to GBLUP. 
+#' \item "A" - BayesA: all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution. 
+#' \item "B" - BayesB: only a small part of SNPs (1-pi) have non-zero effects but use different variance which follows an inverse chi-square distribution. 
+#' \item "Bpi" - BayesBpi: the same with "BayesB", but 'pi' is not fixed. 
+#' \item "C" - BayesC: only a small part of SNPs (1-pi) have non-zero effects and share the same variance. 
+#' \item "Cpi" - BayesCpi: the same with "BayesC", but 'pi' is not fixed. 
+#' \item "L" - BayesLASSO: all SNPs have non-zero effects but use different variance which follows an exponential distribution. 
+#' \item "R" - BayesR: only a small part of SNPs have non-zero effects, but the SNPs are allocated into different groups, each group has the same variance. 
+#' \item "CG" - Conjuction gradient algorithm.
+#' }
 #' @param map (optional, only for GWAS) the map information of genotype, columns are: SNPs, chromosome, physical position. 
 #' @param pi percentage of zero effect SNPs. For bayesR, it is a vector for groups of SNPs, the default is c(0.95, 0.02, 0.02, 0.01).
 #' @param lambda value or vector, the ridge regression value for each SNPs.
@@ -51,7 +62,7 @@ sbayes <-
 function(
     sumstat,
     ldm,
-    model = c("SBayesB", "SBayesA", "SBayesLASSO", "SBayesRR", "SBayesBpi", "SBayesC", "SBayesCpi", "SBayesR", "CG"),
+    model = c("B", "A", "L", "RR", "Bpi", "C", "Cpi", "R", "CG"),
     map = NULL,
     pi = NULL,
     lambda = NULL,
@@ -126,7 +137,7 @@ function(
 	}
 	set.seed(seed)
 	if(is.null(pi)){
-		if(match.arg(model) == "SBayesR"){
+		if(match.arg(model) == "R"){
 			pi <- c(0.95, 0.02, 0.02, 0.01)
 		}else{
 			pi <- 0.95
@@ -137,56 +148,56 @@ function(
 	sumstat <- data.matrix(sumstat)
 	switch(
 		match.arg(model), 
-		"SBayesRR"={
+		"RR"={
 			if(sparse){
 				res = SBayesRR_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
 				res = SBayesRR_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesA"={
+		"A"={
 			if(sparse){
 				res = SBayesA_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
 				res = SBayesA_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesLASSO"={
+		"LASSO"={
 			if(sparse){
 				res = SBayesLASSO_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)	
 			}else{
 				res = SBayesLASSO_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesB"={
+		"B"={
 			if(sparse){
 				res = SBayesB_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
 				res = SBayesB_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesBpi"={
+		"Bpi"={
 			if(sparse){
 				res = SBayesBpi_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
 				res = SBayesBpi_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesC"={
+		"C"={
 			if(sparse){
 				res = SBayesC_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
 				res = SBayesC_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesCpi"={
+		"Cpi"={
 			if(sparse){
 				res = SBayesCpi_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
 				res = SBayesCpi_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
-		"SBayesR"={
+		"R"={
 			if(sparse){
 				res = SBayesR_spa(sumstat=sumstat, ldm=ldm, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{

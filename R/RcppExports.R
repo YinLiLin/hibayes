@@ -5,32 +5,32 @@ BayesRR <- function(y, X, C = NULL, R = NULL, niter = 50000L, nburn = 20000L, wi
     .Call(`_hibayes_BayesRR`, y, X, C, R, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
 }
 
-BayesA <- function(y, X, C = NULL, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
-    .Call(`_hibayes_BayesA`, y, X, C, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
+BayesA <- function(y, X, C = NULL, R = NULL, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
+    .Call(`_hibayes_BayesA`, y, X, C, R, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
 }
 
-BayesBpi <- function(y, X, C = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, fixpi = FALSE, verbose = TRUE) {
-    .Call(`_hibayes_BayesBpi`, y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose)
+BayesBpi <- function(y, X, C = NULL, R = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, fixpi = FALSE, verbose = TRUE) {
+    .Call(`_hibayes_BayesBpi`, y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose)
 }
 
-BayesB <- function(y, X, C = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
-    .Call(`_hibayes_BayesB`, y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
+BayesB <- function(y, X, C = NULL, R = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
+    .Call(`_hibayes_BayesB`, y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
 }
 
-BayesCpi <- function(y, X, C = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, fixpi = FALSE, verbose = TRUE) {
-    .Call(`_hibayes_BayesCpi`, y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose)
+BayesCpi <- function(y, X, C = NULL, R = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, fixpi = FALSE, verbose = TRUE) {
+    .Call(`_hibayes_BayesCpi`, y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose)
 }
 
-BayesC <- function(y, X, C = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
-    .Call(`_hibayes_BayesC`, y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
+BayesC <- function(y, X, C = NULL, R = NULL, pi = 0.95, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
+    .Call(`_hibayes_BayesC`, y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
 }
 
-BayesLASSO <- function(y, X, C = NULL, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
-    .Call(`_hibayes_BayesLASSO`, y, X, C, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
+BayesLASSO <- function(y, X, C = NULL, R = NULL, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {
+    .Call(`_hibayes_BayesLASSO`, y, X, C, R, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose)
 }
 
-BayesR <- function(y, X, C = NULL, pi = NULL, fold = NULL, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, fixpi = FALSE, verbose = TRUE) {
-    .Call(`_hibayes_BayesR`, y, X, C, pi, fold, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose)
+BayesR <- function(y, X, C = NULL, R = NULL, pi = NULL, fold = NULL, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, fixpi = FALSE, verbose = TRUE) {
+    .Call(`_hibayes_BayesR`, y, X, C, R, pi, fold, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose)
 }
 
 SBayesRR_den <- function(sumstat, ldm, niter = 50000L, nburn = 20000L, windindx = NULL, wppa = 0.01, vg = NULL, dfvg = NULL, s2vg = NULL, ve = NULL, dfve = NULL, s2ve = NULL, outfreq = 100L, verbose = TRUE) {

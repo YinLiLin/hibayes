@@ -4,8 +4,19 @@
 #'
 #' @param y vector of phenotype, NAs are not allowed.
 #' @param Z numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.
-#' @param X (optional) covariate matrix of all individuals, all values should be in digits, characters and NAs are not allowed.
-#' @param model bayes model including: "BayesRR", "BayesA", "BayesLASSO", "BayesB", "BayesBpi", "BayesC", "BayesCpi", "BayesR".
+#' @param X (optional) covariate matrix of all individuals, all values should be in digits, characters and NAs are not allowed, please use 'model.matrix' function to prepare it.
+#' @param R (optional) environmental random effects matrix of all individuals, NAs are not allowed.
+#' @param model bayes model including: "B", "A", "L", "RR", "Bpi", "C", "Cpi", "R".
+#' \itemize{
+#' \item "RR" - Bayes Ridge Regression: all SNPs have non-zero effects and share the same variance, equals to GBLUP. 
+#' \item "A" - BayesA: all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution. 
+#' \item "B" - BayesB: only a small part of SNPs (1-pi) have non-zero effects but use different variance which follows an inverse chi-square distribution. 
+#' \item "Bpi" - BayesBpi: the same with "BayesB", but 'pi' is not fixed. 
+#' \item "C" - BayesC: only a small part of SNPs (1-pi) have non-zero effects and share the same variance. 
+#' \item "Cpi" - BayesCpi: the same with "BayesC", but 'pi' is not fixed. 
+#' \item "L" - BayesLASSO: all SNPs have non-zero effects but use different variance which follows an exponential distribution. 
+#' \item "R" - BayesR: only a small part of SNPs have non-zero effects, but the SNPs are allocated into different groups, each group has the same variance. 
+#' }
 #' @param map (optional, only for GWAS) the map information of genotype, columns are: SNPs, chromosome, physical position. 
 #' @param pi percentage of zero effect SNPs. For bayesR, it is a vector for groups of SNPs, the default is c(0.95, 0.02, 0.02, 0.01).
 #' @param fold percentage of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).
@@ -65,7 +76,7 @@ function(
 	Z,
     X = NULL,
 	R = NULL,
-    model = c("BayesB", "BayesA", "BayesLASSO", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR"),
+    model = c("B", "A", "L", "RR", "Bpi", "C", "Cpi", "R"),
     map = NULL,
     pi = NULL,
     fold = NULL,
@@ -131,7 +142,7 @@ function(
 	}
 	set.seed(seed)
 	if(is.null(pi)){
-		if(match.arg(model) == "BayesR"){
+		if(match.arg(model) == "R"){
 			pi <- c(0.95, 0.02, 0.02, 0.01)
 		}else{
 			pi <- 0.95
@@ -150,29 +161,29 @@ function(
 	}
 	switch(
 		match.arg(model), 
-		"BayesRR"={
+		"RR"={
 			res = BayesRR(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesA"={
-			res = BayesA(y=y, X=Z, C=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"A"={
+			res = BayesA(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesLASSO"={
-			res = BayesLASSO(y=y, X=Z, C=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"L"={
+			res = BayesLASSO(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesB"={
-			res = BayesB(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"B"={
+			res = BayesB(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesBpi"={
-			res = BayesBpi(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"Bpi"={
+			res = BayesBpi(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesC"={
-			res = BayesC(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"C"={
+			res = BayesC(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesCpi"={
-			res = BayesCpi(y=y, X=Z, C=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"Cpi"={
+			res = BayesCpi(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
-		"BayesR"={
-			res = BayesR(y=y, X=Z, C=X, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+		"R"={
+			res = BayesR(y=y, X=Z, C=X, R=R, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		}
 	)
 

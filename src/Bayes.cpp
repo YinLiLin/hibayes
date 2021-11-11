@@ -156,16 +156,20 @@ Rcpp::List BayesRR(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
+    NumericVector xi;
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
+    
+    omp_setup();
+    #pragma omp parallel for private(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
+
     double vary = var(y);
     if(dfvg.isNotNull()){
         dfvara_ = as<double>(dfvg);
@@ -308,7 +312,7 @@ Rcpp::List BayesRR(
             vec RHS = Z[i].t() * arma_yadj;
             Gibbs(LHS, estR_tmp, RHS);
             estR[i] -= estR_tmp;
-            vec diff = Z[i].t() * estR[i];
+            vec diff = Z[i] * estR[i];
             daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
             int q = estR_tmp.n_elem;
             vr[i] = (ddot_(&q, estR_tmp.memptr(), &inc, estR_tmp.memptr(), &inc) + s2vara_ * dfvara_) / (dfvara_ + q);
@@ -368,16 +372,18 @@ Rcpp::List BayesRR(
             sumvg_store[iter - nburn] = sumvg;
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             // g_store += g;
             if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            double vt = vara_ + vare_;
             if(nr){
+                vt += sum(vr);
                 vr_store.row(iter - nburn) = vr;
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
             }
+            hsq_store[iter - nburn] = vara_ / (vt);
 
             // record pve for each window
             if(WPPA){
@@ -517,6 +523,7 @@ Rcpp::List BayesA(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
@@ -565,6 +572,39 @@ Rcpp::List BayesA(
     }
 
     int nr = 0;
+    vec vr;
+    vec vrsd;
+    mat vr_store;
+    vector<sp_mat> Z;
+    vector<sp_mat> ZZ;
+    vector<vec> estR;
+    vector<vec> estR_store;
+    vector< vector<string> > Z_levels;
+    if(R.isNotNull()){
+        CharacterMatrix R_ = as<CharacterMatrix>(R);
+        if(R_.nrow() != X.nrow()){
+            throw Rcpp::exception("Number of individuals not match for environmental random effects.");
+        }
+        if(xhasNA(R_)){
+            throw Rcpp::exception("NAs are not allowed in environmental random effects.");
+        }
+        nr = R_.ncol();
+        vr.resize(nr);
+        vr_store.resize(niter - nburn + 1, nr);
+        vr.fill(var(y) / nr);
+        for(int i = 0; i < nr; i++){
+            CharacterVector Ri = R_(_, i);
+            List Z_info = makeZ(Ri);
+            sp_mat z = Z_info[0];
+            vector<string> z_levels = Z_info[1];
+            Z.push_back(z);
+            ZZ.push_back(z.t() * z);
+            Z_levels.push_back(z_levels);
+            vec estRi = zeros(z_levels.size());
+            estR.push_back(estRi);
+            estR_store.push_back(estRi);
+        }
+    }
 
     int n = y.length();
     int m = X.ncol();
@@ -576,16 +616,20 @@ Rcpp::List BayesA(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
+    NumericVector xi;
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
+    
+    omp_setup();
+    #pragma omp parallel for private(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
+
     double vary = var(y);
     if(dfvg.isNotNull()){
         dfvara_ = as<double>(dfvg);
@@ -762,11 +806,19 @@ Rcpp::List BayesA(
             sumvg_store[iter - nburn] = sumvg;
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             // g_store += g;
             if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
-            
+            double vt = vara_ + vare_;
+            if(nr){
+                vt += sum(vr);
+                vr_store.row(iter - nburn) = vr;
+                for(int i = 0; i < nr; i++){
+                    estR_store[i] += estR[i];
+                }
+            }
+            hsq_store[iter - nburn] = vara_ / (vt);
+
             // record pve for each window
             if(WPPA){
                 for(R_xlen_t w = 0; w < nw; w++){
@@ -876,6 +928,7 @@ Rcpp::List BayesBpi(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
@@ -926,6 +979,39 @@ Rcpp::List BayesBpi(
     }
 
     int nr = 0;
+    vec vr;
+    vec vrsd;
+    mat vr_store;
+    vector<sp_mat> Z;
+    vector<sp_mat> ZZ;
+    vector<vec> estR;
+    vector<vec> estR_store;
+    vector< vector<string> > Z_levels;
+    if(R.isNotNull()){
+        CharacterMatrix R_ = as<CharacterMatrix>(R);
+        if(R_.nrow() != X.nrow()){
+            throw Rcpp::exception("Number of individuals not match for environmental random effects.");
+        }
+        if(xhasNA(R_)){
+            throw Rcpp::exception("NAs are not allowed in environmental random effects.");
+        }
+        nr = R_.ncol();
+        vr.resize(nr);
+        vr_store.resize(niter - nburn + 1, nr);
+        vr.fill(var(y) / nr);
+        for(int i = 0; i < nr; i++){
+            CharacterVector Ri = R_(_, i);
+            List Z_info = makeZ(Ri);
+            sp_mat z = Z_info[0];
+            vector<string> z_levels = Z_info[1];
+            Z.push_back(z);
+            ZZ.push_back(z.t() * z);
+            Z_levels.push_back(z_levels);
+            vec estRi = zeros(z_levels.size());
+            estR.push_back(estRi);
+            estR_store.push_back(estRi);
+        }
+    }
 
     int n = y.length();
     int m = X.ncol();
@@ -940,16 +1026,20 @@ Rcpp::List BayesBpi(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
+    NumericVector xi;
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
+    
+    omp_setup();
+    #pragma omp parallel for private(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
+
     double vary = var(y);
     if(pi <= 0 || pi >= 1){
         throw Rcpp::exception("pi should be at 0 < pi < 1.");
@@ -1189,12 +1279,20 @@ Rcpp::List BayesBpi(
             sumvg_store[iter - nburn] = sumvg;
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
             // nzrate += snptracker;
             daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             daxpy_(&m, &doc, snptracker.begin(), &inc, nzrate.begin(), &inc);
             if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            double vt = vara_ + vare_;
+            if(nr){
+                vt += sum(vr);
+                vr_store.row(iter - nburn) = vr;
+                for(int i = 0; i < nr; i++){
+                    estR_store[i] += estR[i];
+                }
+            }
+            hsq_store[iter - nburn] = vara_ / (vt);
 
             // record pve for each window
             if(WPPA){
@@ -1320,6 +1418,7 @@ Rcpp::List BayesB(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
@@ -1334,7 +1433,7 @@ Rcpp::List BayesB(
     const int outfreq = 100,
     const bool verbose = true
 ){
-	Rcpp::List res = BayesBpi(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
+	Rcpp::List res = BayesBpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
 	return res;
 }
 
@@ -1343,6 +1442,7 @@ Rcpp::List BayesCpi(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
@@ -1393,6 +1493,39 @@ Rcpp::List BayesCpi(
     }
 
     int nr = 0;
+    vec vr;
+    vec vrsd;
+    mat vr_store;
+    vector<sp_mat> Z;
+    vector<sp_mat> ZZ;
+    vector<vec> estR;
+    vector<vec> estR_store;
+    vector< vector<string> > Z_levels;
+    if(R.isNotNull()){
+        CharacterMatrix R_ = as<CharacterMatrix>(R);
+        if(R_.nrow() != X.nrow()){
+            throw Rcpp::exception("Number of individuals not match for environmental random effects.");
+        }
+        if(xhasNA(R_)){
+            throw Rcpp::exception("NAs are not allowed in environmental random effects.");
+        }
+        nr = R_.ncol();
+        vr.resize(nr);
+        vr_store.resize(niter - nburn + 1, nr);
+        vr.fill(var(y) / nr);
+        for(int i = 0; i < nr; i++){
+            CharacterVector Ri = R_(_, i);
+            List Z_info = makeZ(Ri);
+            sp_mat z = Z_info[0];
+            vector<string> z_levels = Z_info[1];
+            Z.push_back(z);
+            ZZ.push_back(z.t() * z);
+            Z_levels.push_back(z_levels);
+            vec estRi = zeros(z_levels.size());
+            estR.push_back(estRi);
+            estR_store.push_back(estRi);
+        }
+    }
 
     int n = y.length();
     int m = X.ncol();
@@ -1407,16 +1540,20 @@ Rcpp::List BayesCpi(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
+    NumericVector xi;
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
+    
+    omp_setup();
+    #pragma omp parallel for private(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
+
     double vary = var(y);
     if(pi <= 0 || pi >= 1){
         throw Rcpp::exception("pi should be at 0 < pi < 1.");
@@ -1657,13 +1794,20 @@ Rcpp::List BayesCpi(
             sumvg_store[iter - nburn] = sumvg;
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
             // nzrate += snptracker;
             daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             daxpy_(&m, &doc, snptracker.begin(), &inc, nzrate.begin(), &inc);
             if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
-
+            double vt = vara_ + vare_;
+            if(nr){
+                vt += sum(vr);
+                vr_store.row(iter - nburn) = vr;
+                for(int i = 0; i < nr; i++){
+                    estR_store[i] += estR[i];
+                }
+            }
+            hsq_store[iter - nburn] = vara_ / (vt);
 
             // record pve for each window
             if(WPPA){
@@ -1789,6 +1933,7 @@ Rcpp::List BayesC(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
@@ -1803,7 +1948,7 @@ Rcpp::List BayesC(
     const int outfreq = 100,
     const bool verbose = true
 ){
-    Rcpp::List res = BayesCpi(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
+    Rcpp::List res = BayesCpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
     return res;
 }
 
@@ -1812,6 +1957,7 @@ Rcpp::List BayesLASSO(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
@@ -1860,6 +2006,39 @@ Rcpp::List BayesLASSO(
     }
 
     int nr = 0;
+    vec vr;
+    vec vrsd;
+    mat vr_store;
+    vector<sp_mat> Z;
+    vector<sp_mat> ZZ;
+    vector<vec> estR;
+    vector<vec> estR_store;
+    vector< vector<string> > Z_levels;
+    if(R.isNotNull()){
+        CharacterMatrix R_ = as<CharacterMatrix>(R);
+        if(R_.nrow() != X.nrow()){
+            throw Rcpp::exception("Number of individuals not match for environmental random effects.");
+        }
+        if(xhasNA(R_)){
+            throw Rcpp::exception("NAs are not allowed in environmental random effects.");
+        }
+        nr = R_.ncol();
+        vr.resize(nr);
+        vr_store.resize(niter - nburn + 1, nr);
+        vr.fill(var(y) / nr);
+        for(int i = 0; i < nr; i++){
+            CharacterVector Ri = R_(_, i);
+            List Z_info = makeZ(Ri);
+            sp_mat z = Z_info[0];
+            vector<string> z_levels = Z_info[1];
+            Z.push_back(z);
+            ZZ.push_back(z.t() * z);
+            Z_levels.push_back(z_levels);
+            vec estRi = zeros(z_levels.size());
+            estR.push_back(estRi);
+            estR_store.push_back(estRi);
+        }
+    }
 
     int n = y.length();
     int m = X.ncol();
@@ -1871,16 +2050,20 @@ Rcpp::List BayesLASSO(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, vargi, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
+    NumericVector xi;
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
+
+    omp_setup();
+    #pragma omp parallel for private(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
+
     double vary = var(y);
     if(dfvg.isNotNull()){
         dfvara_ = as<double>(dfvg);
@@ -2072,10 +2255,18 @@ Rcpp::List BayesLASSO(
             sumvg_store[iter - nburn] = sumvg;
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
             daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            double vt = vara_ + vare_;
+            if(nr){
+                vt += sum(vr);
+                vr_store.row(iter - nburn) = vr;
+                for(int i = 0; i < nr; i++){
+                    estR_store[i] += estR[i];
+                }
+            }
+            hsq_store[iter - nburn] = vara_ / (vt);
 
             // record pve for each window
             if(WPPA){
@@ -2187,6 +2378,7 @@ Rcpp::List BayesR(
     const NumericVector &y,
     const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const Nullable<NumericVector> pi = R_NilValue,
     const Nullable<NumericVector> fold = R_NilValue,
     const int niter = 50000,
@@ -2238,6 +2430,39 @@ Rcpp::List BayesR(
     }
 
     int nr = 0;
+    vec vr;
+    vec vrsd;
+    mat vr_store;
+    vector<sp_mat> Z;
+    vector<sp_mat> ZZ;
+    vector<vec> estR;
+    vector<vec> estR_store;
+    vector< vector<string> > Z_levels;
+    if(R.isNotNull()){
+        CharacterMatrix R_ = as<CharacterMatrix>(R);
+        if(R_.nrow() != X.nrow()){
+            throw Rcpp::exception("Number of individuals not match for environmental random effects.");
+        }
+        if(xhasNA(R_)){
+            throw Rcpp::exception("NAs are not allowed in environmental random effects.");
+        }
+        nr = R_.ncol();
+        vr.resize(nr);
+        vr_store.resize(niter - nburn + 1, nr);
+        vr.fill(var(y) / nr);
+        for(int i = 0; i < nr; i++){
+            CharacterVector Ri = R_(_, i);
+            List Z_info = makeZ(Ri);
+            sp_mat z = Z_info[0];
+            vector<string> z_levels = Z_info[1];
+            Z.push_back(z);
+            ZZ.push_back(z.t() * z);
+            Z_levels.push_back(z_levels);
+            vec estRi = zeros(z_levels.size());
+            estR.push_back(estRi);
+            estR_store.push_back(estRi);
+        }
+    }
 
     int n = y.length();
     int m = X.ncol();
@@ -2252,16 +2477,20 @@ Rcpp::List BayesR(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
+    NumericVector xi;
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
+
+    omp_setup();
+    #pragma omp parallel for private(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
+
     double vary = var(y);
     if(pi.isNotNull()){
         pi_ = as<NumericVector>(pi);
@@ -2543,10 +2772,18 @@ Rcpp::List BayesR(
             sumvg_store[iter - nburn] = sumvg;
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
             daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            double vt = vara_ + vare_;
+            if(nr){
+                vt += sum(vr);
+                vr_store.row(iter - nburn) = vr;
+                for(int i = 0; i < nr; i++){
+                    estR_store[i] += estR[i];
+                }
+            }
+            hsq_store[iter - nburn] = vara_ / (vt);
 
             for(int i = 0; i < m; i++){
                 if(snptracker[i]){

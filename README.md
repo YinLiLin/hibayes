@@ -18,7 +18,7 @@ After installed successfully, type ```library(hibayes)``` to use. The package is
 
 ## Usage
 ### 1. Individual level bayes model
-To fit individual level bayes model, the phenotype(n), numeric genotype (n * m, n is the number of individuals, m is the number of SNPs) should be provided. Users can load the data that coded by other softwares by 'read.table' to fit model. Additionally, we pertinently provide a function ```read_plink``` to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in ```hibayes```:
+To fit individual level bayes model, at least the phenotype(n), numeric genotype (n * m, n is the number of individuals, m is the number of SNPs) should be provided. Users can load the data that coded by other softwares by 'read.table' to fit model. Additionally, we pertinently provide a function ```read_plink``` to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in ```hibayes```:
 ```r
 > bfile_path = system.file("extdata", "example", package = "hibayes")
 > data = read_plink(bfile=bfile_path, mode="A", threads=4)

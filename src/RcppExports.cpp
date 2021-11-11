@@ -38,14 +38,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // BayesA
-Rcpp::List BayesA(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
-RcppExport SEXP _hibayes_BayesA(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesA(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
+RcppExport SEXP _hibayes_BayesA(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
     Rcpp::traits::input_parameter< const Nullable<IntegerVector> >::type windindx(windindxSEXP);
@@ -58,19 +59,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesA(y, X, C, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesA(y, X, C, R, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // BayesBpi
-Rcpp::List BayesBpi(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool fixpi, const bool verbose);
-RcppExport SEXP _hibayes_BayesBpi(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP fixpiSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesBpi(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool fixpi, const bool verbose);
+RcppExport SEXP _hibayes_BayesBpi(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP fixpiSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const double >::type pi(piSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
@@ -85,19 +87,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type fixpi(fixpiSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesBpi(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesBpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // BayesB
-Rcpp::List BayesB(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
-RcppExport SEXP _hibayes_BayesB(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesB(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
+RcppExport SEXP _hibayes_BayesB(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const double >::type pi(piSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
@@ -111,19 +114,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesB(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesB(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // BayesCpi
-Rcpp::List BayesCpi(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool fixpi, const bool verbose);
-RcppExport SEXP _hibayes_BayesCpi(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP fixpiSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesCpi(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool fixpi, const bool verbose);
+RcppExport SEXP _hibayes_BayesCpi(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP fixpiSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const double >::type pi(piSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
@@ -138,19 +142,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type fixpi(fixpiSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesCpi(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesCpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // BayesC
-Rcpp::List BayesC(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
-RcppExport SEXP _hibayes_BayesC(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesC(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const double pi, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
+RcppExport SEXP _hibayes_BayesC(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP piSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const double >::type pi(piSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
@@ -164,19 +169,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesC(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesC(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // BayesLASSO
-Rcpp::List BayesLASSO(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
-RcppExport SEXP _hibayes_BayesLASSO(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesLASSO(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool verbose);
+RcppExport SEXP _hibayes_BayesLASSO(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
     Rcpp::traits::input_parameter< const Nullable<IntegerVector> >::type windindx(windindxSEXP);
@@ -189,19 +195,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesLASSO(y, X, C, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesLASSO(y, X, C, R, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // BayesR
-Rcpp::List BayesR(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<NumericVector> pi, const Nullable<NumericVector> fold, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool fixpi, const bool verbose);
-RcppExport SEXP _hibayes_BayesR(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP piSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP fixpiSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesR(const NumericVector& y, const NumericMatrix& X, const Nullable<NumericMatrix> C, const Nullable<CharacterMatrix> R, const Nullable<NumericVector> pi, const Nullable<NumericVector> fold, const int niter, const int nburn, const Nullable<IntegerVector> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const bool fixpi, const bool verbose);
+RcppExport SEXP _hibayes_BayesR(SEXP ySEXP, SEXP XSEXP, SEXP CSEXP, SEXP RSEXP, SEXP piSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP fixpiSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericMatrix> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericVector> >::type pi(piSEXP);
     Rcpp::traits::input_parameter< const Nullable<NumericVector> >::type fold(foldSEXP);
     Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
@@ -217,7 +224,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const bool >::type fixpi(fixpiSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesR(y, X, C, pi, fold, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesR(y, X, C, R, pi, fold, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, fixpi, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -775,13 +782,13 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_BayesRR", (DL_FUNC) &_hibayes_BayesRR, 16},
-    {"_hibayes_BayesA", (DL_FUNC) &_hibayes_BayesA, 15},
-    {"_hibayes_BayesBpi", (DL_FUNC) &_hibayes_BayesBpi, 17},
-    {"_hibayes_BayesB", (DL_FUNC) &_hibayes_BayesB, 16},
-    {"_hibayes_BayesCpi", (DL_FUNC) &_hibayes_BayesCpi, 17},
-    {"_hibayes_BayesC", (DL_FUNC) &_hibayes_BayesC, 16},
-    {"_hibayes_BayesLASSO", (DL_FUNC) &_hibayes_BayesLASSO, 15},
-    {"_hibayes_BayesR", (DL_FUNC) &_hibayes_BayesR, 18},
+    {"_hibayes_BayesA", (DL_FUNC) &_hibayes_BayesA, 16},
+    {"_hibayes_BayesBpi", (DL_FUNC) &_hibayes_BayesBpi, 18},
+    {"_hibayes_BayesB", (DL_FUNC) &_hibayes_BayesB, 17},
+    {"_hibayes_BayesCpi", (DL_FUNC) &_hibayes_BayesCpi, 18},
+    {"_hibayes_BayesC", (DL_FUNC) &_hibayes_BayesC, 17},
+    {"_hibayes_BayesLASSO", (DL_FUNC) &_hibayes_BayesLASSO, 16},
+    {"_hibayes_BayesR", (DL_FUNC) &_hibayes_BayesR, 19},
     {"_hibayes_SBayesRR_den", (DL_FUNC) &_hibayes_SBayesRR_den, 14},
     {"_hibayes_SBayesA_den", (DL_FUNC) &_hibayes_SBayesA_den, 14},
     {"_hibayes_SBayesBpi_den", (DL_FUNC) &_hibayes_SBayesBpi_den, 16},
