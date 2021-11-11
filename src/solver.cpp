@@ -123,8 +123,8 @@ void Gibbs(T &A, vec &x, vec &b){
         double aii = A(i,i);
         if(aii){
             double invlhs  = 1.0 / aii;
-            double μ = invlhs * (b[i] - as_scalar(A.col(i).t() * x)) + x[i];
-            x[i] = norm_sample()*sqrt(invlhs) + μ;
+            double u = invlhs * (b[i] - as_scalar(A.col(i).t() * x)) + x[i];
+            x[i] = norm_sample()*sqrt(invlhs) + u;
         }
     }
 }
