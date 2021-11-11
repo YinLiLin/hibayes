@@ -162,7 +162,7 @@ Rcpp::List BayesRR(
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
-    omp_setup();
+    omp_setup(threads);
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
         NumericVector xi = X(_, i);
@@ -310,6 +310,7 @@ Rcpp::List BayesRR(
             vec arma_yadj(yadj);
             vec estR_tmp(estR[i]);
             vec RHS = Z[i].t() * arma_yadj;
+            RHS += ZZ[i] * estR_tmp;
             Gibbs(LHS, estR_tmp, RHS);
             estR[i] -= estR_tmp;
             vec diff = Z[i] * estR[i];
@@ -378,7 +379,7 @@ Rcpp::List BayesRR(
             double vt = vara_ + vare_;
             if(nr){
                 vt += sum(vr);
-                vr_store.row(iter - nburn) = vr;
+                vr_store.row(iter - nburn) = vr.t();
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
@@ -624,7 +625,7 @@ Rcpp::List BayesA(
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
-    omp_setup();
+    omp_setup(threads);
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
         NumericVector xi = X(_, i);
@@ -814,7 +815,7 @@ Rcpp::List BayesA(
             double vt = vara_ + vare_;
             if(nr){
                 vt += sum(vr);
-                vr_store.row(iter - nburn) = vr;
+                vr_store.row(iter - nburn) = vr.t();
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
@@ -1039,7 +1040,7 @@ Rcpp::List BayesBpi(
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
-    omp_setup();
+    omp_setup(threads);
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
         NumericVector xi = X(_, i);
@@ -1294,7 +1295,7 @@ Rcpp::List BayesBpi(
             double vt = vara_ + vare_;
             if(nr){
                 vt += sum(vr);
-                vr_store.row(iter - nburn) = vr;
+                vr_store.row(iter - nburn) = vr.t();
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
@@ -1559,7 +1560,7 @@ Rcpp::List BayesCpi(
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
-    omp_setup();
+    omp_setup(threads);
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
         NumericVector xi = X(_, i);
@@ -1815,7 +1816,7 @@ Rcpp::List BayesCpi(
             double vt = vara_ + vare_;
             if(nr){
                 vt += sum(vr);
-                vr_store.row(iter - nburn) = vr;
+                vr_store.row(iter - nburn) = vr.t();
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
@@ -2075,7 +2076,7 @@ Rcpp::List BayesLASSO(
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
 
-    omp_setup();
+    omp_setup(threads);
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
         NumericVector xi = X(_, i);
@@ -2280,7 +2281,7 @@ Rcpp::List BayesLASSO(
             double vt = vara_ + vare_;
             if(nr){
                 vt += sum(vr);
-                vr_store.row(iter - nburn) = vr;
+                vr_store.row(iter - nburn) = vr.t();
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
@@ -2507,7 +2508,7 @@ Rcpp::List BayesR(
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
 
-    omp_setup();
+    omp_setup(threads);
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
         NumericVector xi = X(_, i);
@@ -2802,7 +2803,7 @@ Rcpp::List BayesR(
             double vt = vara_ + vare_;
             if(nr){
                 vt += sum(vr);
-                vr_store.row(iter - nburn) = vr;
+                vr_store.row(iter - nburn) = vr.t();
                 for(int i = 0; i < nr; i++){
                     estR_store[i] += estR[i];
                 }
