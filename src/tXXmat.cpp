@@ -1,24 +1,11 @@
-#if !defined(ARMA_64BIT_WORD)
-#define ARMA_64BIT_WORD 1
-#endif
-
-#include <RcppArmadillo.h>
-#include "omp_set.h"
-#include <iostream>
-#include <R_ext/Print.h>
+#include "hibayes.h"
 #include <bigmemory/BigMatrix.h>
 #include <bigmemory/MatrixAccessor.hpp>
 #include <progress.hpp>
 #include "progress_bar.hpp"
 
-// [[Rcpp::plugins(cpp11)]]
-// [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::depends(bigmemory, BH)]]
 // [[Rcpp::depends(RcppProgress)]]
-
-using namespace std;
-using namespace Rcpp;
-using namespace arma;
 
 class MinimalProgressBar: public ProgressBar{
     public:

@@ -17,12 +17,12 @@ sbayes(
   nburn = 12000,
   windsize = NULL,
   wppa = 0.01,
-  vara = NULL,
-  dfvara = NULL,
-  s2vara = NULL,
-  vare = NULL,
-  dfvare = NULL,
-  s2vare = NULL,
+  vg = NULL,
+  dfvg = NULL,
+  s2vg = NULL,
+  ve = NULL,
+  dfve = NULL,
+  s2ve = NULL,
   outfreq = 10,
   seed = 666666,
   verbose = TRUE
@@ -51,17 +51,17 @@ sbayes(
 
 \item{wppa}{the threshold of genetic variance explained by single window, the default is 0.01.}
 
-\item{vara}{prior value of genetic variance.}
+\item{vg}{prior value of genetic variance.}
 
-\item{dfvara}{the number of degrees of freedom for the distribution of genetic variance.}
+\item{dfvg}{the number of degrees of freedom for the distribution of genetic variance.}
 
-\item{s2vara}{scale parameter for the distribution of genetic variance.}
+\item{s2vg}{scale parameter for the distribution of genetic variance.}
 
-\item{vare}{prior value of residual variance.}
+\item{ve}{prior value of residual variance.}
 
-\item{dfvare}{the number of degrees of freedom for the distribution of residual variance.}
+\item{dfve}{the number of degrees of freedom for the distribution of residual variance.}
 
-\item{s2vare}{scale parameter for the distribution of residual variance.}
+\item{s2ve}{scale parameter for the distribution of residual variance.}
 
 \item{outfreq}{frequency of information output on console, the default is 100.}
 

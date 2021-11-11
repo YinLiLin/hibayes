@@ -2,7 +2,7 @@
 % Please edit documentation in R/ssbayes.r
 \name{ssbayes}
 \alias{ssbayes}
-\title{Bayes model}
+\title{Single-step Bayes model}
 \usage{
 ssbayes(
   y,
@@ -18,12 +18,12 @@ ssbayes(
   nburn = 12000,
   windsize = NULL,
   wppa = 0.01,
-  vara = NULL,
-  dfvara = NULL,
-  s2vara = NULL,
-  vare = NULL,
-  dfvare = NULL,
-  s2vare = NULL,
+  vg = NULL,
+  dfvg = NULL,
+  s2vg = NULL,
+  ve = NULL,
+  dfve = NULL,
+  s2ve = NULL,
   outfreq = 10,
   seed = 666666,
   verbose = TRUE
@@ -50,17 +50,17 @@ ssbayes(
 
 \item{wppa}{the threshold of genetic variance explained by single window, the default is 0.01.}
 
-\item{vara}{prior value of genetic variance.}
+\item{vg}{prior value of genetic variance.}
 
-\item{dfvara}{the number of degrees of freedom for the distribution of genetic variance.}
+\item{dfvg}{the number of degrees of freedom for the distribution of genetic variance.}
 
-\item{s2vara}{scale parameter for the distribution of genetic variance.}
+\item{s2vg}{scale parameter for the distribution of genetic variance.}
 
-\item{vare}{prior value of residual variance.}
+\item{ve}{prior value of residual variance.}
 
-\item{dfvare}{the number of degrees of freedom for the distribution of residual variance.}
+\item{dfve}{the number of degrees of freedom for the distribution of residual variance.}
 
-\item{s2vare}{scale parameter for the distribution of residual variance.}
+\item{s2ve}{scale parameter for the distribution of residual variance.}
 
 \item{outfreq}{frequency of information output on console, the default is 100.}
 
@@ -69,7 +69,7 @@ ssbayes(
 \item{verbose}{whether to print the iteration information.}
 }
 \description{
-Bayes linear regression model using individual level data
+Single-step Bayes linear regression model using individual level data and pedigree information
 }
 \examples{
 set.seed(123)
@@ -88,7 +88,7 @@ ve = (1-h2)/h2 * vg
 y = g + rnorm(n,0,sqrt(ve))
 
 ## fit model
-fit = bayes(y=y, X=X, model="BayesCpi", niter=1000, nburn=500)
+fit = ssbayes(y=y, X=X, model="BayesCpi", niter=1000, nburn=500)
 
 ## check results
 cor(fit$g, betaTrue)
@@ -101,7 +101,7 @@ plot(fit$g, betaTrue)
 # geno = data$geno
 # map = data$map
 ## For GS/GP
-# fit = bayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
+# fit = ssbayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
 ## For GWAS
-# fit = bayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
+# fit = ssbayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
 }

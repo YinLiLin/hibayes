@@ -128,7 +128,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 > # view the average proportion of Genetic Variance Explained for each Window
 > CMplot(cbind(gwas[,c(1,2,4)],gwas$WGVE), type="p", plot.type="m", LOG10=FALSE, ylab="Genetic Variance Explained (%)")
 > # the average proportion of Phenotypic Variance Explained for each Window cound be derived as following:
-> WPVE <- gwas$WGVE * fit$vara / var(pheno[,1])
+> WPVE <- gwas$WGVE * fit$vg / var(pheno[,1])
 ```
 <p align="center">
 <a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/4.jpg">

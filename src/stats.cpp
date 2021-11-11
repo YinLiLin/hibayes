@@ -1,63 +1,47 @@
-#include <Rcpp.h>
+#include "stats.h"
 
-// [[Rcpp::plugins(cpp11)]]
-// [[Rcpp::depends(Rcpp)]]
-
-using namespace std;
-using namespace Rcpp;
-
-// [[Rcpp::export]]
-double uniform_sample(const double start = 0, const double end = 1){
+double uniform_sample(double start, double end){
 	return R::runif(start, end);
 }
 
-// [[Rcpp::export]]
-double norm_sample(const double mean = 0, const double sd = 1){
+double norm_sample(double mean, double sd){
 	return R::rnorm(mean, sd);
 }
 
-// [[Rcpp::export]]
-double gamma_sample(const double shape, const double scale){
+double gamma_sample(double shape, double scale){
 	return R::rgamma(shape, scale);
 }
 
-// [[Rcpp::export]]
-double invgamma_sample(const double shape, const double scale){
-	return (1 / gamma_sample(shape, 1 / scale));
+double invgamma_sample(double shape, double scale){
+    double d = 1 / scale;
+	return (1 / gamma_sample(shape, d));
 }
 
-// [[Rcpp::export]]
-double chisq_sample(const double shape){
+double chisq_sample(double shape){
 	return R::rchisq(shape);
 }
 
-// [[Rcpp::export]]
-double invchisq_sample(const double shape, const double scale){
+double invchisq_sample(double shape, double scale){
 	return ((shape * scale) / chisq_sample(shape));
 }
 
-// [[Rcpp::export]]
-double beta_sample(const double a, const double b){
+double beta_sample(double a, double b){
 	return R::rbeta(a, b);
 }
 
-// [[Rcpp::export]]
-double t_sample(const double shape){
+double t_sample(double shape){
 	return R::rt(shape);
 }
 
-// [[Rcpp::export]]
-double cauchy_sample(const double location, const double scale){
+double cauchy_sample(double location, double scale){
 	return R::rcauchy(location, scale);
 }
 
-// [[Rcpp::export]]
-double exponential_sample(const double scale){
+double exponential_sample(double scale){
 	return R::rexp(scale);
 }
 
-// [[Rcpp::export]]
-double laplace_sample(const double mean, const double scale){
+double laplace_sample(double mean, double scale){
 	double u = uniform_sample();
 	if(u < 0.5){
 		return (mean + scale * log(2 * u));
@@ -66,7 +50,6 @@ double laplace_sample(const double mean, const double scale){
 	}
 }
 
-// [[Rcpp::export]]
 double rinvgaussian_sample(double mu, double lambda){
     double v,z,y,x,u;
     z = R::rnorm(0,1);
@@ -81,16 +64,16 @@ double rinvgaussian_sample(double mu, double lambda){
     return v;
 }
 
-// [[Rcpp::export]]
-NumericVector rdirichlet_sample(const double n, const NumericVector x){
-	NumericVector xn(x.size());
-	for(int i = 0; i < x.size(); i++){
-		xn[i] = gamma_sample(x[i], 1);
+NumericVector rdirichlet_sample(double n, NumericVector x){
+	NumericVector xn(n);
+    double c = 1.0;
+	for(int i = 0; i < n; i++){
+		xn[i] = gamma_sample(x[i], c);
 	}
 	return (xn / sum(xn));
 }
 
-IntegerVector which_c(const NumericVector x, const double value, const int c = 1){
+IntegerVector which_c(NumericVector x, double value, int c){
     
     IntegerVector eff_index_(x.size());
     int type_len = 0;

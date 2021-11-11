@@ -1,19 +1,4 @@
-#if !defined(ARMA_64BIT_WORD)
-#define ARMA_64BIT_WORD 1
-#endif
-
-#include <RcppArmadillo.h>
-#include <iostream>
-#include <R_ext/Print.h>
-#include "MyTimer.h"
-#include "stats.h"
-
-// [[Rcpp::plugins(cpp11)]]
-// [[Rcpp::depends(RcppArmadillo)]]
-
-using namespace std;
-using namespace Rcpp;
-using namespace arma;
+#include "hibayes.h"
 
 double spsubmatmtp(const arma::sp_mat X, const arma::vec g, const arma::uvec windxi){
 
@@ -39,12 +24,12 @@ Rcpp::List SBayesRR_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool verbose = true
 ){
@@ -104,36 +89,36 @@ Rcpp::List SBayesRR_spa(
 	}
 	double yy = sum(yyi) / (count_y);
 	// double vary = yy / n;
-	if(dfvara.isNotNull()){
-		dfvara_ = as<double>(dfvara);
+	if(dfvg.isNotNull()){
+		dfvara_ = as<double>(dfvg);
 	}else{
 		dfvara_ = 4;
 	}
 	if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-	if(vara.isNotNull()){
-		vara_ = as<double>(vara);
+	if(vg.isNotNull()){
+		vara_ = as<double>(vg);
 	}else{
 		vara_ = ((dfvara_ - 2) / dfvara_) * yy / (n - 1);
 	}
-	if(vare.isNotNull()){
-		vare_ = as<double>(vare);
+	if(ve.isNotNull()){
+		vare_ = as<double>(ve);
 	}else{
 		vare_ = yy / (n - 1);
 	}
-	if(dfvare.isNotNull()){
-		dfvare_ = as<double>(dfvare);
+	if(dfve.isNotNull()){
+		dfvare_ = as<double>(dfve);
 	}else{
 		dfvare_ = -2;
 	}
-	if(s2vara.isNotNull()){
-		s2vara_ = as<double>(s2vara);
+	if(s2vg.isNotNull()){
+		s2vara_ = as<double>(s2vg);
 	}else{
 		s2vara_ = (vara_ / (sum(xpx) / (n - 1))) * (dfvara_ - 2) / dfvara_;
 	}
-	if(s2vare.isNotNull()){
-		s2vare_ = as<double>(s2vare);
+	if(s2ve.isNotNull()){
+		s2vare_ = as<double>(s2ve);
 	}else{
 		s2vare_ = 0;
 	}
@@ -350,16 +335,16 @@ Rcpp::List SBayesRR_spa(
 	if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
 	  if(WPPA){
         return List::create(
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("wppa") = wppai,
             Named("wgve") = wgvei
         );
     }else{
         return List::create(
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g
         );
     }
@@ -373,12 +358,12 @@ Rcpp::List SBayesA_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool verbose = true
 ){
@@ -422,36 +407,36 @@ Rcpp::List SBayesA_spa(
 		throw Rcpp::exception("Lack of SE.");
 	}
 	double yy = sum(yyi) / (count_y);
-	if(dfvara.isNotNull()){
-		dfvara_ = as<double>(dfvara);
+	if(dfvg.isNotNull()){
+		dfvara_ = as<double>(dfvg);
 	}else{
 		dfvara_ = 4;
 	}
 	if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-	if(vara.isNotNull()){
-		vara_ = as<double>(vara);
+	if(vg.isNotNull()){
+		vara_ = as<double>(vg);
 	}else{
 		vara_ = ((dfvara_ - 2) / dfvara_) * yy / (n - 1);
 	}
-	if(vare.isNotNull()){
-		vare_ = as<double>(vare);
+	if(ve.isNotNull()){
+		vare_ = as<double>(ve);
 	}else{
 		vare_ = yy / (n - 1);
 	}
-	if(dfvare.isNotNull()){
-		dfvare_ = as<double>(dfvare);
+	if(dfve.isNotNull()){
+		dfvare_ = as<double>(dfve);
 	}else{
 		dfvare_ = -2;
 	}
-	if(s2vara.isNotNull()){
-		s2vara_ = as<double>(s2vara);
+	if(s2vg.isNotNull()){
+		s2vara_ = as<double>(s2vg);
 	}else{
 		s2vara_ = (vara_ / (sum(xpx) / (n - 1))) * (dfvara_ - 2) / dfvara_;
 	}
-	if(s2vare.isNotNull()){
-		s2vare_ = as<double>(s2vare);
+	if(s2ve.isNotNull()){
+		s2vare_ = as<double>(s2ve);
 	}else{
 		s2vare_ = 0;
 	}
@@ -650,16 +635,16 @@ Rcpp::List SBayesA_spa(
 	if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
 	  if(WPPA){
         return List::create(
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("wppa") = wppai,
             Named("wgve") = wgvei
         );
     }else{
         return List::create(
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g
         );
     }
@@ -674,12 +659,12 @@ Rcpp::List SBayesBpi_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool fixpi = false,
 	const bool verbose = true
@@ -732,36 +717,36 @@ Rcpp::List SBayesBpi_spa(
     }else{
         pi_ = {pi, 1 - pi};
     }
-	if(dfvara.isNotNull()){
-		dfvara_ = as<double>(dfvara);
+	if(dfvg.isNotNull()){
+		dfvara_ = as<double>(dfvg);
 	}else{
 		dfvara_ = 4;
 	}
 	if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-	if(vara.isNotNull()){
-		vara_ = as<double>(vara);
+	if(vg.isNotNull()){
+		vara_ = as<double>(vg);
 	}else{
 		vara_ = ((dfvara_ - 2) / dfvara_) * yy / (n - 1);
 	}
-	if(vare.isNotNull()){
-		vare_ = as<double>(vare);
+	if(ve.isNotNull()){
+		vare_ = as<double>(ve);
 	}else{
 		vare_ = yy / (n - 1);
 	}
-	if(dfvare.isNotNull()){
-		dfvare_ = as<double>(dfvare);
+	if(dfve.isNotNull()){
+		dfvare_ = as<double>(dfve);
 	}else{
 		dfvare_ = -2;
 	}
-	if(s2vara.isNotNull()){
-		s2vara_ = as<double>(s2vara);
+	if(s2vg.isNotNull()){
+		s2vara_ = as<double>(s2vg);
 	}else{
 		s2vara_ = (vara_ / ((1 - pi_[0]) * sum(xpx) / (n - 1))) * (dfvara_ - 2) / dfvara_;
 	}
-	if(s2vare.isNotNull()){
-		s2vare_ = as<double>(s2vare);
+	if(s2ve.isNotNull()){
+		s2vare_ = as<double>(s2ve);
 	}else{
 		s2vare_ = 0;
 	}
@@ -1016,8 +1001,8 @@ Rcpp::List SBayesBpi_spa(
 	  if(WPPA){
         return List::create(
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate,
             Named("wppa") = wppai,
@@ -1026,8 +1011,8 @@ Rcpp::List SBayesBpi_spa(
     }else{
         return List::create(
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate
         );
@@ -1043,16 +1028,16 @@ Rcpp::List SBayesB_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool verbose = true
 ){
-	Rcpp::List res = SBayesBpi_spa(sumstat, ldm, pi, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, true, verbose);
+	Rcpp::List res = SBayesBpi_spa(sumstat, ldm, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
 	return res;
 }
 
@@ -1065,12 +1050,12 @@ Rcpp::List SBayesCpi_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool fixpi = false,
 	const bool verbose = true
@@ -1169,36 +1154,36 @@ Rcpp::List SBayesCpi_spa(
     }else{
         pi_ = {pi, 1 - pi};
     }
-	if(dfvara.isNotNull()){
-		dfvara_ = as<double>(dfvara);
+	if(dfvg.isNotNull()){
+		dfvara_ = as<double>(dfvg);
 	}else{
 		dfvara_ = 4;
 	}
 	if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-	if(vara.isNotNull()){
-		vara_ = as<double>(vara);
+	if(vg.isNotNull()){
+		vara_ = as<double>(vg);
 	}else{
 		vara_ = ((dfvara_ - 2) / dfvara_) * yy / (n - 1);
 	}
-	if(vare.isNotNull()){
-		vare_ = as<double>(vare);
+	if(ve.isNotNull()){
+		vare_ = as<double>(ve);
 	}else{
 		vare_ = yy / (n - 1);
 	}
-	if(dfvare.isNotNull()){
-		dfvare_ = as<double>(dfvare);
+	if(dfve.isNotNull()){
+		dfvare_ = as<double>(dfve);
 	}else{
 		dfvare_ = -2;
 	}
-	if(s2vara.isNotNull()){
-		s2vara_ = as<double>(s2vara);
+	if(s2vg.isNotNull()){
+		s2vara_ = as<double>(s2vg);
 	}else{
 		s2vara_ = (vara_ / ((1 - pi_[0]) * sum(xpx) / (n - 1))) * (dfvara_ - 2) / dfvara_;
 	}
-	if(s2vare.isNotNull()){
-		s2vare_ = as<double>(s2vare);
+	if(s2ve.isNotNull()){
+		s2vare_ = as<double>(s2ve);
 	}else{
 		s2vare_ = 0;
 	}
@@ -1494,8 +1479,8 @@ Rcpp::List SBayesCpi_spa(
 	  if(WPPA){
         return List::create(
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate,
             Named("wppa") = wppai,
@@ -1504,8 +1489,8 @@ Rcpp::List SBayesCpi_spa(
     }else{
         return List::create(
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate
         );
@@ -1521,16 +1506,16 @@ Rcpp::List SBayesC_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool verbose = true
 ){
-	Rcpp::List res = SBayesCpi_spa(sumstat, ldm, pi, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, true, verbose);
+	Rcpp::List res = SBayesCpi_spa(sumstat, ldm, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
 	return res;
 }
 
@@ -1542,12 +1527,12 @@ Rcpp::List SBayesLASSO_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool verbose = true
 ){
@@ -1638,36 +1623,36 @@ Rcpp::List SBayesLASSO_spa(
 	}
 	double yy = sum(yyi) / (count_y);
 	// double vary = yy / n;
-	if(dfvara.isNotNull()){
-		dfvara_ = as<double>(dfvara);
+	if(dfvg.isNotNull()){
+		dfvara_ = as<double>(dfvg);
 	}else{
 		dfvara_ = 4;
 	}
 	if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-	if(vara.isNotNull()){
-		vara_ = as<double>(vara);
+	if(vg.isNotNull()){
+		vara_ = as<double>(vg);
 	}else{
 		vara_ = ((dfvara_ - 2) / dfvara_) * yy / (n - 1);
 	}
-	if(vare.isNotNull()){
-		vare_ = as<double>(vare);
+	if(ve.isNotNull()){
+		vare_ = as<double>(ve);
 	}else{
 		vare_ = yy / (n - 1);
 	}
-	if(dfvare.isNotNull()){
-		dfvare_ = as<double>(dfvare);
+	if(dfve.isNotNull()){
+		dfvare_ = as<double>(dfve);
 	}else{
 		dfvare_ = -2;
 	}
-	if(s2vara.isNotNull()){
-		s2vara_ = as<double>(s2vara);
+	if(s2vg.isNotNull()){
+		s2vara_ = as<double>(s2vg);
 	}else{
 		s2vara_ = (vara_ / (sum(xpx) / (n - 1))) * (dfvara_ - 2) / dfvara_;
 	}
-	if(s2vare.isNotNull()){
-		s2vare_ = as<double>(s2vare);
+	if(s2ve.isNotNull()){
+		s2vare_ = as<double>(s2ve);
 	}else{
 		s2vare_ = 0;
 	}
@@ -1897,16 +1882,16 @@ Rcpp::List SBayesLASSO_spa(
 	if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
 	  if(WPPA){
         return List::create(
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("wppa") = wppai,
             Named("wgve") = wgvei
         );
     }else{
         return List::create(
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g
         );
     }
@@ -1922,12 +1907,12 @@ Rcpp::List SBayesR_spa(
 	const int nburn = 20000,
 	const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
 	const int outfreq = 100,
 	const bool fixpi = false,
 	const bool verbose = true
@@ -2047,36 +2032,36 @@ Rcpp::List SBayesR_spa(
 	if(fold_.length() != pi_.length()){
 		throw Rcpp::exception("length of pi and fold not equals.");
 	}
-	if(dfvara.isNotNull()){
-		dfvara_ = as<double>(dfvara);
+	if(dfvg.isNotNull()){
+		dfvara_ = as<double>(dfvg);
 	}else{
 		dfvara_ = 4;
 	}
 	if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-	if(vara.isNotNull()){
-		vara_ = as<double>(vara);
+	if(vg.isNotNull()){
+		vara_ = as<double>(vg);
 	}else{
 		vara_ = ((dfvara_ - 2) / dfvara_) * yy / (n - 1);
 	}
-	if(vare.isNotNull()){
-		vare_ = as<double>(vare);
+	if(ve.isNotNull()){
+		vare_ = as<double>(ve);
 	}else{
 		vare_ = yy / (n - 1);
 	}
-	if(dfvare.isNotNull()){
-		dfvare_ = as<double>(dfvare);
+	if(dfve.isNotNull()){
+		dfvare_ = as<double>(dfve);
 	}else{
 		dfvare_ = -2;
 	}
-	if(s2vara.isNotNull()){
-		s2vara_ = as<double>(s2vara);
+	if(s2vg.isNotNull()){
+		s2vara_ = as<double>(s2vg);
 	}else{
 		s2vara_ = (vara_ / ((1 - pi_[0]) * sum(xpx) / (n - 1))) * (dfvara_ - 2) / dfvara_;
 	}
-	if(s2vare.isNotNull()){
-		s2vare_ = as<double>(s2vare);
+	if(s2ve.isNotNull()){
+		s2vare_ = as<double>(s2ve);
 	}else{
 		s2vare_ = 0;
 	}
@@ -2406,8 +2391,8 @@ Rcpp::List SBayesR_spa(
 	  if(WPPA){
         return List::create(
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate,
             Named("wppa") = wppai,
@@ -2416,8 +2401,8 @@ Rcpp::List SBayesR_spa(
     }else{
         return List::create(
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate
         );

@@ -1,59 +1,12 @@
-#include <Rcpp.h>
-#include <iostream>
-#include <R_ext/Print.h>
-#include <R.h>
-#include <Rmath.h>
-#define R_NO_REMAP
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <Rconfig.h>
-#include <R_ext/Lapack.h>
-#include "MyTimer.h"
-#include "stats.h"
+#include "hibayes.h"
+#include "solver.h"
 
-// [[Rcpp::plugins(cpp11)]]
-// [[Rcpp::depends(Rcpp)]]
-
-using namespace std;
-using namespace Rcpp;
-
-NumericVector yplusxb(NumericVector y_, NumericVector X_, double b)
-{
-    int n = y_.length();
-    double *X, *e;
-    int inc=1;
-    X=NUMERIC_POINTER(X_);
-    e=NUMERIC_POINTER(y_);
-    F77_NAME(daxpy)(&n, &b, X, &inc, e,&inc);
-    return y_;
-}
-
-NumericVector xb(NumericVector X_, double b)
-{
-    int n = X_.length();
-    double *X;
-    int inc=1;
-    X=NUMERIC_POINTER(X_);
-    F77_NAME(dscal)(&n, &b, X, &inc); 
-    return X_;
-}
-
-double xydot(NumericVector y_, NumericVector X_)
-{
-    int n = y_.length();
-    double *X, *e;
-    int inc=1;
-    X=NUMERIC_POINTER(X_);
-    e=NUMERIC_POINTER(y_);
-    double e_y = F77_NAME(ddot)(&n, X, &inc, e,&inc);
-    return e_y;
-}
-
-bool xhasNA(NumericMatrix X){
+template <class T>
+bool xhasNA(T &X){
     bool hasna = false;
     for(int i = 0; i < X.ncol(); i++){
         for(int j = 0; j < X.nrow(); j++){
-            if(NumericVector::is_na(X(j, i))){
+            if(T::is_na(X(j, i))){
                 hasna = true;
                 break;
             }
@@ -73,23 +26,54 @@ bool yhasNA(NumericVector y){
     return hasna;
 }
 
+Rcpp::List makeZ(
+    const CharacterVector &R
+)
+{
+    int n = R.length();
+    std::vector<std::string> levels;
+    std::vector<std::string> value = Rcpp::as<std::vector<std::string> >(R);
+    stable_sort(value.begin(), value.end());
+    value.erase(unique(value.begin(), value.end()), value.end());
+    if (value.size() == n){
+        throw Rcpp::exception("number of class of environmental random effects should be less than population size.");
+    }
+    if(value.size() == 1){
+        throw Rcpp::exception("number of class of environmental random effects should be bigger than 1.");
+    }
+    std::map<string, int> val_map;
+    for (int j = 0; j < value.size(); j++){
+        levels.push_back(value[j]);
+        val_map.insert(pair<string, int>(value[j], j));
+    }
+    map<string, int>::iterator iter;
+    arma::sp_mat z(n, value.size());
+    for (int j = 0; j < n; j++) {
+        std::string v = Rcpp::as<string>(R[j]);
+        iter = val_map.find(v);
+        z(j, iter->second) = 1.0;
+    }
+    return List::create(Named("z") = z, Named("levels") = levels);
+}
+
 // --------------------------------------- BAYES ---------------------------------------
 
 // [[Rcpp::export]]
 Rcpp::List BayesRR(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool verbose = true
 ){
@@ -104,7 +88,7 @@ Rcpp::List BayesRR(
     }
     double* dci;
     double* pC;
-    int nc;
+    int nc = 0;
     NumericMatrix C_;
     if(C.isNotNull()){
         C_ = as<NumericMatrix>(C);
@@ -120,13 +104,48 @@ Rcpp::List BayesRR(
     NumericVector beta(nc);
     NumericVector beta_store(nc);
     NumericVector cpc(nc);
-    if(nc != 0){
+    if(nc){
         for(int i = 0; i < nc; i++){
             NumericVector ci = C_(_, i);
             cpc[i] = sum(ci * ci);
         }
     }
     
+    int nr = 0;
+    vec vr;
+    vec vrsd;
+    mat vr_store;
+    vector<sp_mat> Z;
+    vector<sp_mat> ZZ;
+    vector<vec> estR;
+    vector<vec> estR_store;
+    vector< vector<string> > Z_levels;
+    if(R.isNotNull()){
+        CharacterMatrix R_ = as<CharacterMatrix>(R);
+        if(R_.nrow() != X.nrow()){
+            throw Rcpp::exception("Number of individuals not match for environmental random effects.");
+        }
+        if(xhasNA(R_)){
+            throw Rcpp::exception("NAs are not allowed in environmental random effects.");
+        }
+        nr = R_.ncol();
+        vr.resize(nr);
+        vr_store.resize(niter - nburn + 1, nr);
+        vr.fill(var(y) / nr);
+        for(int i = 0; i < nr; i++){
+            CharacterVector Ri = R_(_, i);
+            List Z_info = makeZ(Ri);
+            sp_mat z = Z_info[0];
+            vector<string> z_levels = Z_info[1];
+            Z.push_back(z);
+            ZZ.push_back(z.t() * z);
+            Z_levels.push_back(z_levels);
+            vec estRi = zeros(z_levels.size());
+            estR.push_back(estRi);
+            estR_store.push_back(estRi);
+        }
+    }
+
     int n = y.length();
     int m = X.ncol();
     bool WPPA = false;
@@ -148,36 +167,36 @@ Rcpp::List BayesRR(
         vx[i] = var(xi);
     }
     double vary = var(y);
-    if(dfvara.isNotNull()){
-        dfvara_ = as<double>(dfvara);
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
     }else{
         dfvara_ = 4;
     }
     if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-    if(vara.isNotNull()){
-        vara_ = as<double>(vara);
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
     }else{
         vara_ = ((dfvara_ - 2) / dfvara_) * vary;
     }
-    if(vare.isNotNull()){
-        vare_ = as<double>(vare);
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
     }else{
         vare_ = vary;
     }
-    if(dfvare.isNotNull()){
-        dfvare_ = as<double>(dfvare);
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
     }else{
         dfvare_ = -2;
     }
-    if(s2vara.isNotNull()){
-        s2vara_ = as<double>(s2vara);
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
     }else{
         s2vara_ = (vara_ / (sum(vx))) * (dfvara_ - 2) / dfvara_;
     }
-    if(s2vare.isNotNull()){
-        s2vare_ = as<double>(s2vare);
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
     }else{
         s2vare_ = 0;
     }
@@ -213,11 +232,19 @@ Rcpp::List BayesRR(
         Rcpp::Rcout.precision(4);
         Rcpp::Rcout << "Prior parameters:" << std::endl;
         Rcpp::Rcout << "    Model fitted at [Bayes Ridge Regression]" << std::endl;
-        Rcpp::Rcout << "    Number of y " << n << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
-        Rcpp::Rcout << "    Number of variable " << m << std::endl;
+        Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
+        if(nr){
+            Rcpp::Rcout << "    Environmental var ";
+            for(int i = 0; i < nr; i++){
+                Rcpp::Rcout << std::fixed << vr[i] << " ";
+            }
+            Rcpp::Rcout << std::endl;
+        }
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << std::endl;
         Rcpp::Rcout << "    Inv-Chisq gpar " << std::fixed << dfvara_ << " " << std::fixed << s2vara_ << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << std::endl;
@@ -229,10 +256,13 @@ Rcpp::List BayesRR(
         }
         Rcpp::Rcout << "MCMC started: " << std::endl;
         Rcpp::Rcout << " Iter" << "\t";
+        for(int i = 0; i < nr; i++){
+            Rcpp::Rcout << "Vr" << (i + 1) << "\t";
+        }
         Rcpp::Rcout << "SigmaSq" << "\t";
-        Rcpp::Rcout << "GenVar" << "\t";
-        Rcpp::Rcout << "ResVar" << "\t";
-        Rcpp::Rcout << "hsq" << "\t";
+        Rcpp::Rcout << "Vg" << "\t";
+        Rcpp::Rcout << "Ve" << "\t";
+        Rcpp::Rcout << "h2" << "\t";
         Rcpp::Rcout << "Timeleft" << std::endl;
     }
 
@@ -256,18 +286,34 @@ Rcpp::List BayesRR(
         // sample intercept
         mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
         mu -= mu_;
-		F77_NAME(daxpy)(&n, &mu_, done, &inc, dyadj, &inc);
+		daxpy_(&n, &mu_, done, &inc, dyadj, &inc);
 
         for(int i = 0; i < nc; i++){
             dci = pC+(long long)i*n;
 			oldgi = beta[i];
             v = cpc[i];
-			rhs = F77_NAME(ddot)(&n, dci, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dci, &inc, dyadj, &inc);
 			rhs += v * oldgi;
 			gi = norm_sample(rhs / v, sqrt(vare_ / v));
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dci, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dci, &inc, dyadj, &inc);
             beta[i] = gi;
+        }
+
+        for(int i = 0; i < nr; i++){
+            sp_mat LHS = ZZ[i];
+            LHS.diag() += vare_ / vr[i];
+            vec arma_yadj(yadj);
+            vec estR_tmp(estR[i]);
+            vec RHS = Z[i].t() * arma_yadj;
+            Gibbs(LHS, estR_tmp, RHS);
+            estR[i] -= estR_tmp;
+            vec diff = Z[i].t() * estR[i];
+            daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
+            int q = estR_tmp.n_elem;
+            vr[i] = (ddot_(&q, estR_tmp.memptr(), &inc, estR_tmp.memptr(), &inc) + s2vara_ * dfvara_) / (dfvara_ + q);
+            vr[i] = invchisq_sample(q + dfvara_, vr[i]);
+            estR[i] = estR_tmp;
         }
 
         // loop on snps
@@ -281,7 +327,7 @@ Rcpp::List BayesRR(
 			oldgi = g[i];
 
 			// right hand
-			rhs = F77_NAME(ddot)(&n, dxi, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
 			rhs += xx * oldgi;
 
 			// left hand
@@ -292,11 +338,11 @@ Rcpp::List BayesRR(
 
             // update residual
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
             // update random effect
             gi_ *= -1;
-            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+            daxpy_(&n, &gi_, dxi, &inc, du, &inc);
 
 			// update snp effect
 			g[i] = gi;
@@ -304,7 +350,7 @@ Rcpp::List BayesRR(
         }
 
         // sample variance
-        varg = (F77_CALL(ddot)(&m, g.begin(), &inc, g.begin(), &inc) + s2vara_ * dfvara_) / (dfvara_ + m);
+        varg = (ddot_(&m, g.begin(), &inc, g.begin(), &inc) + s2vara_ * dfvara_) / (dfvara_ + m);
         varg = invchisq_sample(m + dfvara_, varg);
 
         sumvg = sum(vx * varg);
@@ -313,7 +359,7 @@ Rcpp::List BayesRR(
         vara_ = var(u);
     
         // sample residual variance from inv-chisq distribution
-        vare_ = (F77_NAME(ddot)(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
@@ -323,9 +369,15 @@ Rcpp::List BayesRR(
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
-            F77_CALL(daxpy)(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
+            daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             // g_store += g;
-            if(nc != 0) F77_CALL(daxpy)(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            if(nr){
+                vr_store.row(iter - nburn) = vr;
+                for(int i = 0; i < nr; i++){
+                    estR_store[i] += estR[i];
+                }
+            }
 
             // record pve for each window
             if(WPPA){
@@ -337,7 +389,7 @@ Rcpp::List BayesRR(
                         gi_ = g[ni];
                         if(gi_){
                             dxi = pX+(long long)ni*n;
-                            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dwu, &inc);
+                            daxpy_(&n, &gi_, dxi, &inc, dwu, &inc);
                         }
                         // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
                     }
@@ -361,6 +413,9 @@ Rcpp::List BayesRR(
                 min = floor(tt % 3600 / 60);
                 sec = floor(tt % 3600 % 60);
                 Rcpp::Rcout << " " << iter + 1 << " ";
+                for(int i = 0; i < nr; i++){
+                    Rcpp::Rcout << std::fixed << vr[i] << " ";
+                }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
@@ -371,7 +426,21 @@ Rcpp::List BayesRR(
     }
 
     g = g_store / count;
-    beta = beta_store / count;
+    if(nc) beta = beta_store / count;
+    DataFrame r;
+    if(nr){
+        vr = mean(vr_store);
+        vrsd = stddev(vr_store);
+        vector<string> r_levers;
+        vector<double> estr;
+        for(int i = 0; i < nr; i++){
+            for(int j = 0; j < (estR_store[i]).n_elem; j++){
+                r_levers.push_back(Z_levels[i][j]);
+                estr.push_back(estR_store[i][j] / count);
+            }
+        }
+        r = DataFrame::create(r_levers, estr);
+    }
     if(WPPA){
         wppai = wppai / count;
         wgvei = wgvei / count;
@@ -390,11 +459,19 @@ Rcpp::List BayesRR(
     if(verbose){
         Rcpp::Rcout << "Posterior parameters:" << std::endl;
         Rcpp::Rcout << "    Mu " << std::fixed << Mu << " ± " << std::fixed << musd << std::endl;
+        if(nr){
+            Rcpp::Rcout << "    Environmental var ";
+            for(int i = 0; i < nr; i++){
+                Rcpp::Rcout << std::fixed << vr[i] << " ± " << std::fixed << vrsd[i];
+                if(i != (nr - 1))  Rcpp::Rcout << ", ";
+            }
+            Rcpp::Rcout << std::endl;
+        }
         Rcpp::Rcout << "    SigmaSq " << std::fixed << sumvg << " ± " << std::fixed << sumvgsd << std::endl;
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << " ± " << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << " ± " << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated hsq " << std::fixed << hsq << " ± " << std::fixed << hsqsd << std::endl;
-        if(nc != 0){
+        if(nc){
             Rcpp::Rcout << "    Estimated effects for covariates: ";
             for(int i = 0; i < nc; i++){
                 Rcpp::Rcout << std::fixed << beta[i] << " ";
@@ -414,8 +491,10 @@ Rcpp::List BayesRR(
         return List::create(
             Named("mu") = Mu, 
             Named("beta") = beta,
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("r") = r, 
+            Named("vr") = vr, 
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("wppa") = wppai,
             Named("wgve") = wgvei
@@ -424,8 +503,10 @@ Rcpp::List BayesRR(
         return List::create(
             Named("mu") = Mu,
             Named("beta") = beta,
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("r") = r, 
+            Named("vr") = vr, 
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g
         );
     }
@@ -433,19 +514,19 @@ Rcpp::List BayesRR(
 
 // [[Rcpp::export]]
 Rcpp::List BayesA(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool verbose = true
 ){
@@ -460,7 +541,7 @@ Rcpp::List BayesA(
     }
     double* dci;
     double* pC;
-    int nc;
+    int nc = 0;
     NumericMatrix C_;
     if(C.isNotNull()){
         C_ = as<NumericMatrix>(C);
@@ -476,12 +557,14 @@ Rcpp::List BayesA(
     NumericVector beta(nc);
     NumericVector beta_store(nc);
     NumericVector cpc(nc);
-    if(nc != 0){
+    if(nc){
         for(int i = 0; i < nc; i++){
             NumericVector ci = C_(_, i);
             cpc[i] = sum(ci * ci);
         }
     }
+
+    int nr = 0;
 
     int n = y.length();
     int m = X.ncol();
@@ -504,36 +587,36 @@ Rcpp::List BayesA(
         vx[i] = var(xi);
     }
     double vary = var(y);
-    if(dfvara.isNotNull()){
-        dfvara_ = as<double>(dfvara);
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
     }else{
         dfvara_ = 4;
     }
     if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-    if(vara.isNotNull()){
-        vara_ = as<double>(vara);
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
     }else{
         vara_ = ((dfvara_ - 2) / dfvara_) * vary;
     }
-    if(vare.isNotNull()){
-        vare_ = as<double>(vare);
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
     }else{
         vare_ = vary;
     }
-    if(dfvare.isNotNull()){
-        dfvare_ = as<double>(dfvare);
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
     }else{
         dfvare_ = -2;
     }
-    if(s2vara.isNotNull()){
-        s2vara_ = as<double>(s2vara);
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
     }else{
         s2vara_ = (vara_ / (sum(vx))) * (dfvara_ - 2) / dfvara_;
     }
-    if(s2vare.isNotNull()){
-        s2vare_ = as<double>(s2vare);
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
     }else{
         s2vare_ = 0;
     }
@@ -569,9 +652,10 @@ Rcpp::List BayesA(
         Rcpp::Rcout.precision(4);
         Rcpp::Rcout << "Prior parameters:" << std::endl;
         Rcpp::Rcout << "    Model fitted at [BayesA]" << std::endl;
-        Rcpp::Rcout << "    Number of y " << n << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
-        Rcpp::Rcout << "    Number of variable " << m << std::endl;
+        Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << std::endl;
@@ -612,18 +696,18 @@ Rcpp::List BayesA(
         // sample intercept
         mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
         mu -= mu_;
-        F77_NAME(daxpy)(&n, &mu_, done, &inc, dyadj, &inc);
+        daxpy_(&n, &mu_, done, &inc, dyadj, &inc);
         sumvg = 0;
 
         for(int i = 0; i < nc; i++){
             dci = pC+(long long)i*n;
 			oldgi = beta[i];
             v = cpc[i];
-			rhs = F77_NAME(ddot)(&n, dci, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dci, &inc, dyadj, &inc);
 			rhs += v * oldgi;
 			gi = norm_sample(rhs / v, sqrt(vare_ / v));
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dci, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dci, &inc, dyadj, &inc);
             beta[i] = gi;
         }
 
@@ -642,7 +726,7 @@ Rcpp::List BayesA(
             varg = invchisq_sample(1 + dfvara_, varg);
 
             // right hand
-            rhs = F77_NAME(ddot)(&n, dxi, &inc, dyadj, &inc);
+            rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
             rhs += xx * oldgi;
 
             // left hand
@@ -653,11 +737,11 @@ Rcpp::List BayesA(
 
             // update residual
             gi_ = oldgi - gi;
-            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+            daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
             // update random effect
             gi_ *= -1;
-            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+            daxpy_(&n, &gi_, dxi, &inc, du, &inc);
 
             // update snp effect
             g[i] = gi;
@@ -669,7 +753,7 @@ Rcpp::List BayesA(
         vara_ = var(u);
     
         // sample residual variance from inv-chisq distribution
-        vare_ = (F77_NAME(ddot)(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
@@ -679,9 +763,9 @@ Rcpp::List BayesA(
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
-            F77_CALL(daxpy)(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
+            daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
             // g_store += g;
-            if(nc != 0) F77_CALL(daxpy)(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
             
             // record pve for each window
             if(WPPA){
@@ -693,7 +777,7 @@ Rcpp::List BayesA(
                         gi_ = g[ni];
                         if(gi_){
                             dxi = pX+(long long)ni*n;
-                            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dwu, &inc);
+                            daxpy_(&n, &gi_, dxi, &inc, dwu, &inc);
                         }
                         // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
                     }
@@ -750,7 +834,7 @@ Rcpp::List BayesA(
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << " ± " << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << " ± " << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated hsq " << std::fixed << hsq << " ± " << std::fixed << hsqsd << std::endl;
-        if(nc != 0){
+        if(nc){
             Rcpp::Rcout << "    Estimated effects for covariates: ";
             for(int i = 0; i < nc; i++){
                 Rcpp::Rcout << std::fixed << beta[i] << " ";
@@ -770,8 +854,8 @@ Rcpp::List BayesA(
         return List::create(
             Named("mu") = Mu,
             Named("beta") = beta, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("wppa") = wppai,
             Named("wgve") = wgvei
@@ -780,8 +864,8 @@ Rcpp::List BayesA(
         return List::create(
             Named("mu") = Mu, 
             Named("beta") = beta,
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g
         );
     }
@@ -789,20 +873,20 @@ Rcpp::List BayesA(
 
 // [[Rcpp::export]]
 Rcpp::List BayesBpi(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool fixpi = false,
     const bool verbose = true
@@ -818,7 +902,7 @@ Rcpp::List BayesBpi(
     }
     double* dci;
     double* pC;
-    int nc;
+    int nc = 0;
     NumericMatrix C_;
     if(C.isNotNull()){
         C_ = as<NumericMatrix>(C);
@@ -834,12 +918,14 @@ Rcpp::List BayesBpi(
     NumericVector beta(nc);
     NumericVector beta_store(nc);
     NumericVector cpc(nc);
-    if(nc != 0){
+    if(nc){
         for(int i = 0; i < nc; i++){
             NumericVector ci = C_(_, i);
             cpc[i] = sum(ci * ci);
         }
     }
+
+    int nr = 0;
 
     int n = y.length();
     int m = X.ncol();
@@ -870,36 +956,36 @@ Rcpp::List BayesBpi(
     }else{
         pi_ = {pi, 1 - pi};
     }
-    if(dfvara.isNotNull()){
-        dfvara_ = as<double>(dfvara);
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
     }else{
         dfvara_ = 4;
     }
     if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-    if(vara.isNotNull()){
-        vara_ = as<double>(vara);
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
     }else{
         vara_ = ((dfvara_ - 2) / dfvara_) * vary;
     }
-    if(vare.isNotNull()){
-        vare_ = as<double>(vare);
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
     }else{
         vare_ = vary;
     }
-    if(dfvare.isNotNull()){
-        dfvare_ = as<double>(dfvare);
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
     }else{
         dfvare_ = -2;
     }
-    if(s2vara.isNotNull()){
-        s2vara_ = as<double>(s2vara);
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
     }else{
         s2vara_ = (vara_ / ((1 - pi_[0]) * sum(vx))) * (dfvara_ - 2) / dfvara_;
     }
-    if(s2vare.isNotNull()){
-        s2vare_ = as<double>(s2vare);
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
     }else{
         s2vare_ = 0;
     }
@@ -944,9 +1030,10 @@ Rcpp::List BayesBpi(
         }else{
             Rcpp::Rcout << "    Model fitted at [BayesBπ]" << std::endl;
         }
-        Rcpp::Rcout << "    Number of y " << n << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
-        Rcpp::Rcout << "    Number of variable " << m << std::endl;
+        Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
         Rcpp::Rcout << "    Pi at " << pi_ << std::endl;
@@ -992,17 +1079,17 @@ Rcpp::List BayesBpi(
         // sample intercept
         mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
         mu -= mu_;
-        F77_NAME(daxpy)(&n, &mu_, done, &inc, dyadj, &inc);
+        daxpy_(&n, &mu_, done, &inc, dyadj, &inc);
         
         for(int i = 0; i < nc; i++){
             dci = pC+(long long)i*n;
 			oldgi = beta[i];
             v = cpc[i];
-			rhs = F77_NAME(ddot)(&n, dci, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dci, &inc, dyadj, &inc);
 			rhs += v * oldgi;
 			gi = norm_sample(rhs / v, sqrt(vare_ / v));
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dci, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dci, &inc, dyadj, &inc);
             beta[i] = gi;
         }
 
@@ -1026,7 +1113,7 @@ Rcpp::List BayesBpi(
             varg = invchisq_sample(1 + dfvara_, varg);
 
             // right hand
-            rhs = F77_NAME(ddot)(&n, dxi, &inc, dyadj, &inc);
+            rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
             if(oldgi){rhs += xx * oldgi;}
 
             // left hand
@@ -1051,11 +1138,11 @@ Rcpp::List BayesBpi(
 
                 // update residual
                 gi_ = oldgi - gi;
-                F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+                daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
                 // update random effect
                 gi_ *= -1;
-                F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+                daxpy_(&n, &gi_, dxi, &inc, du, &inc);
 
                 sumvg += (gi * gi) * vx[i];
 
@@ -1067,11 +1154,11 @@ Rcpp::List BayesBpi(
                     gi_ = oldgi;
 
                     // update residual
-                    F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+                    daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
                     // update random effect
                     gi_ *= -1;
-                    F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+                    daxpy_(&n, &gi_, dxi, &inc, du, &inc);
                 }
             }
 
@@ -1088,7 +1175,7 @@ Rcpp::List BayesBpi(
         vara_ = var(u);
     
         // sample residual variance from inv-chisq distribution
-        vare_ = (F77_NAME(ddot)(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(!fixpi){
@@ -1105,9 +1192,9 @@ Rcpp::List BayesBpi(
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
             // nzrate += snptracker;
-            F77_CALL(daxpy)(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
-            F77_CALL(daxpy)(&m, &doc, snptracker.begin(), &inc, nzrate.begin(), &inc);
-            if(nc != 0) F77_CALL(daxpy)(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
+            daxpy_(&m, &doc, snptracker.begin(), &inc, nzrate.begin(), &inc);
+            if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
 
             // record pve for each window
             if(WPPA){
@@ -1119,7 +1206,7 @@ Rcpp::List BayesBpi(
                         gi_ = g[ni];
                         if(gi_){
                             dxi = pX+(long long)ni*n;
-                            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dwu, &inc);
+                            daxpy_(&n, &gi_, dxi, &inc, dwu, &inc);
                         }
                         // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
                     }
@@ -1187,7 +1274,7 @@ Rcpp::List BayesBpi(
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << " ± " << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << " ± " << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated hsq " << std::fixed << hsq << " ± " << std::fixed << hsqsd << std::endl;
-        if(nc != 0){
+        if(nc){
             Rcpp::Rcout << "    Estimated effects for covariates: ";
             for(int i = 0; i < nc; i++){
                 Rcpp::Rcout << std::fixed << beta[i] << " ";
@@ -1208,8 +1295,8 @@ Rcpp::List BayesBpi(
             Named("mu") = Mu, 
             Named("beta") = beta,
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate,
             Named("wppa") = wppai,
@@ -1220,8 +1307,8 @@ Rcpp::List BayesBpi(
             Named("mu") = Mu, 
             Named("beta") = beta,
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate
         );
@@ -1230,43 +1317,43 @@ Rcpp::List BayesBpi(
 
 // [[Rcpp::export]]
 Rcpp::List BayesB(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool verbose = true
 ){
-	Rcpp::List res = BayesBpi(y, X, C, pi, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, true, verbose);
+	Rcpp::List res = BayesBpi(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
 	return res;
 }
 
 // [[Rcpp::export]]
 Rcpp::List BayesCpi(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool fixpi = false,
     const bool verbose = true
@@ -1282,7 +1369,7 @@ Rcpp::List BayesCpi(
     }
     double* dci;
     double* pC;
-    int nc;
+    int nc = 0;
     NumericMatrix C_;
     if(C.isNotNull()){
         C_ = as<NumericMatrix>(C);
@@ -1298,12 +1385,14 @@ Rcpp::List BayesCpi(
     NumericVector beta(nc);
     NumericVector beta_store(nc);
     NumericVector cpc(nc);
-    if(nc != 0){
+    if(nc){
         for(int i = 0; i < nc; i++){
             NumericVector ci = C_(_, i);
             cpc[i] = sum(ci * ci);
         }
     }
+
+    int nr = 0;
 
     int n = y.length();
     int m = X.ncol();
@@ -1334,36 +1423,36 @@ Rcpp::List BayesCpi(
     }else{
         pi_ = {pi, 1 - pi};
     }
-    if(dfvara.isNotNull()){
-        dfvara_ = as<double>(dfvara);
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
     }else{
         dfvara_ = 4;
     }
     if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-    if(vara.isNotNull()){
-        vara_ = as<double>(vara);
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
     }else{
         vara_ = ((dfvara_ - 2) / dfvara_) * vary;
     }
-    if(vare.isNotNull()){
-        vare_ = as<double>(vare);
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
     }else{
         vare_ = vary;
     }
-    if(dfvare.isNotNull()){
-        dfvare_ = as<double>(dfvare);
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
     }else{
         dfvare_ = -2;
     }
-    if(s2vara.isNotNull()){
-        s2vara_ = as<double>(s2vara);
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
     }else{
         s2vara_ = (vara_ / ((1 - pi_[0]) * sum(vx))) * (dfvara_ - 2) / dfvara_;
     }
-    if(s2vare.isNotNull()){
-        s2vare_ = as<double>(s2vare);
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
     }else{
         s2vare_ = 0;
     }
@@ -1408,9 +1497,10 @@ Rcpp::List BayesCpi(
         }else{
             Rcpp::Rcout << "    Model fitted at [BayesCπ]" << std::endl;
         }
-        Rcpp::Rcout << "    Number of y " << n << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
-        Rcpp::Rcout << "    Number of variable " << m << std::endl;
+        Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
         Rcpp::Rcout << "    Pi at " << pi_ << std::endl;
@@ -1456,17 +1546,17 @@ Rcpp::List BayesCpi(
         // sample intercept
         mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
         mu -= mu_;
-        F77_NAME(daxpy)(&n, &mu_, done, &inc, dyadj, &inc);
+        daxpy_(&n, &mu_, done, &inc, dyadj, &inc);
         
         for(int i = 0; i < nc; i++){
             dci = pC+(long long)i*n;
 			oldgi = beta[i];
             v = cpc[i];
-			rhs = F77_NAME(ddot)(&n, dci, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dci, &inc, dyadj, &inc);
 			rhs += v * oldgi;
 			gi = norm_sample(rhs / v, sqrt(vare_ / v));
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dci, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dci, &inc, dyadj, &inc);
             beta[i] = gi;
         }
 
@@ -1487,7 +1577,7 @@ Rcpp::List BayesCpi(
             oldgi = g[i];
 
             // right hand
-            rhs = F77_NAME(ddot)(&n, dxi, &inc, dyadj, &inc);
+            rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
             if(oldgi){rhs += xx * oldgi;}
 
             // left hand
@@ -1512,11 +1602,11 @@ Rcpp::List BayesCpi(
 
                 // update residual
                 gi_ = oldgi - gi;
-                F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+                daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
                 // update random effect
                 gi_ *= -1;
-                F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+                daxpy_(&n, &gi_, dxi, &inc, du, &inc);
 
                 sumvg += (gi * gi) * vx[i];
                 vargi += (gi * gi);
@@ -1529,11 +1619,11 @@ Rcpp::List BayesCpi(
                     gi_ = oldgi;
 
                     // update residual
-                    F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+                    daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
                     // update random effect
                     gi_ *= -1;
-                    F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+                    daxpy_(&n, &gi_, dxi, &inc, du, &inc);
                 }
             }
 
@@ -1553,7 +1643,7 @@ Rcpp::List BayesCpi(
         vara_ = var(u);
     
         // sample residual variance from inv-chisq distribution
-        vare_ = (F77_NAME(ddot)(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(!fixpi){
@@ -1570,9 +1660,9 @@ Rcpp::List BayesCpi(
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
             // nzrate += snptracker;
-            F77_CALL(daxpy)(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
-            F77_CALL(daxpy)(&m, &doc, snptracker.begin(), &inc, nzrate.begin(), &inc);
-            if(nc != 0) F77_CALL(daxpy)(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
+            daxpy_(&m, &doc, snptracker.begin(), &inc, nzrate.begin(), &inc);
+            if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
 
 
             // record pve for each window
@@ -1585,7 +1675,7 @@ Rcpp::List BayesCpi(
                         gi_ = g[ni];
                         if(gi_){
                             dxi = pX+(long long)ni*n;
-                            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dwu, &inc);
+                            daxpy_(&n, &gi_, dxi, &inc, dwu, &inc);
                         }
                         // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
                     }
@@ -1653,7 +1743,7 @@ Rcpp::List BayesCpi(
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << " ± " << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << " ± " << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated hsq " << std::fixed << hsq << " ± " << std::fixed << hsqsd << std::endl;
-        if(nc != 0){
+        if(nc){
             Rcpp::Rcout << "    Estimated effects for covariates: ";
             for(int i = 0; i < nc; i++){
                 Rcpp::Rcout << std::fixed << beta[i] << " ";
@@ -1674,8 +1764,8 @@ Rcpp::List BayesCpi(
             Named("mu") = Mu, 
             Named("beta") = beta,
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate,
             Named("wppa") = wppai,
@@ -1686,8 +1776,8 @@ Rcpp::List BayesCpi(
             Named("mu") = Mu, 
             Named("beta") = beta,
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate
         );
@@ -1696,42 +1786,42 @@ Rcpp::List BayesCpi(
 
 // [[Rcpp::export]]
 Rcpp::List BayesC(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const double pi = 0.95,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool verbose = true
 ){
-    Rcpp::List res = BayesCpi(y, X, C, pi, niter, nburn, windindx, wppa, vara, dfvara, s2vara, vare, dfvare, s2vare, outfreq, true, verbose);
+    Rcpp::List res = BayesCpi(y, X, C, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
     return res;
 }
 
 // [[Rcpp::export]]
 Rcpp::List BayesLASSO(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool verbose = true
 ){
@@ -1746,7 +1836,7 @@ Rcpp::List BayesLASSO(
     }
     double* dci;
     double* pC;
-    int nc;
+    int nc = 0;
     NumericMatrix C_;
     if(C.isNotNull()){
         C_ = as<NumericMatrix>(C);
@@ -1762,12 +1852,14 @@ Rcpp::List BayesLASSO(
     NumericVector beta(nc);
     NumericVector beta_store(nc);
     NumericVector cpc(nc);
-    if(nc != 0){
+    if(nc){
         for(int i = 0; i < nc; i++){
             NumericVector ci = C_(_, i);
             cpc[i] = sum(ci * ci);
         }
     }
+
+    int nr = 0;
 
     int n = y.length();
     int m = X.ncol();
@@ -1790,36 +1882,36 @@ Rcpp::List BayesLASSO(
         vx[i] = var(xi);
     }
     double vary = var(y);
-    if(dfvara.isNotNull()){
-        dfvara_ = as<double>(dfvara);
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
     }else{
         dfvara_ = 4;
     }
     if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-    if(vara.isNotNull()){
-        vara_ = as<double>(vara);
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
     }else{
         vara_ = ((dfvara_ - 2) / dfvara_) * vary;
     }
-    if(vare.isNotNull()){
-        vare_ = as<double>(vare);
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
     }else{
         vare_ = vary;
     }
-    if(dfvare.isNotNull()){
-        dfvare_ = as<double>(dfvare);
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
     }else{
         dfvare_ = -2;
     }
-    if(s2vara.isNotNull()){
-        s2vara_ = as<double>(s2vara);
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
     }else{
         s2vara_ = (vara_ / (sum(vx))) * (dfvara_ - 2) / dfvara_;
     }
-    if(s2vare.isNotNull()){
-        s2vare_ = as<double>(s2vare);
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
     }else{
         s2vare_ = 0;
     }
@@ -1860,9 +1952,10 @@ Rcpp::List BayesLASSO(
         Rcpp::Rcout.precision(4);
         Rcpp::Rcout << "Prior parameters:" << std::endl;
         Rcpp::Rcout << "    Model fitted at [BayesLASSO]" << std::endl;
-        Rcpp::Rcout << "    Number of y " << n << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
-        Rcpp::Rcout << "    Number of variable " << m << std::endl;
+        Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << std::endl;
@@ -1904,18 +1997,18 @@ Rcpp::List BayesLASSO(
         // sample intercept
         mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
         mu -= mu_;
-        F77_NAME(daxpy)(&n, &mu_, done, &inc, dyadj, &inc);
+        daxpy_(&n, &mu_, done, &inc, dyadj, &inc);
         sumvg = 0;
 
         for(int i = 0; i < nc; i++){
             dci = pC+(long long)i*n;
 			oldgi = beta[i];
             v = cpc[i];
-			rhs = F77_NAME(ddot)(&n, dci, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dci, &inc, dyadj, &inc);
 			rhs += v * oldgi;
 			gi = norm_sample(rhs / v, sqrt(vare_ / v));
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dci, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dci, &inc, dyadj, &inc);
             beta[i] = gi;
         }
 
@@ -1930,7 +2023,7 @@ Rcpp::List BayesLASSO(
             oldgi = g[i];
 
             // right hand
-            rhs = F77_NAME(ddot)(&n, dxi, &inc, dyadj, &inc);
+            rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
             rhs += xx * oldgi;
 
             // left hand
@@ -1949,11 +2042,11 @@ Rcpp::List BayesLASSO(
 
             // update residual
             gi_ = oldgi - gi;
-            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+            daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
             // update random effect
             gi_ *= -1;
-            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+            daxpy_(&n, &gi_, dxi, &inc, du, &inc);
 
             // update snp effect
             g[i] = gi;
@@ -1970,7 +2063,7 @@ Rcpp::List BayesLASSO(
         lambda = sqrt(lambda2);
 
         // sample residual variance from inv-chisq distribution
-        vare_ = (F77_NAME(ddot)(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
@@ -1981,8 +2074,8 @@ Rcpp::List BayesLASSO(
             vare_store[iter - nburn] = vare_;
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
-            F77_CALL(daxpy)(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
-            if(nc != 0) F77_CALL(daxpy)(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
+            if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
 
             // record pve for each window
             if(WPPA){
@@ -1994,7 +2087,7 @@ Rcpp::List BayesLASSO(
                         gi_ = g[ni];
                         if(gi_){
                             dxi = pX+(long long)ni*n;
-                            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dwu, &inc);
+                            daxpy_(&n, &gi_, dxi, &inc, dwu, &inc);
                         }
                         // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
                     }
@@ -2052,7 +2145,7 @@ Rcpp::List BayesLASSO(
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << " ± " << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << " ± " << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated hsq " << std::fixed << hsq << " ± " << std::fixed << hsqsd << std::endl;
-        if(nc != 0){
+        if(nc){
             Rcpp::Rcout << "    Estimated effects for covariates: ";
             for(int i = 0; i < nc; i++){
                 Rcpp::Rcout << std::fixed << beta[i] << " ";
@@ -2072,8 +2165,8 @@ Rcpp::List BayesLASSO(
         return List::create(
             Named("mu") = Mu, 
             Named("beta") = beta,
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("wppa") = wppai,
             Named("wgve") = wgvei
@@ -2082,8 +2175,8 @@ Rcpp::List BayesLASSO(
         return List::create(
             Named("mu") = Mu, 
             Named("beta") = beta,
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g
         );
     }
@@ -2091,8 +2184,8 @@ Rcpp::List BayesLASSO(
 
 // [[Rcpp::export]]
 Rcpp::List BayesR(
-    const NumericVector y,
-    const NumericMatrix X,
+    const NumericVector &y,
+    const NumericMatrix &X,
     const Nullable<NumericMatrix> C = R_NilValue,
     const Nullable<NumericVector> pi = R_NilValue,
     const Nullable<NumericVector> fold = R_NilValue,
@@ -2100,12 +2193,12 @@ Rcpp::List BayesR(
     const int nburn = 20000,
     const Nullable<IntegerVector> windindx = R_NilValue,
     const double wppa = 0.01,
-    const Nullable<double> vara = R_NilValue,
-    const Nullable<double> dfvara = R_NilValue,
-    const Nullable<double> s2vara = R_NilValue,
-    const Nullable<double> vare = R_NilValue,
-    const Nullable<double> dfvare = R_NilValue,
-    const Nullable<double> s2vare = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
     const bool fixpi = false,
     const bool verbose = true
@@ -2121,7 +2214,7 @@ Rcpp::List BayesR(
     }
     double* dci;
     double* pC;
-    int nc;
+    int nc = 0;
     NumericMatrix C_;
     if(C.isNotNull()){
         C_ = as<NumericMatrix>(C);
@@ -2137,12 +2230,15 @@ Rcpp::List BayesR(
     NumericVector beta(nc);
     NumericVector beta_store(nc);
     NumericVector cpc(nc);
-    if(nc != 0){
+    if(nc){
         for(int i = 0; i < nc; i++){
             NumericVector ci = C_(_, i);
             cpc[i] = sum(ci * ci);
         }
     }
+
+    int nr = 0;
+
     int n = y.length();
     int m = X.ncol();
     bool WPPA = false;
@@ -2191,36 +2287,36 @@ Rcpp::List BayesR(
     if(fold_.length() != pi_.length()){
         throw Rcpp::exception("length of pi and fold not equals.");
     }
-    if(dfvara.isNotNull()){
-        dfvara_ = as<double>(dfvara);
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
     }else{
         dfvara_ = 4;
     }
     if(dfvara_ <= 2){
-        throw Rcpp::exception("dfvara should not be less than 2.");
+        throw Rcpp::exception("dfvg should not be less than 2.");
     }
-    if(vara.isNotNull()){
-        vara_ = as<double>(vara);
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
     }else{
         vara_ = ((dfvara_ - 2) / dfvara_) * vary;
     }
-    if(vare.isNotNull()){
-        vare_ = as<double>(vare);
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
     }else{
         vare_ = vary;
     }
-    if(dfvare.isNotNull()){
-        dfvare_ = as<double>(dfvare);
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
     }else{
         dfvare_ = -2;
     }
-    if(s2vara.isNotNull()){
-        s2vara_ = as<double>(s2vara);
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
     }else{
         s2vara_ = (vara_ / ((1 - pi_[0]) * sum(vx))) * (dfvara_ - 2) / dfvara_;
     }
-    if(s2vare.isNotNull()){
-        s2vare_ = as<double>(s2vare);
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
     }else{
         s2vare_ = 0;
     }
@@ -2261,9 +2357,10 @@ Rcpp::List BayesR(
         Rcpp::Rcout.precision(4);
         Rcpp::Rcout << "Prior parameters:" << std::endl;
         Rcpp::Rcout << "    Model fitted at [BayesR]" << std::endl;
-        Rcpp::Rcout << "    Number of y " << n << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
-        Rcpp::Rcout << "    Number of variable " << m << std::endl;
+        Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
         Rcpp::Rcout << "    Pi at " << pi_ << std::endl;
@@ -2310,17 +2407,17 @@ Rcpp::List BayesR(
         // sample intercept
         mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
         mu -= mu_;
-        F77_NAME(daxpy)(&n, &mu_, done, &inc, dyadj, &inc);
+        daxpy_(&n, &mu_, done, &inc, dyadj, &inc);
 
         for(int i = 0; i < nc; i++){
             dci = pC+(long long)i*n;
 			oldgi = beta[i];
             v = cpc[i];
-			rhs = F77_NAME(ddot)(&n, dci, &inc, dyadj, &inc);
+			rhs = ddot_(&n, dci, &inc, dyadj, &inc);
 			rhs += v * oldgi;
 			gi = norm_sample(rhs / v, sqrt(vare_ / v));
 			gi_ = oldgi - gi;
-			F77_NAME(daxpy)(&n, &gi_, dci, &inc, dyadj, &inc);
+			daxpy_(&n, &gi_, dci, &inc, dyadj, &inc);
             beta[i] = gi;
         }
 
@@ -2344,7 +2441,7 @@ Rcpp::List BayesR(
             oldgi = g[i];
 
             // right hand
-            rhs = F77_NAME(ddot)(&n, dxi, &inc, dyadj, &inc);
+            rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
             if(oldgi){rhs += xx * oldgi;}
 
             // left hand
@@ -2386,11 +2483,11 @@ Rcpp::List BayesR(
 
                 // update residual
                 gi_ = oldgi - gi;
-                F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+                daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
                 // update random effect
                 gi_ *= -1;
-                F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+                daxpy_(&n, &gi_, dxi, &inc, du, &inc);
 
                 sumvg += (gi * gi) * vx[i];
                 varg += gi * gi / fold_[indistflag];
@@ -2403,11 +2500,11 @@ Rcpp::List BayesR(
                     gi_ = oldgi;
 
                     // update residual
-                    F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dyadj, &inc);
+                    daxpy_(&n, &gi_, dxi, &inc, dyadj, &inc);
 
                     // update random effect
                     gi_ *= -1;
-                    F77_NAME(daxpy)(&n, &gi_, dxi, &inc, du, &inc);
+                    daxpy_(&n, &gi_, dxi, &inc, du, &inc);
                 }
             }
 
@@ -2427,7 +2524,7 @@ Rcpp::List BayesR(
         vara_ = var(u);
     
         // sample residual variance from inv-chisq distribution
-        vare_ = (F77_NAME(ddot)(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
 
         for(int j = 0; j < n_fold; j++){
@@ -2448,8 +2545,8 @@ Rcpp::List BayesR(
             vare_store[iter - nburn] = vare_;
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             // g_store += g;
-            F77_CALL(daxpy)(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
-            if(nc != 0) F77_CALL(daxpy)(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
+            daxpy_(&m, &doc, g.begin(), &inc, g_store.begin(), &inc);
+            if(nc) daxpy_(&nc, &doc, beta.begin(), &inc, beta_store.begin(), &inc);
 
             for(int i = 0; i < m; i++){
                 if(snptracker[i]){
@@ -2467,7 +2564,7 @@ Rcpp::List BayesR(
                         gi_ = g[ni];
                         if(gi_){
                             dxi = pX+(long long)ni*n;
-                            F77_NAME(daxpy)(&n, &gi_, dxi, &inc, dwu, &inc);
+                            daxpy_(&n, &gi_, dxi, &inc, dwu, &inc);
                         }
                         // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
                     }
@@ -2535,7 +2632,7 @@ Rcpp::List BayesR(
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << " ± " << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << " ± " << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated hsq " << std::fixed << hsq << " ± " << std::fixed << hsqsd << std::endl;
-        if(nc != 0){
+        if(nc){
             Rcpp::Rcout << "    Estimated effects for covariates: ";
             for(int i = 0; i < nc; i++){
                 Rcpp::Rcout << std::fixed << beta[i] << " ";
@@ -2556,8 +2653,8 @@ Rcpp::List BayesR(
             Named("mu") = Mu,
             Named("beta") = beta, 
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate,
             Named("wppa") = wppai,
@@ -2568,8 +2665,8 @@ Rcpp::List BayesR(
             Named("mu") = Mu, 
             Named("beta") = beta,
             Named("pi") = pi_, 
-            Named("vara") = vara_, 
-            Named("vare") = vare_,
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
             Named("g") = g,
             Named("nzrate") = nzrate
         );

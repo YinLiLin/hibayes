@@ -12,12 +12,12 @@
 #' @param nburn the number of iterations to be discarded.
 #' @param windsize window size in bp for GWAS, the default is NULL.
 #' @param wppa the threshold of genetic variance explained by single window, the default is 0.01.
-#' @param vara prior value of genetic variance.
-#' @param dfvara the number of degrees of freedom for the distribution of genetic variance. 
-#' @param s2vara scale parameter for the distribution of genetic variance.
-#' @param vare prior value of residual variance.
-#' @param dfvare the number of degrees of freedom for the distribution of residual variance.
-#' @param s2vare scale parameter for the distribution of residual variance.
+#' @param vg prior value of genetic variance.
+#' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
+#' @param s2vg scale parameter for the distribution of genetic variance.
+#' @param ve prior value of residual variance.
+#' @param dfve the number of degrees of freedom for the distribution of residual variance.
+#' @param s2ve scale parameter for the distribution of residual variance.
 #' @param outfreq frequency of information output on console, the default is 100.
 #' @param seed seed for random sample.
 #' @param verbose whether to print the iteration information.
@@ -72,12 +72,12 @@ function(
     nburn = 12000,
     windsize = NULL,
     wppa = 0.01,
-    vara = NULL,
-    dfvara = NULL,
-    s2vara = NULL,
-    vare = NULL,
-    dfvare = NULL,
-    s2vare = NULL,
+    vg = NULL,
+    dfvg = NULL,
+    s2vg = NULL,
+    ve = NULL,
+    dfve = NULL,
+    s2ve = NULL,
     outfreq = 10,
     seed = 666666,
     verbose = TRUE
@@ -141,28 +141,28 @@ function(
 	switch(
 		match.arg(model), 
 		"BayesRR"={
-			res = BayesRR(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesRR(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesA"={
-			res = BayesA(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesA(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesLASSO"={
-			res = BayesLASSO(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesLASSO(y=y, X=X, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesB"={
-			res = BayesB(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesB(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesBpi"={
-			res = BayesBpi(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesBpi(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesC"={
-			res = BayesC(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesC(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesCpi"={
-			res = BayesCpi(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesCpi(y=y, X=X, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		},
 		"BayesR"={
-			res = BayesR(y=y, X=X, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+			res = BayesR(y=y, X=X, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 		}
 	)
 

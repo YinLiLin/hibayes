@@ -13,12 +13,12 @@
 #' @param nburn the number of iterations to be discarded.
 #' @param windsize window size in bp for GWAS, the default is 1e6.
 #' @param wppa the threshold of genetic variance explained by single window, the default is 0.01.
-#' @param vara prior value of genetic variance.
-#' @param dfvara the number of degrees of freedom for the distribution of genetic variance. 
-#' @param s2vara scale parameter for the distribution of genetic variance.
-#' @param vare prior value of residual variance.
-#' @param dfvare the number of degrees of freedom for the distribution of residual variance.
-#' @param s2vare scale parameter for the distribution of residual variance.
+#' @param vg prior value of genetic variance.
+#' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
+#' @param s2vg scale parameter for the distribution of genetic variance.
+#' @param ve prior value of residual variance.
+#' @param dfve the number of degrees of freedom for the distribution of residual variance.
+#' @param s2ve scale parameter for the distribution of residual variance.
 #' @param outfreq frequency of information output on console, the default is 100.
 #' @param seed seed for random sample.
 #' @param verbose whether to print the iteration information.
@@ -60,12 +60,12 @@ function(
     nburn = 12000,
     windsize = NULL,
     wppa = 0.01,
-    vara = NULL,
-    dfvara = NULL,
-    s2vara = NULL,
-    vare = NULL,
-    dfvare = NULL,
-    s2vare = NULL,
+    vg = NULL,
+    dfvg = NULL,
+    s2vg = NULL,
+    ve = NULL,
+    dfve = NULL,
+    s2ve = NULL,
     outfreq = 10,
     seed = 666666,
     verbose = TRUE
@@ -139,58 +139,58 @@ function(
 		match.arg(model), 
 		"SBayesRR"={
 			if(sparse){
-				res = SBayesRR_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesRR_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesRR_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesRR_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesA"={
 			if(sparse){
-				res = SBayesA_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesA_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesA_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesA_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesLASSO"={
 			if(sparse){
-				res = SBayesLASSO_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)	
+				res = SBayesLASSO_spa(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)	
 			}else{
-				res = SBayesLASSO_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesLASSO_den(sumstat=sumstat, ldm=ldm, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesB"={
 			if(sparse){
-				res = SBayesB_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesB_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesB_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesB_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesBpi"={
 			if(sparse){
-				res = SBayesBpi_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesBpi_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesBpi_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesBpi_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesC"={
 			if(sparse){
-				res = SBayesC_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesC_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesC_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesC_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesCpi"={
 			if(sparse){
-				res = SBayesCpi_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesCpi_spa(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesCpi_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesCpi_den(sumstat=sumstat, ldm=ldm, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"SBayesR"={
 			if(sparse){
-				res = SBayesR_spa(sumstat=sumstat, ldm=ldm, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesR_spa(sumstat=sumstat, ldm=ldm, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}else{
-				res = SBayesR_den(sumstat=sumstat, ldm=ldm, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vara=vara, dfvara=dfvara, s2vara=s2vara, vare=vare, dfvare=dfvare, s2vare=s2vare, outfreq=outfreq, verbose=verbose)
+				res = SBayesR_den(sumstat=sumstat, ldm=ldm, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
 			}
 		},
 		"CG"={
