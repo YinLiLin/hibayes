@@ -75,6 +75,7 @@ Rcpp::List BayesRR(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool verbose = true
 ){
     if(yhasNA(y)){
@@ -536,6 +537,7 @@ Rcpp::List BayesA(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool verbose = true
 ){
     if(yhasNA(y)){
@@ -946,6 +948,7 @@ Rcpp::List BayesBpi(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool fixpi = false,
     const bool verbose = true
 ){
@@ -1440,9 +1443,10 @@ Rcpp::List BayesB(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool verbose = true
 ){
-	Rcpp::List res = BayesBpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
+	Rcpp::List res = BayesBpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, threads, true, verbose);
 	return res;
 }
 
@@ -1464,6 +1468,7 @@ Rcpp::List BayesCpi(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool fixpi = false,
     const bool verbose = true
 ){
@@ -1959,9 +1964,10 @@ Rcpp::List BayesC(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool verbose = true
 ){
-    Rcpp::List res = BayesCpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, true, verbose);
+    Rcpp::List res = BayesCpi(y, X, C, R, pi, niter, nburn, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, threads, true, verbose);
     return res;
 }
 
@@ -1982,6 +1988,7 @@ Rcpp::List BayesLASSO(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool verbose = true
 ){
     if(yhasNA(y)){
@@ -2409,6 +2416,7 @@ Rcpp::List BayesR(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const int outfreq = 100,
+    const int threads = 0, 
     const bool fixpi = false,
     const bool verbose = true
 ){

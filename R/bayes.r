@@ -32,6 +32,7 @@
 #' @param s2ve scale parameter for the distribution of residual variance.
 #' @param outfreq frequency of information output on console, the default is 100.
 #' @param seed seed for random sample.
+#' @param threads number of threads used for OpenMP.
 #' @param verbose whether to print the iteration information.
 
 #' @examples
@@ -92,6 +93,7 @@ function(
     s2ve = NULL,
     outfreq = 100,
     seed = 666666,
+	threads = 4,
     verbose = TRUE
 ){
 	if(!is.null(windsize)){
@@ -163,28 +165,28 @@ function(
 	switch(
 		match.arg(model), 
 		"RR"={
-			res = BayesRR(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesRR(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"A"={
-			res = BayesA(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesA(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"L"={
-			res = BayesLASSO(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesLASSO(y=y, X=Z, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"B"={
-			res = BayesB(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesB(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"Bpi"={
-			res = BayesBpi(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesBpi(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"C"={
-			res = BayesC(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesC(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"Cpi"={
-			res = BayesCpi(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesCpi(y=y, X=Z, C=X, R=R, pi=pi, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		},
 		"R"={
-			res = BayesR(y=y, X=Z, C=X, R=R, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, verbose=verbose)
+			res = BayesR(y=y, X=Z, C=X, R=R, pi=pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		}
 	)
 
