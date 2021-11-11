@@ -156,16 +156,15 @@ Rcpp::List BayesRR(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for firstprivate(xi)
+    #pragma omp parallel for
     for(int i = 0; i < m; i++){
-        xi = X(_, i);
+        NumericVector xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
@@ -419,13 +418,15 @@ Rcpp::List BayesRR(
                 min = floor(tt % 3600 / 60);
                 sec = floor(tt % 3600 % 60);
                 Rcpp::Rcout << " " << iter + 1 << " ";
+                double vt = vara_ + vare_;
                 for(int i = 0; i < nr; i++){
+                    vt += vr[i];
                     Rcpp::Rcout << std::fixed << vr[i] << " ";
                 }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / vt) << " ";
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
@@ -616,16 +617,15 @@ Rcpp::List BayesA(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for firstprivate(xi)
+    #pragma omp parallel for
     for(int i = 0; i < m; i++){
-        xi = X(_, i);
+        NumericVector xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
@@ -853,10 +853,15 @@ Rcpp::List BayesA(
                 min = floor(tt % 3600 / 60);
                 sec = floor(tt % 3600 % 60);
                 Rcpp::Rcout << " " << iter + 1 << " ";
+                double vt = vara_ + vare_;
+                for(int i = 0; i < nr; i++){
+                    vt += vr[i];
+                    Rcpp::Rcout << std::fixed << vr[i] << " ";
+                }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / vt) << " ";
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
@@ -1026,16 +1031,15 @@ Rcpp::List BayesBpi(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for firstprivate(xi)
+    #pragma omp parallel for
     for(int i = 0; i < m; i++){
-        xi = X(_, i);
+        NumericVector xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
@@ -1332,10 +1336,15 @@ Rcpp::List BayesBpi(
                 for(int kk = 0; kk < n_fold; kk++){
                     Rcpp::Rcout << std::fixed << pi_[kk] << " ";
                 }
+                double vt = vara_ + vare_;
+                for(int i = 0; i < nr; i++){
+                    vt += vr[i];
+                    Rcpp::Rcout << std::fixed << vr[i] << " ";
+                }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / vt) << " ";
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
@@ -1540,16 +1549,15 @@ Rcpp::List BayesCpi(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for firstprivate(xi)
+    #pragma omp parallel for
     for(int i = 0; i < m; i++){
-        xi = X(_, i);
+        NumericVector xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
@@ -1847,10 +1855,15 @@ Rcpp::List BayesCpi(
                 for(int kk = 0; kk < n_fold; kk++){
                     Rcpp::Rcout << std::fixed << pi_[kk] << " ";
                 }
+                double vt = vara_ + vare_;
+                for(int i = 0; i < nr; i++){
+                    vt += vr[i];
+                    Rcpp::Rcout << std::fixed << vr[i] << " ";
+                }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / vt) << " ";
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
@@ -2050,16 +2063,15 @@ Rcpp::List BayesLASSO(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, vargi, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
 
     omp_setup();
-    #pragma omp parallel for firstprivate(xi)
+    #pragma omp parallel for
     for(int i = 0; i < m; i++){
-        xi = X(_, i);
+        NumericVector xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
@@ -2303,10 +2315,15 @@ Rcpp::List BayesLASSO(
                 sec = floor(tt % 3600 % 60);
                 Rcpp::Rcout << " " << iter + 1 << " ";
                 Rcpp::Rcout << std::fixed << lambda << " ";
+                double vt = vara_ + vare_;
+                for(int i = 0; i < nr; i++){
+                    vt += vr[i];
+                    Rcpp::Rcout << std::fixed << vr[i] << " ";
+                }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / vt) << " ";
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
@@ -2477,16 +2494,15 @@ Rcpp::List BayesR(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
 
     omp_setup();
-    #pragma omp parallel for firstprivate(xi)
+    #pragma omp parallel for
     for(int i = 0; i < m; i++){
-        xi = X(_, i);
+        NumericVector xi = X(_, i);
         xpx[i] = sum(xi * xi);
         vx[i] = var(xi);
     }
@@ -2829,10 +2845,15 @@ Rcpp::List BayesR(
                 for(int kk = 0; kk < n_fold; kk++){
                     Rcpp::Rcout << std::fixed << pi_[kk] << " ";
                 }
+                double vt = vara_ + vare_;
+                for(int i = 0; i < nr; i++){
+                    vt += vr[i];
+                    Rcpp::Rcout << std::fixed << vr[i] << " ";
+                }
                 Rcpp::Rcout << std::fixed << sumvg << " ";
                 Rcpp::Rcout << std::fixed << vara_ << " ";
                 Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / vt) << " ";
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
