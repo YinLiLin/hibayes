@@ -154,6 +154,7 @@ function(
 		if(!is.matrix(X))	X <- as.matrix(X)
 		X_is_num <- apply(X, 2, is.numeric)
 		if(!all(X_is_num))	stop("covariates must be a numeric matrix, please use 'model.matrix' to convert.")
+		if(!all(apply(X, 2, function(x){length(unique(x)) > 1})))	stop("please remove intercept from covariates.")
 	}
 	if(!is.null(R)){
 		if(!is.matrix(R))	R <- as.matrix(R)
