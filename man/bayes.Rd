@@ -25,6 +25,7 @@ bayes(
   s2ve = NULL,
   outfreq = 100,
   seed = 666666,
+  threads = 4,
   verbose = TRUE
 )
 }
@@ -78,6 +79,8 @@ bayes(
 \item{outfreq}{frequency of information output on console, the default is 100.}
 
 \item{seed}{seed for random sample.}
+
+\item{threads}{number of threads used for OpenMP.}
 
 \item{verbose}{whether to print the iteration information.}
 }
