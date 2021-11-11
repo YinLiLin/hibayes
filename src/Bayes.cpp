@@ -156,14 +156,14 @@ Rcpp::List BayesRR(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi;
+    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for private(xi)
+    #pragma omp parallel for firstprivate(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
@@ -616,14 +616,14 @@ Rcpp::List BayesA(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi;
+    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for private(xi)
+    #pragma omp parallel for firstprivate(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
@@ -1026,14 +1026,14 @@ Rcpp::List BayesBpi(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi;
+    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for private(xi)
+    #pragma omp parallel for firstprivate(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
@@ -1540,14 +1540,14 @@ Rcpp::List BayesCpi(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi;
+    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
     
     omp_setup();
-    #pragma omp parallel for private(xi)
+    #pragma omp parallel for firstprivate(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
@@ -2050,14 +2050,14 @@ Rcpp::List BayesLASSO(
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, sumvg, vargi, hsq;
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi;
+    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
 
     omp_setup();
-    #pragma omp parallel for private(xi)
+    #pragma omp parallel for firstprivate(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
@@ -2477,14 +2477,14 @@ Rcpp::List BayesR(
     NumericVector nzrate(m);
     NumericVector g(m);
     NumericVector g_store(m);
-    NumericVector xi;
+    NumericVector xi(n);
     NumericVector u(n);
     double* du = NUMERIC_POINTER(u);
     NumericVector xpx(m), vx(m);
     NumericVector mu_store(niter - nburn + 1), sumvg_store(niter - nburn + 1), vara_store(niter - nburn + 1), vare_store(niter - nburn + 1), hsq_store(niter - nburn + 1);
 
     omp_setup();
-    #pragma omp parallel for private(xi)
+    #pragma omp parallel for firstprivate(xi)
     for(int i = 0; i < m; i++){
         xi = X(_, i);
         xpx[i] = sum(xi * xi);
