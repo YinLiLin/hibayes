@@ -1,17 +1,17 @@
 # hibayes [![](https://img.shields.io/badge/Issues-%2B-brightgreen.svg)](https://github.com/YinLiLin/hibayes/issues/new) [![](https://img.shields.io/badge/Release-v1.0.0-darkred.svg)](https://github.com/YinLiLin/hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
 ## Individual and summary level data based BAYES model for Genome-Wide Association and Genomic Prediction
 
-```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit 3 types of BAYES model using **[individual-level]** (```bayes```), **[summary-level]** (```sbayes```), and **[individual + pedigree-level]** (single-step, ```ssbayes```) data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including:
-(1) fixed effects and coefficients of covariates
-(2) environmental random effects, and its corresponding variance
-(3) genetic variance
-(4) residual variance
-(5) heritability
-(6) genomic estimated breeding values for both genotyped and non-genotyped individuals
-(7) SNP effect size
-(8) phenotype/genetic variance explained (PVE) for single or multiple SNPs
-(9) posterior probability of association of the genomic window (WPPA)
-(10) posterior inclusive probability (PIP)
+```hibayes``` is an user-friendly [R](https://www.r-project.org) package to fit 3 types of BAYES model using **[individual-level]** (```bayes```), **[summary-level]** (```sbayes```), and **[individual + pedigree-level]** (single-step, ```ssbayes```) data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including:  
+(1) fixed effects and coefficients of covariates  
+(2) environmental random effects, and its corresponding variance  
+(3) genetic variance  
+(4) residual variance  
+(5) heritability  
+(6) genomic estimated breeding values for both genotyped and non-genotyped individuals  
+(7) SNP effect size  
+(8) phenotype/genetic variance explained (PVE) for single or multiple SNPs  
+(9) posterior probability of association of the genomic window (WPPA)  
+(10) posterior inclusive probability (PIP)  
 The functions are not limited, we will keep on going in enriching ```hibayes``` with more features.
 
 ```hibayes``` is written in C++ by aid of Rcpp and RcppArmadillo, some time-consuming functions are enhanced with [LAPACK](http://www.netlib.org/lapack/) package, I suggest to run ```hibayes``` in [**MRO**](https://mran.microsoft.com) instead of **R**, as the BLAS/LAPACK library can be accelerated automatically in multi-threads by MKL library, which would significantly reduce computation time. <br>
