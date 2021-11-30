@@ -6,16 +6,19 @@
 \usage{
 ssbayes(
   y,
-  X,
-  Ped,
-  mode = c("A", "D"),
-  model = c("BayesB", "BayesA", "BayesLASSO", "BayesRR", "BayesBpi", "BayesC",
-    "BayesCpi", "BayesR"),
+  y.id,
+  M,
+  M.id,
+  P,
+  X = NULL,
+  R = NULL,
+  model = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC",
+    "BayesBpi", "BayesRR"),
   map = NULL,
   pi = NULL,
   fold = NULL,
   niter = 20000,
-  nburn = 12000,
+  nburn = 14000,
   windsize = NULL,
   wppa = 0.01,
   vg = NULL,
@@ -24,23 +27,45 @@ ssbayes(
   ve = NULL,
   dfve = NULL,
   s2ve = NULL,
-  outfreq = 10,
+  outfreq = 100,
   seed = 666666,
+  threads = 4,
   verbose = TRUE
 )
 }
 \arguments{
-\item{y}{vector of phenotype, NAs are not allowed.}
+\item{y}{vector of phenotype, use 'NA' for the missings.}
 
-\item{X}{numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.}
+\item{y.id}{vector of id for phenotype.}
 
-\item{model}{bayes model including: "BayesRR", "BayesA", "BayesLASSO", "BayesB", "BayesBpi", "BayesC", "BayesCpi", "BayesR".}
+\item{M}{numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.}
 
-\item{map}{(optional, only for GWAS) the map information of genotype, columns are: SNPs, chromosome, physical position.}
+\item{M.id}{vector of id for genotype.}
 
-\item{pi}{percentage of zero effect SNPs. For bayesR, it is a vector for groups of SNPs, the default is c(0.95, 0.02, 0.02, 0.01).}
+\item{P}{matrix of pedigree, 3 columns limited, the order of columns shoud be "id", "sir", "dam".}
 
-\item{fold}{percentage of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).}
+\item{X}{(optional) covariate matrix of all individuals, all values should be in digits, characters are not allowed, please use 'model.matrix.lm' function to prepare it.}
+
+\item{R}{(optional) environmental random effects matrix of all individuals, NAs are not allowed for the individuals with phenotypic value.}
+
+\item{model}{bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "BSLMM".
+\itemize{
+\item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
+\item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesB": only a small proportion of SNPs (1-pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesBpi": the same with "BayesB", but 'pi' is not fixed.
+\item "BayesC": only a small proportion of SNPs (1-pi) have non-zero effects, and share the same variance.
+\item "BayesCpi": the same with "BayesC", but 'pi' is not fixed.
+\item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
+\item "BSLMM": all SNPs have non-zero effects, and take the same variance, but a small proportion of SNPs have additional shared variance.
+\item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance.
+}}
+
+\item{map}{(optional, only for GWAS) the map information of genotype, at least 3 columns are: SNPs, chromosome, physical position.}
+
+\item{pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
+
+\item{fold}{proportion of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).}
 
 \item{niter}{the number of MCMC iteration.}
 
@@ -66,42 +91,60 @@ ssbayes(
 
 \item{seed}{seed for random sample.}
 
+\item{threads}{number of threads used for OpenMP.}
+
 \item{verbose}{whether to print the iteration information.}
+}
+\value{
+the function returns a list containing
+\describe{
+\item{$mu}{the regression intercept}
+\item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
+\item{$beta}{estimated coefficients for all covariates}
+\item{$r}{estimated environmental random effects}
+\item{$vr}{estimated variance for all environmental random effect}
+\item{$vg}{estimated genetic variance}
+\item{$ve}{estimated residual variance}
+\item{$alpha}{estimated effect size of all markers}
+\item{$modfreq}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
+\item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
+\item{$gwas}{WPPA is defined to be the window posterior probability of association, it is the ratio of the number of iterations that \eqn{Pw} (the proportion of the total genetic variance explained by the window \eqn{w}) > 1\% divided by the total number of MCMC iterations, WGVE is the explained genetic variance for each window}
+}
 }
 \description{
 Single-step Bayes linear regression model using individual level data and pedigree information
+\deqn{y = X \beta + R r + M \alpha + U \epsilon + e}
+where \eqn{y} is the vector of phenotypic values for both genotyped and non-genotyped individuals, \eqn{\beta} is a vector of estimated coefficient for covariates, \eqn{M} contains the genotype (\eqn{M_2}) for genotyped individuals and the imputed genotype (\eqn{M_1 = A_{12}A_{22}^{-1}M_2}) for non-genotyped individuals, \eqn{\epsilon} is the vector of genotype imputation error, \eqn{e} is a vector of residuals.
 }
 \examples{
-set.seed(123)
-n = 1000                        # number of observations
-m = 100                         # number of SNPs
-k = 10                          # number of causal SNPs
-h2 = 0.5                        # heritability
-X = matrix(sample(c(0, 1, 2), n*m, prob=c(0.25, 0.5, 0.25), replace=TRUE), n)
-X = apply(X, 2, function(x){x-mean(x)})
-qtl = sort(sample(1:m, k))
-betaTrue = array(0,m)
-betaTrue[qtl] = rnorm(k)
-g = X\%*\%betaTrue
-vg = var(g)
-ve = (1-h2)/h2 * vg
-y = g + rnorm(n,0,sqrt(ve))
+# Load the example data attached in the package
+pheno_file_path = system.file("extdata", "pheno.txt", package = "hibayes")
+pheno = read.table(pheno_file_path, header=TRUE)
+pedigree_file_path = system.file("extdata", "ped.txt", package = "hibayes")
+ped = read.table(pedigree_file_path, header=TRUE)
+bfile_path = system.file("extdata", "geno", package = "hibayes")
+data = read_plink(bfile_path, out=tempfile())
+fam = data$fam
+geno = data$geno
+map = data$map
 
-## fit model
-fit = ssbayes(y=y, X=X, model="BayesCpi", niter=1000, nburn=500)
+# NOTE: for ssbayes model, there is no NEED to adjust the order of id in different files
+geno.id = fam[, 2]
+pheno.id = pheno[, 1]
 
-## check results
-cor(fit$g, betaTrue)
-plot(fit$g, betaTrue)
+# For GS/GP
+fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
+				 model="BayesR", niter=200, nburn=100, outfreq=10)
+# For GWAS
+# fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
+# 			  map=map, windsize=1e6, model="BayesCpi")
 
-#####load plink binary file#####
-# bfile_path = system.file("extdata", "example", package = "hibayes")
-# data = read_plink(bfile_path, out=tempfile())
-# pheno = data$pheno
-# geno = data$geno
-# map = data$map
-## For GS/GP
-# fit = ssbayes(y=pheno[,1], X=geno, model="BayesR", niter=20000, nburn=10000)
-## For GWAS
-# fit = ssbayes(y=pheno[,1], X=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
+# Add fixed effects, covariates, and random effect
+X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
+X <- X[, -1] #remove the intercept
+# fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
+}
+\references{
+Fernando, Rohan L., Jack CM Dekkers, and Dorian J. Garrick. "A class of Bayesian methods to combine large numbers of genotyped and non-genotyped animals for whole-genome analyses." Genetics Selection Evolution 46.1 (2014): 1-13. \cr
+Henderson, C.R.: A simple method for computing the inverse of a numerator relationship matrix used in prediction of breeding values. Biometrics 32(1), 69-83 (1976).
 }

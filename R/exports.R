@@ -11,6 +11,26 @@ NULL
 #' @import methods
 NULL
 
+#' @import Rcpp
+NULL
+
+#' @importFrom stats runif
+NULL
+#' @importFrom stats rnorm
+NULL
+#' @importFrom stats rgamma
+NULL
+#' @importFrom stats rchisq
+NULL
+#' @importFrom stats rbeta
+NULL
+#' @importFrom stats rt
+NULL
+#' @importFrom stats rcauchy
+NULL
+#' @importFrom stats rexp
+NULL
+
 #' @importFrom methods new
 #' @export
 methods::new

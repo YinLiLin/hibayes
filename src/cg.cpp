@@ -48,7 +48,7 @@ Rcpp::List conjgt_spa(
 	}
 	arma::vec g;
 	double vg, ve;
-	g = solver(ldm, xy / n, R_NilValue, lambda, esp, outfreq, verbose);
+	g = CG(ldm, xy / n, R_NilValue, lambda, esp, outfreq, verbose);
 	vg = n * arma::as_scalar(g.t() * ldm * g) / (n - 1);
 	ve = (yy / (n - 1)) - vg;
 	if(verbose){
@@ -111,7 +111,7 @@ Rcpp::List conjgt_den(
 	arma::vec g;
 	double vg, ve;
 
-	g = solver(ldm, xy / n, R_NilValue, lambda, esp, outfreq, verbose);
+	g = CG(ldm, xy / n, R_NilValue, lambda, esp, outfreq, verbose);
 	vg = n * arma::as_scalar(g.t() * ldm * g) / (n - 1);
 	ve = (yy / (n - 1)) - vg;
 

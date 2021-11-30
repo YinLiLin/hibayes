@@ -11,7 +11,7 @@ ldmat(
   gwas.map = NULL,
   chisq = NULL,
   ldchr = FALSE,
-  threads = 0,
+  threads = 4,
   verbose = TRUE
 )
 }
@@ -36,7 +36,7 @@ ldmat(
 To calculate density or sparse LD variance-covariance matrix with genotype in bigmemory format.
 }
 \examples{
-bfile_path = system.file("extdata", "example", package = "hibayes")
+bfile_path = system.file("extdata", "geno", package = "hibayes")
 data = read_plink(bfile_path, out=tempfile())
 geno = data$geno
 map = data$map

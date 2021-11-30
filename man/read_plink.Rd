@@ -10,7 +10,7 @@ read_plink(
   impute = TRUE,
   mode = c("A", "D"),
   out = NULL,
-  threads = 0
+  threads = 4
 )
 }
 \arguments{
@@ -26,13 +26,16 @@ read_plink(
 
 \item{threads}{number, the number of used threads for parallel process}
 }
+\value{
+hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is the first allele of each marker in *.bim file, therefore the estimated effect size is on A1 allele, users should pay attention to it when a process involves marker effect.
+}
 \description{
 To load plink binary data
 }
 \examples{
-bfile_path = system.file("extdata", "example", package = "hibayes")
+bfile_path = system.file("extdata", "geno", package = "hibayes")
 data = read_plink(bfile_path, out=tempfile(), mode="A")
-pheno = data$pheno
+fam = data$fam
 geno = data$geno
 map = data$map
 }

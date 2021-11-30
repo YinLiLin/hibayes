@@ -6,15 +6,16 @@
 \usage{
 bayes(
   y,
-  Z,
+  M,
   X = NULL,
   R = NULL,
-  model = c("B", "A", "L", "RR", "Bpi", "C", "Cpi", "R"),
+  model = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC",
+    "BayesBpi", "BayesRR"),
   map = NULL,
   pi = NULL,
   fold = NULL,
   niter = 20000,
-  nburn = 12000,
+  nburn = 14000,
   windsize = NULL,
   wppa = 0.01,
   vg = NULL,
@@ -30,31 +31,32 @@ bayes(
 )
 }
 \arguments{
-\item{y}{vector of phenotype, NAs are not allowed.}
+\item{y}{vector of phenotype, use 'NA' for the missings. The number and order of individuals of y, M, X, R should be exactly the same.}
 
-\item{Z}{numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.}
+\item{M}{numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.}
 
-\item{X}{(optional) covariate matrix of all individuals, all values should be in digits, characters and NAs are not allowed, please use 'model.matrix' function to prepare it.}
+\item{X}{(optional) covariate matrix of all individuals, all values should be in digits, characters are not allowed, please use 'model.matrix.lm' function to prepare it.}
 
-\item{R}{(optional) environmental random effects matrix of all individuals, NAs are not allowed.}
+\item{R}{(optional) environmental random effects matrix of all individuals, NAs are not allowed for the individuals with phenotypic value.}
 
-\item{model}{bayes model including: "B", "A", "L", "RR", "Bpi", "C", "Cpi", "R".
+\item{model}{bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "BSLMM".
 \itemize{
-\item "RR" - Bayes Ridge Regression: all SNPs have non-zero effects and share the same variance, equals to GBLUP.
-\item "A" - BayesA: all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution.
-\item "B" - BayesB: only a small part of SNPs (1-pi) have non-zero effects but use different variance which follows an inverse chi-square distribution.
-\item "Bpi" - BayesBpi: the same with "BayesB", but 'pi' is not fixed.
-\item "C" - BayesC: only a small part of SNPs (1-pi) have non-zero effects and share the same variance.
-\item "Cpi" - BayesCpi: the same with "BayesC", but 'pi' is not fixed.
-\item "L" - BayesLASSO: all SNPs have non-zero effects but use different variance which follows an exponential distribution.
-\item "R" - BayesR: only a small part of SNPs have non-zero effects, but the SNPs are allocated into different groups, each group has the same variance.
+\item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
+\item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesB": only a small proportion of SNPs (1-pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesBpi": the same with "BayesB", but 'pi' is not fixed.
+\item "BayesC": only a small proportion of SNPs (1-pi) have non-zero effects, and share the same variance.
+\item "BayesCpi": the same with "BayesC", but 'pi' is not fixed.
+\item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
+\item "BSLMM": all SNPs have non-zero effects, and take the same variance, but a small proportion of SNPs have additional shared variance.
+\item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance.
 }}
 
-\item{map}{(optional, only for GWAS) the map information of genotype, columns are: SNPs, chromosome, physical position.}
+\item{map}{(optional, only for GWAS) the map information of genotype, at least 3 columns are: SNPs, chromosome, physical position.}
 
-\item{pi}{percentage of zero effect SNPs. For bayesR, it is a vector for groups of SNPs, the default is c(0.95, 0.02, 0.02, 0.01).}
+\item{pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
 
-\item{fold}{percentage of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).}
+\item{fold}{proportion of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).}
 
 \item{niter}{the number of MCMC iteration.}
 
@@ -84,40 +86,56 @@ bayes(
 
 \item{verbose}{whether to print the iteration information.}
 }
+\value{
+the function returns a list containing
+\describe{
+\item{$mu}{the regression intercept}
+\item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
+\item{$beta}{estimated coefficients for all covariates}
+\item{$r}{estimated environmental random effects}
+\item{$vr}{estimated variance for all environmental random effect}
+\item{$vg}{estimated genetic variance}
+\item{$ve}{estimated residual variance}
+\item{$alpha}{estimated effect size of all markers}
+\item{$modfreq}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
+\item{$g}{genomic estimated breeding value}
+\item{$gwas}{WPPA is defined to be the window posterior probability of association, it is the ratio of the number of iterations that \eqn{Pw} (the proportion of the total genetic variance explained by the window \eqn{w}) > 1\% divided by the total number of MCMC iterations, WGVE is the explained genetic variance for each window}
+}
+}
 \description{
 Bayes linear regression model using individual level data
+\deqn{y = X \beta + R r + M \alpha + e}
+where \eqn{\beta} is a vector of estimated coefficient for covariates, and \eqn{r} is a vector of environmental random effects. \eqn{M} is a matrix of genotype covariate, \eqn{\alpha} is a vector of estimated marker effect size. \eqn{e} is a vector of residuals.
 }
 \examples{
-set.seed(123)
-n = 1000                        # number of observations
-m = 100                         # number of SNPs
-k = 10                          # number of causal SNPs
-h2 = 0.5                        # heritability
-Z = matrix(sample(c(0, 1, 2), n*m, prob=c(0.25, 0.5, 0.25), replace=TRUE), n)
-Z = apply(Z, 2, function(x){x-mean(x)})
-qtl = sort(sample(1:m, k))
-betaTrue = array(0,m)
-betaTrue[qtl] = rnorm(k)
-g = Z\%*\%betaTrue
-vg = var(g)
-ve = (1-h2)/h2 * vg
-y = g + rnorm(n,0,sqrt(ve))
+# Load the example data attached in the package
+pheno_file_path = system.file("extdata", "pheno.txt", package = "hibayes")
+pheno = read.table(pheno_file_path, header=TRUE)
+bfile_path = system.file("extdata", "geno", package = "hibayes")
+data = read_plink(bfile_path, out=tempfile())
+fam = data$fam
+geno = data$geno
+map = data$map
 
-## fit model
-fit = bayes(y=y, Z=Z, model="BayesCpi", niter=1000, nburn=500)
+# Adjust the order of phenotype by genotype id
+geno.id = fam[, 2]
+pheno = pheno[match(geno.id, pheno[, 1]), ]
 
-## check results
-cor(fit$g, betaTrue)
-plot(fit$g, betaTrue)
+# For GS/GP
+fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100, outfreq=10)
+# For GWAS
+# fit = bayes(y=pheno[, 2], M=geno, map=map, windsize=1e6, model="BayesCpi")
 
-#####load plink binary file#####
-# bfile_path = system.file("extdata", "example", package = "hibayes")
-# data = read_plink(bfile_path, out=tempfile())
-# pheno = data$pheno
-# geno = data$geno
-# map = data$map
-## For GS/GP
-# fit = bayes(y=pheno[,1], Z=geno, model="BayesR", niter=20000, nburn=10000)
-## For GWAS
-# fit = bayes(y=pheno[,1], Z=geno, map=map, windsize=1e6, model="BayesR", niter=20000, nburn=10000)
+# Add fixed effects, covariates, and random effect
+X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
+X <- X[, -1] #remove the intercept
+# fit = bayes(..., X=X, R=pheno[,c("group")], ...)
+}
+\references{
+Meuwissen, Theo HE, Ben J. Hayes, and Michael E. Goddard. "Prediction of total genetic value using genome-wide dense marker maps." Genetics 157.4 (2001): 1819-1829. \cr
+de los Campos, G., Hickey, J. M., Pong-Wong, R., Daetwyler, H. D., and Calus, M. P. (2013). Whole-genome regression and prediction methods applied to plant and animal breeding. Genetics, 193(2), 327-345. \cr
+Habier, David, et al. "Extension of the Bayesian alphabet for genomic selection." BMC bioinformatics 12.1 (2011): 1-12. \cr
+Yi, Nengjun, and Shizhong Xu. "Bayesian LASSO for quantitative trait loci mapping." Genetics 179.2 (2008): 1045-1055. \cr
+Zhou, Xiang, Peter Carbonetto, and Matthew Stephens. "Polygenic modeling with Bayesian sparse linear mixed models." PLoS genetics 9.2 (2013): e1003264. \cr
+Moser, Gerhard, et al. "Simultaneous discovery, estimation and prediction analysis of complex traits using a Bayesian mixture model." PLoS genetics 11.4 (2015): e1004969. \cr
 }

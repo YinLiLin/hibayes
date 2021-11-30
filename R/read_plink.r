@@ -10,11 +10,14 @@
 #' @param threads number, the number of used threads for parallel process
 
 #' @examples
-#' bfile_path = system.file("extdata", "example", package = "hibayes")
+#' bfile_path = system.file("extdata", "geno", package = "hibayes")
 #' data = read_plink(bfile_path, out=tempfile(), mode="A")
-#' pheno = data$pheno
+#' fam = data$fam
 #' geno = data$geno
 #' map = data$map
+
+#' @return
+#' hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is the first allele of each marker in *.bim file, therefore the estimated effect size is on A1 allele, users should pay attention to it when a process involves marker effect.
 
 #' @export
 
@@ -25,7 +28,7 @@ function(
 	impute = TRUE,
 	mode = c("A", "D"),
 	out = NULL, 
-	threads = 0
+	threads = 4
 ){
 	if(is.null(out)){
 		backingfile <- paste0(basename(bfile),".bin")
@@ -45,10 +48,10 @@ function(
 	}
 	map_file <- paste0(backingpath, "/", map_file)
 	map <- as.data.frame(rMap_c(paste0(bfile, ".bim"), out = map_file), stringsAsFactors=FALSE)
-	pheno <- read.table(paste(bfile, ".fam", sep=""), header=FALSE, stringsAsFactors=FALSE)[,-c(1:5), drop=FALSE]
-	colnames(pheno) <- NULL
+	fam <- read.table(paste(bfile, ".fam", sep=""), header=FALSE, stringsAsFactors=FALSE)
+	colnames(fam) <- NULL
 	m <- nrow(map)
-	n <- nrow(pheno)
+	n <- nrow(fam)
 	geno <- bigmemory::big.matrix(
 		nrow = n,
 		ncol = m,
@@ -67,5 +70,5 @@ function(
 			read_bed(bfile = bfile, pBigMat = geno@address, maxLine = maxLine, impt = impute, d = TRUE, threads = threads)
 		}
 	)
-	return(list(pheno=pheno, geno=geno, map=map))	
+	return(list(fam=fam, geno=geno, map=map))	
 }

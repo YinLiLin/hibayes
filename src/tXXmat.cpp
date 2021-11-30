@@ -22,7 +22,7 @@ class MinimalProgressBar: public ProgressBar{
             point[pi] = false;
             REprintf("\r");
             REprintf(_str);
-            REprintf("...[finished %u%]", (int)(progress * 100));
+            REprintf("...finished %u%", (int)(progress * 100));
         }
     }
     void end_display() {

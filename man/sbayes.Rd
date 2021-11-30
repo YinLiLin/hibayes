@@ -7,13 +7,14 @@
 sbayes(
   sumstat,
   ldm,
-  model = c("B", "A", "L", "RR", "Bpi", "C", "Cpi", "R", "CG"),
+  model = c("BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi",
+    "BayesR", "CG"),
   map = NULL,
   pi = NULL,
   lambda = NULL,
   fold = NULL,
   niter = 20000,
-  nburn = 12000,
+  nburn = 14000,
   windsize = NULL,
   wppa = 0.01,
   vg = NULL,
@@ -22,32 +23,33 @@ sbayes(
   ve = NULL,
   dfve = NULL,
   s2ve = NULL,
-  outfreq = 10,
+  outfreq = 100,
   seed = 666666,
+  threads = 4,
   verbose = TRUE
 )
 }
 \arguments{
 \item{sumstat}{matrix of summary data, details refer to https://cnsgenomics.com/software/gcta/#COJO.}
 
-\item{ldm}{dense or sparse matrix, ld for reference panel (m * m, m is the number of SNPs), note that the order of SNPs should be consistent with summary data.}
+\item{ldm}{dense or sparse matrix, ld for reference panel (m * m, m is the number of SNPs). NOTE that the order of SNPs should be consistent with summary data.}
 
-\item{model}{bayes model including: "B", "A", "L", "RR", "Bpi", "C", "Cpi", "R", "CG".
+\item{model}{bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG".
 \itemize{
-\item "RR" - Bayes Ridge Regression: all SNPs have non-zero effects and share the same variance, equals to GBLUP.
-\item "A" - BayesA: all SNPs have non-zero effects but use different variance which follows an inverse chi-square distribution.
-\item "B" - BayesB: only a small part of SNPs (1-pi) have non-zero effects but use different variance which follows an inverse chi-square distribution.
-\item "Bpi" - BayesBpi: the same with "BayesB", but 'pi' is not fixed.
-\item "C" - BayesC: only a small part of SNPs (1-pi) have non-zero effects and share the same variance.
-\item "Cpi" - BayesCpi: the same with "BayesC", but 'pi' is not fixed.
-\item "L" - BayesLASSO: all SNPs have non-zero effects but use different variance which follows an exponential distribution.
-\item "R" - BayesR: only a small part of SNPs have non-zero effects, but the SNPs are allocated into different groups, each group has the same variance.
-\item "CG" - Conjuction gradient algorithm.
+\item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
+\item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesB": only a small proportion of SNPs (1-pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesBpi": the same with "BayesB", but 'pi' is not fixed.
+\item "BayesC": only a small proportion of SNPs (1-pi) have non-zero effects, and share the same variance.
+\item "BayesCpi": the same with "BayesC", but 'pi' is not fixed.
+\item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
+\item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance.
+\item "CG": conjugate gradient algorithm with assigned lambda.
 }}
 
-\item{map}{(optional, only for GWAS) the map information of genotype, columns are: SNPs, chromosome, physical position.}
+\item{map}{(optional, only for GWAS) the map information of genotype, at least 3 columns are: SNPs, chromosome, physical position.}
 
-\item{pi}{percentage of zero effect SNPs. For bayesR, it is a vector for groups of SNPs, the default is c(0.95, 0.02, 0.02, 0.01).}
+\item{pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
 
 \item{lambda}{value or vector, the ridge regression value for each SNPs.}
 
@@ -77,13 +79,26 @@ sbayes(
 
 \item{seed}{seed for random sample.}
 
+\item{threads}{number of threads used for OpenMP.}
+
 \item{verbose}{whether to print the iteration information.}
+}
+\value{
+the function returns a list containing
+\describe{
+\item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
+\item{$vg}{estimated genetic variance}
+\item{$ve}{estimated residual variance}
+\item{$alpha}{estimated effect size of all markers}
+\item{$modfreq}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
+\item{$gwas}{WPPA is defined to be the window posterior probability of association, it is the ratio of the number of iterations that \eqn{Pw} (the proportion of the total genetic variance explained by the window \eqn{w}) > 1\% divided by the total number of MCMC iterations, WGVE is the explained genetic variance for each window}
+}
 }
 \description{
 Bayes linear regression model using summary level data
 }
 \examples{
-bfile_path = system.file("extdata", "example", package = "hibayes")
+bfile_path = system.file("extdata", "geno", package = "hibayes")
 data = read_plink(bfile_path, out=tempfile())
 geno = data$geno
 map = data$map
@@ -102,5 +117,9 @@ head(sumstat)
 # ldm1 = ldm1[indx, indx]
 
 ## fit model
-# fit = sbayes(sumstat=sumstat, ldm=ldm1, model="SBayesR")
+# fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
+
+}
+\references{
+Lloyd-Jones, Luke R., et al. "Improved polygenic prediction by Bayesian multiple regression on summary statistics." Nature communications 10.1 (2019): 1-11.
 }

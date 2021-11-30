@@ -1,3 +1,4 @@
 ^README\.md$
 ^figure$
 ^LICENSE$
+^.vscode$

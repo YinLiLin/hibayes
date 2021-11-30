@@ -12,7 +12,7 @@
 #' @param verbose whether to print the information.
 
 #' @examples
-#' bfile_path = system.file("extdata", "example", package = "hibayes")
+#' bfile_path = system.file("extdata", "geno", package = "hibayes")
 #' data = read_plink(bfile_path, out=tempfile())
 #' geno = data$geno
 #' map = data$map
@@ -30,7 +30,7 @@ ldmat <- function(
 	gwas.map = NULL,
 	chisq = NULL,
 	ldchr = FALSE,
-	threads = 0,
+	threads = 4,
 	verbose = TRUE
 ){
 	if(!is.big.matrix(geno)){
@@ -57,7 +57,7 @@ ldmat <- function(
 			stop("0 is not allowed in chromosome.")
 		}
 		snpid <- map[, 1]
-		map <- as.matrix(map[,-1])
+		map <- as.matrix(map[,c(2, 3)])
 		suppressWarnings(max.chr <- max(as.numeric(map[, 1]), na.rm=TRUE))
 		if(is.infinite(max.chr))	max.chr <- 0
 		suppressWarnings(map.xy.index <- which(!as.numeric(map[, 1]) %in% c(0 : max.chr)))

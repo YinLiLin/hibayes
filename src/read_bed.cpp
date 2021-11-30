@@ -44,6 +44,8 @@ List rMap_c(std::string map_file, const Nullable<std::string> out = R_NilValue){
 	vector<string> snp(n);
 	vector<string> chr(n);
 	vector<string> pos(n);
+	vector<string> a1(n);
+	vector<string> a2(n);
 
 	ifstream file(map_file);
 	if (!file) throw Rcpp::exception(("Error: can not open the file [" + map_file + "].").c_str());
@@ -56,6 +58,8 @@ List rMap_c(std::string map_file, const Nullable<std::string> out = R_NilValue){
 		snp[idx] = s;
 		chr[idx] = c;
 		pos[idx] = p;
+		a1[idx] = r;
+		a2[idx] = a;
 
 		idx++;
 	}
@@ -76,16 +80,18 @@ List rMap_c(std::string map_file, const Nullable<std::string> out = R_NilValue){
 
 	if(fileout){
 		ofstream map(filename + ".map");
-		map << "SNP\tCHROM\tPOS" << endl;
+		map << "SNP\tCHROM\tPOS\tA1\tA2" << endl;
 		for(int i = 0; i < n; i++){
-			map << snp[i] << "\t" << chr[i] << "\t" << pos[i] << endl;
+			map << snp[i] << "\t" << chr[i] << "\t" << pos[i] << "\t" << a1[i] << "\t" << a2[i] << endl;
 		}
 		map.close();
 	}
 
 	return List::create(Named("SNP") = snp,
                        Named("Chr") = chr,
-                       Named("Pos") = pos
+                       Named("Pos") = pos,
+					   Named("A1") = a1,
+					   Named("A2") = a2
 	);
 }
 

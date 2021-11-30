@@ -1,12 +1,13 @@
 #ifndef STATS_H
 #define STATS_H
 
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 
 // [[Rcpp::plugins(cpp11)]]
-// [[Rcpp::depends(Rcpp)]]
+// [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
+using namespace arma;
 
 double uniform_sample(double start = 0, double end = 1);
 double norm_sample(double mean = 0, double sd = 1);
@@ -20,6 +21,6 @@ double cauchy_sample(double location, double scale);
 double exponential_sample(double scale);
 double laplace_sample(double mean, double scale);
 double rinvgaussian_sample(double mu, double lambda);
-NumericVector rdirichlet_sample(double n, NumericVector x);
+vec rdirichlet_sampler(int n, vec x);
 IntegerVector which_c(NumericVector x, double value, int c = 1);
 #endif

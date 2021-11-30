@@ -1,0 +1,605 @@
+#include "hibayes.h"
+#include "solver.h"
+
+double gXXg(arma::vec g, arma::mat W, IntegerVector indx){
+	double res1 = 0.0;
+	for(int i = 0; i < indx.size(); i++){
+		double res2 = 0;
+		for(int j = 0; j < indx.size(); j++){
+			res2 += (g[indx[j]] * W(j, i));
+		}
+		res1 += (res2 * g[indx[i]]);
+	}
+	return res1;
+}
+
+// [[Rcpp::export]]
+Rcpp::List SBayesD(
+	arma::mat sumstat, 
+	arma::mat ldm,
+    std::string &model,
+	arma::vec &pi,
+	const int niter = 50000,
+	const int nburn = 20000,
+    const Nullable<arma::vec> fold = R_NilValue,
+	const Nullable<IntegerVector> windindx = R_NilValue,
+    const double wppa = 0.01,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
+	const int outfreq = 100,
+	const int threads = 0,
+	const bool verbose = true
+){
+
+    omp_setup(threads);
+
+    int model_index = (model == "BayesRR" ? 1 : (model == "BayesA" ? 2 : (model == "BayesB" || model == "BayesBpi" ? 3 : (model == "BayesC" || model == "BayesCpi" ? 4 : (model == "BayesL" ? 5 : 6)))));
+    if(sumstat.n_rows != ldm.n_rows){
+		throw Rcpp::exception("Number of SNPs not equals.");
+	}
+    int m = ldm.n_rows;
+    vec N_col = sumstat.col(3);
+    int n = mean(N_col.elem(find_finite(N_col)));
+    bool fixpi = false;
+    if(model == "BayesB" || model == "BayesC")    fixpi = true;
+    if(pi.n_elem < 2)  throw Rcpp::exception("pi should be a vector.");
+    if(sum(pi) != 1)   throw Rcpp::exception("sum of pi should be 1.");
+    if(pi[0] == 1) throw Rcpp::exception("all markers have no effect size.");
+    for(int i = 0; i < pi.n_elem; i++){
+        if(pi[i] < 0 || pi[i] > 1){
+            throw Rcpp::exception("elements of pi should be at the range of [0, 1]");
+        }
+    }
+    vec fold_;
+    if(fold.isNotNull()){
+        fold_ = as<arma::vec>(fold);
+    }else{
+        if(model == "BayesR")    throw Rcpp::exception("'fold' should be provided for BayesR model.");
+        fold_.resize(2);
+    }
+    if(fold_.n_elem != pi.n_elem){
+        throw Rcpp::exception("length of pi and fold not equals.");
+    }
+
+    int count = 0;
+    int inc = 1;
+    int n_fold = fold_.n_elem;
+    int NnzSnp, indistflag;
+    double doc = 1.0;
+    double xx, gi, gi_, rhs, lhs, logdetV, acceptProb, uhat, v;
+    double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, vargi, hsq, s2varg_;
+    vec snptracker;
+    vec nzrate;
+    if(model == "BayesRR" || model == "BayesA" || model == "BayesL"){
+        NnzSnp = m;
+        pi[0] = 0; pi[1] = 1;
+        fixpi = true;
+    }else{
+        if(model != "BayesR" && pi.n_elem != 2) throw Rcpp::exception("length of pi should be 2, the first value is the proportion of non-effect markers.");
+        nzrate.zeros(m); 
+        snptracker.zeros(m); 
+    }
+    vec xy = zeros(m);
+    vec r_hat = zeros(m);
+	vec tmp = zeros(m);
+	vec yyi = zeros(m);
+    vec g = zeros(m);
+    vec g_store = zeros(m);
+    vec u = zeros(n);
+    vec xpx = zeros(m);
+    vec vx = zeros(m);
+    // vec sumvg_store = zeros(niter - nburn + 1);
+    vec vara_store = zeros(niter - nburn + 1);
+    vec vare_store = zeros(niter - nburn + 1);
+    vec hsq_store = zeros(niter - nburn + 1);
+    mat pi_store;
+    if(!fixpi)  pi_store.resize(niter - nburn + 1, n_fold);
+
+    #pragma omp parallel for
+    for(int i = 0; i < m; i++){
+		vx[i] = ldm(i, i);
+		xpx[i] = vx[i] * n;
+	}
+    int count_y = 0;
+    std::vector<bool> ifest(m); std::fill(ifest.begin(), ifest.end(), true);
+    for(int k = 0; k < m; k++){
+		if(Rcpp::NumericVector::is_na(sumstat(k, 1)) || Rcpp::NumericVector::is_na(sumstat(k, 2)) || Rcpp::NumericVector::is_na(sumstat(k, 3))){
+			ifest[k] = false;
+		}else{
+            xy[k] = xpx[k] * sumstat(k, 1);
+            r_hat[k] = xy[k];
+			yyi[k] = xpx[k] * (sumstat(k, 1) * sumstat(k, 1) + (sumstat(k, 3) - 2) * sumstat(k, 2) * sumstat(k, 2));
+			count_y++;
+		}
+	}
+    if(count_y == 0){
+		throw Rcpp::exception("Lack of SE.");
+	}
+	double yy = sum(yyi) / count_y;
+    double vary = yy / (n - 1);
+    double h2 = 0.5;
+    
+    if(dfvg.isNotNull()){
+        dfvara_ = as<double>(dfvg);
+    }else{
+        dfvara_ = 4;
+    }
+    if(dfvara_ <= 2){
+        throw Rcpp::exception("dfvg should not be less than 2.");
+    }
+    if(vg.isNotNull()){
+        vara_ = as<double>(vg);
+    }else{
+        vara_ = ((dfvara_ - 2) / dfvara_) * vary * h2;
+    }
+    if(ve.isNotNull()){
+        vare_ = as<double>(ve);
+    }else{
+        vare_ = vary * (1 - h2);
+    }
+    if(dfve.isNotNull()){
+        dfvare_ = as<double>(dfve);
+    }else{
+        dfvare_ = -2;
+    }
+    if(s2vg.isNotNull()){
+        s2vara_ = as<double>(s2vg);
+    }else{
+        s2vara_ = vara_ * (dfvara_ - 2) / dfvara_;
+    }
+    double varg = vara_ / ((1 - pi[0]) * sum(vx));
+    s2varg_ = s2vara_ / ((1 - pi[0]) * sum(vx));
+    if(s2ve.isNotNull()){
+        s2vare_ = as<double>(s2ve);
+    }else{
+        s2vare_ = 0;
+    }
+    if(niter < nburn){
+        throw Rcpp::exception("Number of total iteration ('niter') shold be larger than burn-in ('nburn').");
+    }
+    double R2 = (dfvara_ - 2) / dfvara_;
+    double lambda2 = 2 * (1 - R2) / (R2) * sum(vx);
+    double lambda = sqrt(lambda2); 
+    double shape, shape0 = 1.1;
+    double rate, rate0 = (shape0 - 1) / lambda2;
+    vec vargL;
+    if(model == "BayesL"){
+        vargL.resize(m);
+        vargL.fill(varg);
+    }
+    vec stemp = zeros(n_fold);
+    vec fold_snp_num = zeros(n_fold);
+    vec logpi = zeros(n_fold);
+    vec s = zeros(n_fold);
+    vec vara_fold = (vara_ / ((1 - pi[0]) * sum(vx))) * fold_;
+    vec vare_vara_fold = zeros(n_fold);
+
+    // for gwas
+    int nw;
+    double varw;
+    bool WPPA = false;
+    NumericVector windindx_;
+    vector<IntegerVector> windx;
+    vec wu;
+    IntegerVector windxi;
+    NumericVector wppai;
+    NumericVector wgvei;
+    if(windindx.isNotNull()){
+        windindx_ = as<IntegerVector>(windindx);
+        WPPA = true;
+        nw = max(windindx_);
+        wppai = seq(0, (nw - 1));
+        wgvei = seq(0, (nw - 1));
+        for(int w = 0; w < nw; w++){
+            windx.push_back(which_c(windindx_, (w+1), 5));
+        }
+        wu.zeros(n);
+    }
+
+    if(verbose){
+        Rcpp::Rcout.precision(4);
+        Rcpp::Rcout << "Prior parameters:" << std::endl;
+        Rcpp::Rcout << "    Model fitted at [" << (model == "BayesRR" ? "Bayes Ridge Regression" : model) << "]" << std::endl;
+        Rcpp::Rcout << "    Number of observations " << n << std::endl;
+        Rcpp::Rcout << "    Number of markers " << m << std::endl;
+        Rcpp::Rcout << "    Number of markers used for analysis" << count_y << std::endl;
+        for(int i = 0; i < pi.n_elem; i++){
+            if(i == 0){
+                Rcpp::Rcout << "    π for markers in zero effect size " << pi[i] << endl;
+            }else{
+                if(i == 1){
+                    Rcpp::Rcout << "    π for markers in non-zero effect size " << pi[i] << " ";
+                }else{
+                    Rcpp::Rcout << pi[i] << " ";
+                }
+            }
+        }
+        Rcpp::Rcout << std::endl;
+        if(model == "BayesR"){
+            Rcpp::Rcout << "    Group fold ";
+            for(int i = 0; i < fold_.n_elem; i++){
+                Rcpp::Rcout << fold_[i] << " ";
+            }
+            Rcpp::Rcout << std::endl;
+        }
+        Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
+        Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
+        Rcpp::Rcout << "    Phenotypic var " << std::fixed << vary << std::endl;
+        Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << std::endl;
+        Rcpp::Rcout << "    Inv-Chisq gpar " << std::fixed << dfvara_ << " " << std::fixed << s2vara_ << std::endl;
+        Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << std::endl;
+        Rcpp::Rcout << "    Inv-Chisq epar " << std::fixed << dfvare_ << " " << std::fixed << s2vare_ << std::endl;
+        Rcpp::Rcout << "    Marker var " << std::fixed << varg << std::endl;
+        Rcpp::Rcout << "    Inv-Chisq alpar " << std::fixed << dfvara_ << " " << std::fixed << s2varg_ << std::endl;
+        if(WPPA){
+            Rcpp::Rcout << "    Number of windows " << nw << std::endl;
+            Rcpp::Rcout << "    GVE threshold for windows " << wppa << std::endl;
+        }
+        Rcpp::Rcout << "MCMC started: " << std::endl;
+        Rcpp::Rcout << " Iter" << "  ";
+        Rcpp::Rcout << "NumNZSnp" << "  ";
+        for(int i = 0; i < n_fold; i++){
+            Rcpp::Rcout << "π" << i + 1 << "  ";
+        }
+        if(model == "BayesL")    Rcpp::Rcout << "Lambda" << "  ";
+        Rcpp::Rcout << "Vg" << "  ";
+        Rcpp::Rcout << "Ve" << "  ";
+        Rcpp::Rcout << "h2" << "  ";
+        Rcpp::Rcout << "Timeleft" << std::endl;
+    }
+
+    MyTimer timer;
+    timer.step("start");
+    MyTimer timer_loop;
+    timer_loop.step("start");
+    double tt0; 
+    int tt, hor, min, sec;
+    double* dr_hat = r_hat.memptr();
+    double* dldmi;
+    
+    // MCMC procedure
+    for(int iter = 0; iter < niter; iter++){
+
+        switch(model_index){
+            case 1:
+                for(int i = 0; i < m; i++){
+                    if(!ifest[i])   continue;
+                    xx = xpx[i];
+                    gi = g[i];
+                    rhs = r_hat[i];
+                    if(gi){rhs += xx * gi;}
+                    lhs = xx / vare_;
+                    v = xx + vare_ / varg;
+                    gi = norm_sample(rhs / v, sqrt(vare_ / v));
+                    gi_ = (g[i] - gi) * n;
+                    dldmi = ldm.colptr(i);
+                    daxpy_(&m, &gi_, dldmi, &inc, dr_hat, &inc);
+                    g[i] = gi;
+                }
+                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / (dfvara_ + count_y);
+                varg = invchisq_sample(count_y + dfvara_, varg);
+                break;
+            case 2:
+                for(int i = 0; i < m; i++){
+                    if(!ifest[i])   continue;
+                    xx = xpx[i];
+                    gi = g[i];
+                    varg = (gi * gi + s2varg_ * dfvara_) / (dfvara_ + 1);
+                    varg = invchisq_sample(1 + dfvara_, varg);
+                    rhs = r_hat[i];
+                    if(gi){rhs += xx * gi;}
+                    lhs = xx / vare_;
+                    v = xx + vare_ / varg;
+                    gi = norm_sample(rhs / v, sqrt(vare_ / v));
+                    gi_ = (g[i] - gi) * n;
+                    dldmi = ldm.colptr(i);
+                    daxpy_(&m, &gi_, dldmi, &inc, dr_hat, &inc);
+                    g[i] = gi;
+                }
+                break;
+            case 3:
+                logpi = log(pi);
+                s[0] = logpi[0];
+                for(int i = 0; i < m; i++){
+                    if(!ifest[i])   continue;
+                    xx = xpx[i];
+                    gi = g[i];
+                    varg = (gi * gi + s2varg_ * dfvara_) / (dfvara_ + 1);
+                    varg = invchisq_sample(1 + dfvara_, varg);
+                    rhs = r_hat[i];
+                    if(gi){rhs += xx * gi;}
+                    lhs = xx / vare_;
+                    logdetV = log(varg * lhs + 1);
+                    uhat = rhs / (xx + vare_ / varg);
+                    s[1] = -0.5 * (logdetV - (rhs * uhat / vare_)) + logpi[1];
+                    acceptProb = 1 / sum(exp(s - s[0]));
+                    indistflag = (uniform_sample()) < acceptProb ? 0 : 1;
+                    snptracker[i] = indistflag;
+                    if(indistflag == 0){
+                        gi = 0;
+                    }else{
+                        v = xx + vare_ / varg;
+                        gi = norm_sample(rhs / v, sqrt(vare_ / v));
+                    }
+                    if(gi != g[i]){
+                        gi_ = (g[i] - gi) * n;
+                        dldmi = ldm.colptr(i);
+                        daxpy_(&m, &gi_, dldmi, &inc, dr_hat, &inc);
+                        g[i] = gi;
+                    }
+                }
+                fold_snp_num[1] = sum(snptracker);
+                fold_snp_num[0] = m - fold_snp_num[1];
+                NnzSnp = fold_snp_num[1];
+                if(!fixpi)  pi = rdirichlet_sampler(n_fold, (fold_snp_num + 1));
+                break;
+            case 4:
+                logpi = log(pi);
+                s[0] = logpi[0];
+                vargi = 0;
+                for(int i = 0; i < m; i++){
+                    if(!ifest[i])   continue;
+                    xx = xpx[i];
+                    gi = g[i];
+                    rhs = r_hat[i];
+                    if(gi){rhs += xx * gi;}
+                    lhs = xx / vare_;
+                    logdetV = log(varg * lhs + 1);
+                    uhat = rhs / (xx + vare_ / varg);
+                    s[1] = -0.5 * (logdetV - (rhs * uhat / vare_)) + logpi[1];
+                    acceptProb = 1 / sum(exp(s - s[0]));	
+                    indistflag = (uniform_sample()) < acceptProb ? 0 : 1;
+                    snptracker[i] = indistflag;
+
+                    if(indistflag == 0){
+                        gi = 0;
+                    }else{
+                        v = xx + vare_ / varg;
+                        gi = norm_sample(rhs / v, sqrt(vare_ / v));
+                        vargi += gi * gi;
+                    }
+                    if(gi != g[i]){
+                        gi_ = (g[i] - gi) * n;
+                        dldmi = ldm.colptr(i);
+                        daxpy_(&m, &gi_, dldmi, &inc, dr_hat, &inc);
+                        g[i] = gi;
+                    }
+                }
+                fold_snp_num[1] = sum(snptracker);
+                fold_snp_num[0] = m - fold_snp_num[1];
+                NnzSnp = fold_snp_num[1];
+                varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
+                varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                if(!fixpi)  pi = rdirichlet_sampler(n_fold, (fold_snp_num + 1));
+                break;
+            case 5:
+                for(int i = 0; i < m; i++){
+                    if(!ifest[i])   continue;
+                    xx = xpx[i];
+                    gi = g[i];
+                    rhs = r_hat[i];
+                    if(gi){rhs += xx * gi;}
+                    lhs = xx / vare_;
+                    v = xx + 1 / vargL[i];
+                    gi = norm_sample(rhs / v, sqrt(vare_ / v));
+                    if(abs(gi) < 1e-6){gi = 1e-6;}
+                    vargi = 1 / rinvgaussian_sample(sqrt(vare_) * lambda / abs(gi), lambda2);
+                    if(vargi > 0)   vargL[i] = vargi;
+                    if(gi != g[i]){
+                        gi_ = (g[i] - gi) * n;
+                        dldmi = ldm.colptr(i);
+                        daxpy_(&m, &gi_, dldmi, &inc, dr_hat, &inc);
+                        g[i] = gi;
+                    }
+                }
+                shape = shape0 + count_y;
+                rate = rate0 + sum(vargL) / 2;
+                lambda2 = gamma_sample(shape, 1 / rate);
+                lambda = sqrt(lambda2);
+                break;
+            case 6:
+                logpi = log(pi);
+                s[0] = logpi[0];
+                // sumvg = 0;
+                varg = 0;
+                for(int j = 1; j < n_fold; j++){
+                    vare_vara_fold[j] = vare_ / vara_fold[j];
+                }
+                for(int i = 0; i < m; i++){
+                    if(!ifest[i])   continue;
+                    xx = xpx[i];
+			        gi = g[i];
+                    rhs = r_hat[i];
+                    if(gi){rhs += xx * gi;}
+                    lhs = xx / vare_;
+                    for(int j = 1; j < n_fold; j++){
+                        logdetV = log(vara_fold[j] * lhs + 1);
+                        uhat = rhs / (xx + vare_vara_fold[j]);
+                        s[j] = -0.5 * (logdetV - (rhs * uhat / vare_)) + logpi[j];
+                    }
+                    for(int j = 0; j < n_fold; j++){
+                        double temp = 0.0;
+                        for(int k = 0; k < n_fold; k++){
+                            temp += exp(s[k] - s[j]);
+                        }
+                        stemp[j] = 1 / temp;
+                    }
+                    acceptProb = 0;
+                    indistflag = 0;
+                    double rval = uniform_sample();
+
+                    for(int j = 0; j < n_fold; j++){
+                        acceptProb += stemp[j];
+                        if(rval < acceptProb){
+                            indistflag = j;
+                            break;
+                        }
+                    }
+                    snptracker[i] = indistflag;
+                    if(indistflag == 0){
+                        gi = 0;
+                    }else{
+                        v = xx + vare_vara_fold[indistflag];
+                        gi = norm_sample(rhs / v, sqrt(vare_ / v));
+                        varg += (gi * gi / fold_[indistflag]);
+                    }
+                    if(gi != g[i]){
+                        gi_ = (g[i] - gi) * n;
+                        dldmi = ldm.colptr(i);
+                        daxpy_(&m, &gi_, dldmi, &inc, dr_hat, &inc);
+                        g[i] = gi;
+                    }
+                }
+                for(int j = 0; j < n_fold; j++){
+                    fold_snp_num[j] = sum(snptracker == j);
+                }
+                NnzSnp = m - fold_snp_num[0];
+                varg = (varg + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
+                varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                for(int j = 0; j < n_fold; j++){
+                    vara_fold[j] = varg * fold_[j]; 
+                    // vara_fold[j] = vara_ * fold_[j]; 
+                }
+                if(!fixpi)  pi = rdirichlet_sampler(n_fold, fold_snp_num + 1);
+                break;
+        }
+
+        // genetic variance
+        // vara_ = sum(g * (xy - r_hat)) / (n - 1);
+        tmp = (xy - r_hat);
+		vara_ = (ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vara_ * dfvara_) / (n + dfvara_);
+        vara_ = invchisq_sample(n + dfvara_, vara_);
+    
+        // sample residual variance from inv-chisq distribution
+        // vare_ = (yy - sum(g * (xy + r_hat)) + s2vare_ * dfvare_) / (n + dfvare_);
+        tmp = (xy + r_hat);
+		vare_ = (yy - ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+		if(vare_ < 0)	vare_ = 0;
+		vare_ = invchisq_sample(n + dfvare_, vare_);
+
+        if(iter >= nburn){
+            count++;
+            if(!fixpi)  pi_store.row(iter - nburn) = pi.t();
+            vara_store[iter - nburn] = vara_;
+            vare_store[iter - nburn] = vare_;
+            daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
+            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
+            if(!snptracker.is_empty()){
+                for(int i = 0; i < m; i++){
+                    if(snptracker[i]){
+                        nzrate[i] += 1;
+                    }
+                }
+            }
+            
+            if(WPPA){
+                for(int w = 0; w < nw; w++){
+                	windxi = windx[w]; 
+                	varw = n * gXXg(g, ldm, windxi);
+                    varw /= (n - 1);
+                    wgvei[w] += (varw / vara_);
+                    if((varw / vara_) >= wppa){
+                        wppai[w] += 1;
+                    }
+                }
+            }
+        }
+        
+        // print iteration details
+        if(verbose){
+            if((iter + 1) % outfreq == 0){
+                timer_loop.step("end");
+                NumericVector tdiff(timer_loop);
+                tt0 = (tdiff[1] - tdiff[0]) / (iter + 1) / 1e9;
+                tt = floor(tt0 * (niter - iter));
+                hor = floor(tt / 3600);
+                min = floor(tt % 3600 / 60);
+                sec = floor(tt % 3600 % 60);
+                Rcpp::Rcout << " " << iter + 1 << " ";
+                Rcpp::Rcout << NnzSnp << " ";
+                for(int i = 0; i < n_fold; i++){
+                    Rcpp::Rcout << std::fixed << pi[i] << " ";
+                }
+                if(model == "BayesL")    Rcpp::Rcout << std::fixed << lambda << " ";
+                Rcpp::Rcout << std::fixed << vara_ << " ";
+                Rcpp::Rcout << std::fixed << vare_ << " ";
+                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+                Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
+            }
+        }
+    }
+    if(nzrate.is_empty()){
+        nzrate.ones(m);
+    }else{
+        nzrate = nzrate / count;
+    }
+    g = g_store / count;
+    if(WPPA){
+        wppai = wppai / count;
+        wgvei = wgvei / count;
+    }
+    vec pise;
+    if(!fixpi){
+        pi= conv_to<vec>::from(mean(pi_store));
+        pise = conv_to<vec>::from(stddev(pi_store));
+    }else{
+        pise = zeros(pi.n_elem);
+    }
+    vara_ = mean(vara_store);
+    double varasd = stddev(vara_store);
+    vare_ = mean(vare_store);
+    double varesd = stddev(vare_store);
+    hsq = mean(hsq_store);
+    double hsqsd = stddev(hsq_store);
+
+    if(verbose){
+        Rcpp::Rcout << "Posterior parameters:" << std::endl;
+        for(int i = 0; i < pi.n_elem; i++){
+            if(i == 0){
+                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << pi[i] << "±" << std::fixed << pise[i] << endl;
+            }else{
+                if(i == 1){
+                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << pi[i] << "±" << std::fixed << pise[i];
+                }else{
+                    Rcpp::Rcout << std::fixed << pi[i] << "±" << std::fixed << pise[i];
+                }
+                if(i != (pi.n_elem - 1))  Rcpp::Rcout << ", ";
+            }
+        }
+        Rcpp::Rcout << std::endl;
+        Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << "±" << std::fixed << varasd << std::endl;
+        Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << "±" << std::fixed << varesd << std::endl;
+        Rcpp::Rcout << "    Estimated h2 " << std::fixed << hsq << "±" << std::fixed << hsqsd << std::endl;
+    }
+
+    timer.step("end");
+    NumericVector res(timer);
+    tt = floor((res[1] - res[0]) / 1e9);
+    hor = floor(tt / 3600);
+    min = floor(tt % 3600 / 60);
+    sec = floor(tt % 3600 % 60);
+    if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
+    if(WPPA){
+        return List::create(
+            Named("pi") = pi, 
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
+            Named("alpha") = g,
+            Named("modfreq") = nzrate,
+            Named("wppa") = wppai,
+            Named("wgve") = wgvei
+        );
+    }else{
+        return List::create(
+            Named("pi") = pi, 
+            Named("vg") = vara_, 
+            Named("ve") = vare_,
+            Named("alpha") = g,
+            Named("modfreq") = nzrate
+        );
+    }
+}

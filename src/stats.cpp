@@ -1,11 +1,13 @@
 #include "stats.h"
 
 double uniform_sample(double start, double end){
-	return R::runif(start, end);
+	// return R::runif(start, end);
+    return unif_rand();
 }
 
 double norm_sample(double mean, double sd){
-	return R::rnorm(mean, sd);
+	// return R::rnorm(mean, sd);
+    return mean + sd * norm_rand();
 }
 
 double gamma_sample(double shape, double scale){
@@ -64,8 +66,8 @@ double rinvgaussian_sample(double mu, double lambda){
     return v;
 }
 
-NumericVector rdirichlet_sample(double n, NumericVector x){
-	NumericVector xn(n);
+vec rdirichlet_sampler(int n, vec x){
+	vec xn(n);
     double c = 1.0;
 	for(int i = 0; i < n; i++){
 		xn[i] = gamma_sample(x[i], c);

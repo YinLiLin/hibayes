@@ -4,6 +4,7 @@
 #if !defined(ARMA_64BIT_WORD)
 #define ARMA_64BIT_WORD 1
 #endif
+#define ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS 1
 #include <RcppArmadillo.h>
 #include <iostream>
 #include <R_ext/Print.h>

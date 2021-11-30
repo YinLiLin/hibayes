@@ -31,6 +31,8 @@
 *.out
 *.app
 
+*.json
+
 # CMake
 CMakeLists.txt.user
 CMakeCache.txt
