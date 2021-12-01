@@ -1,5 +1,5 @@
 Package: hibayes
-Title: Individual, Summary Level and Single-Step Bayesian Regression Model
+Title: Individual-Level, Summary-Level and Single-Step Bayesian Regression Model
 Version: 1.0.0
 Date: 2021-12-01
 Authors@R: c(
@@ -10,7 +10,7 @@ Authors@R: c(
     person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
            role = c("aut", "cph"))
     )
-Description: 'hibayes' is an user-friendly R package to fit 3 types of bayesian model using individual-level ('bayes'), summary-level ('sbayes'), and individual + pedigree-level (single-step, 'ssbayes') data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including:
+Description: 'hibayes' is an user-friendly R package to fit 3 types of bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection and Genome-Wide association study, it was desighed to estimate joint effects and genetic parameters for a complex trait, including:
     (1) fixed effects and coefficients of covariates,
     (2) environmental random effects, and its corresponding variance, 
     (3) genetic variance, 
@@ -21,7 +21,7 @@ Description: 'hibayes' is an user-friendly R package to fit 3 types of bayesian 
     (8) phenotype/genetic variance explained (PVE) for single or multiple SNPs, 
     (9) posterior probability of association of the genomic window (WPPA), 
     (10) posterior inclusive probability (PIP). 
-    The functions are not limited, we will keep on going in enriching 'hibaye with more features.
+    The functions are not limited, we will keep on going in enriching 'hibayes' with more features.
 License: Apache License 2.0
 Maintainer: Lilin Yin <ylilin@163.com>
 URL: https://github.com/YinLiLin/hibayes
