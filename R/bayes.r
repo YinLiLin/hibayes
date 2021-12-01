@@ -12,16 +12,16 @@
 #' \itemize{
 #' \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP. 
 #' \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution. 
-#' \item "BayesB": only a small proportion of SNPs (1-pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution. 
-#' \item "BayesBpi": the same with "BayesB", but 'pi' is not fixed. 
-#' \item "BayesC": only a small proportion of SNPs (1-pi) have non-zero effects, and share the same variance. 
-#' \item "BayesCpi": the same with "BayesC", but 'pi' is not fixed. 
+#' \item "BayesB": only a small proportion of SNPs (1-Pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution. 
+#' \item "BayesBpi": the same with "BayesB", but 'Pi' is not fixed. 
+#' \item "BayesC": only a small proportion of SNPs (1-Pi) have non-zero effects, and share the same variance. 
+#' \item "BayesCpi": the same with "BayesC", but 'Pi' is not fixed. 
 #' \item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
 #' \item "BSLMM": all SNPs have non-zero effects, and take the same variance, but a small proportion of SNPs have additional shared variance. 
 #' \item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance. 
 #' }
 #' @param map (optional, only for GWAS) the map information of genotype, at least 3 columns are: SNPs, chromosome, physical position. 
-#' @param pi vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.
+#' @param Pi vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.
 #' @param fold proportion of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).
 #' @param niter the number of MCMC iteration.
 #' @param nburn the number of iterations to be discarded.
@@ -96,7 +96,7 @@ function(
 	R = NULL,
     model = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC", "BayesBpi", "BayesRR"),
     map = NULL,
-    pi = NULL,
+    Pi = NULL,
     fold = NULL,
     niter = 20000,
     nburn = 14000,
@@ -158,12 +158,12 @@ function(
 	}
 	set.seed(seed)
 	model <- match.arg(model)
-	if(is.null(pi)){
+	if(is.null(Pi)){
 		if(model == "BayesR"){
-			pi <- c(0.95, 0.02, 0.02, 0.01)
+			Pi <- c(0.95, 0.02, 0.02, 0.01)
 			if(is.null(fold))	fold <- c(0, 0.0001, 0.001, 0.01)
 		}else{
-			pi <- c(0.95, 0.05)
+			Pi <- c(0.95, 0.05)
 		}
 	}
 	if(!is.numeric(y)){
@@ -196,11 +196,11 @@ function(
 	if(sum(yNA) != 0){
 		Mp <- M[yNA, , drop=FALSE]
 		M <- M[!yNA, , drop=FALSE]; gc()
-		res = Bayes(y=y, X=M, model=model, pi=pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+		res = Bayes(y=y, X=M, model=model, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		g[!yNA] <- M %*% res$alpha
 		g[yNA] <- Mp %*% res$alpha
 	}else{
-		res = Bayes(y=y, X=M, model=model, pi=pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+		res = Bayes(y=y, X=M, model=model, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		g <- M %*% res$alpha
 	}
 	res = tail(res, length(res) - 2)

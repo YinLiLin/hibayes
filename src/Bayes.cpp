@@ -60,8 +60,8 @@ Rcpp::List makeZ(
 Rcpp::List Bayes(
     arma::vec &y,
     arma::mat &X,
-    std::string &model,
-    arma::vec &pi,
+    std::string model,
+    arma::vec Pi,
     const Nullable<arma::mat> C = R_NilValue,
     const Nullable<CharacterMatrix> R = R_NilValue,
     const Nullable<arma::vec> fold = R_NilValue,
@@ -76,7 +76,7 @@ Rcpp::List Bayes(
     const Nullable<double> ve = R_NilValue,
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
-    const Nullable<IntegerVector> windindx = R_NilValue,
+    const Nullable<arma::uvec> windindx = R_NilValue,
     const double wppa = 0.01,
     const int outfreq = 100,
     const int threads = 0,
@@ -93,12 +93,12 @@ Rcpp::List Bayes(
     int model_index = (model == "BayesRR" ? 1 : (model == "BayesA" ? 2 : (model == "BayesB" || model == "BayesBpi" ? 3 : (model == "BayesC" || model == "BayesCpi" ? 4 : (model == "BayesL" ? 5 : 6)))));
     bool fixpi = false;
     if(model == "BayesB" || model == "BayesC")    fixpi = true;
-    if(pi.n_elem < 2)  throw Rcpp::exception("pi should be a vector.");
-    if(sum(pi) != 1)   throw Rcpp::exception("sum of pi should be 1.");
-    if(pi[0] == 1) throw Rcpp::exception("all markers have no effect size.");
-    for(int i = 0; i < pi.n_elem; i++){
-        if(pi[i] < 0 || pi[i] > 1){
-            throw Rcpp::exception("elements of pi should be at the range of [0, 1]");
+    if(Pi.n_elem < 2)  throw Rcpp::exception("Pi should be a vector.");
+    if(sum(Pi) != 1)   throw Rcpp::exception("sum of Pi should be 1.");
+    if(Pi[0] == 1) throw Rcpp::exception("all markers have no effect size.");
+    for(int i = 0; i < Pi.n_elem; i++){
+        if(Pi[i] < 0 || Pi[i] > 1){
+            throw Rcpp::exception("elements of Pi should be at the range of [0, 1]");
         }
     }
     vec fold_;
@@ -108,8 +108,8 @@ Rcpp::List Bayes(
         if(model == "BayesR")    throw Rcpp::exception("'fold' should be provided for BayesR model.");
         fold_.resize(2);
     }
-    if(fold_.n_elem != pi.n_elem){
-        throw Rcpp::exception("length of pi and fold not equals.");
+    if(fold_.n_elem != Pi.n_elem){
+        throw Rcpp::exception("length of Pi and fold not equals.");
     }
 
     double vary = var(y);
@@ -234,10 +234,10 @@ Rcpp::List Bayes(
     vec nzrate;
     if(model == "BayesRR" || model == "BayesA" || model == "BayesL"){
         NnzSnp = m;
-        pi[0] = 0; pi[1] = 1;
+        Pi[0] = 0; Pi[1] = 1;
         fixpi = true;
     }else{
-        if(model != "BayesR" && pi.n_elem != 2) throw Rcpp::exception("length of pi should be 2, the first value is the proportion of non-effect markers.");
+        if(model != "BayesR" && Pi.n_elem != 2) throw Rcpp::exception("length of Pi should be 2, the first value is the proportion of non-effect markers.");
         nzrate.zeros(m); 
         snptracker.zeros(m); 
     }
@@ -290,8 +290,8 @@ Rcpp::List Bayes(
     }else{
         s2vara_ = vara_ * (dfvara_ - 2) / dfvara_;
     }
-    double varg = vara_ / ((1 - pi[0]) * sum(vx));
-    s2varg_ = s2vara_ / ((1 - pi[0]) * sum(vx));
+    double varg = vara_ / ((1 - Pi[0]) * sum(vx));
+    s2varg_ = s2vara_ / ((1 - Pi[0]) * sum(vx));
     if(s2ve.isNotNull()){
         s2vare_ = as<double>(s2ve);
     }else{
@@ -314,28 +314,27 @@ Rcpp::List Bayes(
     vec fold_snp_num = zeros(n_fold);
     vec logpi = zeros(n_fold);
     vec s = zeros(n_fold);
-    vec vara_fold = (vara_ / ((1 - pi[0]) * sum(vx))) * fold_;
+    vec vara_fold = (vara_ / ((1 - Pi[0]) * sum(vx))) * fold_;
     vec vare_vara_fold = zeros(n_fold);
 
     // for gwas
     int nw;
-    int ni;
     double varw;
     bool WPPA = false;
-    NumericVector windindx_;
-    vector<IntegerVector> windx;
+    uvec windindx_;
+    vector<arma::uvec> windx;
     vec wu;
-    IntegerVector windxi;
-    NumericVector wppai;
-    NumericVector wgvei;
+    uvec windxi;
+    vec wppai;
+    vec wgvei;
     if(windindx.isNotNull()){
-        windindx_ = as<IntegerVector>(windindx);
+        windindx_ = as<arma::uvec>(windindx);
         WPPA = true;
         nw = max(windindx_);
-        wppai = seq(0, (nw - 1));
-        wgvei = seq(0, (nw - 1));
+        wppai.zeros(nw);
+        wgvei.zeros(nw);
         for(int w = 0; w < nw; w++){
-            windx.push_back(which_c(windindx_, (w+1), 5));
+            windx.push_back(find(windindx_ == (w + 1)));
         }
         wu.zeros(n);
     }
@@ -352,14 +351,14 @@ Rcpp::List Bayes(
         Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
         Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
         Rcpp::Rcout << "    Number of markers " << m << std::endl;
-        for(int i = 0; i < pi.n_elem; i++){
+        for(int i = 0; i < Pi.n_elem; i++){
             if(i == 0){
-                Rcpp::Rcout << "    π for markers in zero effect size " << pi[i] << endl;
+                Rcpp::Rcout << "    π for markers in zero effect size " << Pi[i] << endl;
             }else{
                 if(i == 1){
-                    Rcpp::Rcout << "    π for markers in non-zero effect size " << pi[i] << " ";
+                    Rcpp::Rcout << "    π for markers in non-zero effect size " << Pi[i] << " ";
                 }else{
-                    Rcpp::Rcout << pi[i] << " ";
+                    Rcpp::Rcout << Pi[i] << " ";
                 }
             }
         }
@@ -488,7 +487,7 @@ Rcpp::List Bayes(
             epsl_estR = epsl_estR_tmp;
             veps = var(epsl_estR);
         }
-
+        
         switch(model_index){
             case 1:
                 for(int i = 0; i < m; i++){
@@ -530,7 +529,7 @@ Rcpp::List Bayes(
                 }
                 break;
             case 3:
-                logpi = log(pi);
+                logpi = log(Pi);
                 s[0] = logpi[0];
                 // sumvg = 0;
                 for(int i = 0; i < m; i++){
@@ -570,10 +569,10 @@ Rcpp::List Bayes(
                 fold_snp_num[1] = sum(snptracker);
                 fold_snp_num[0] = m - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
-                if(!fixpi)  pi = rdirichlet_sampler(n_fold, (fold_snp_num + 1));
+                if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
             case 4:
-                logpi = log(pi);
+                logpi = log(Pi);
                 s[0] = logpi[0];
                 // sumvg = 0;
                 vargi = 0;
@@ -615,7 +614,7 @@ Rcpp::List Bayes(
                 NnzSnp = fold_snp_num[1];
                 varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
                 varg = invchisq_sample(NnzSnp + dfvara_, varg);
-                if(!fixpi)  pi = rdirichlet_sampler(n_fold, (fold_snp_num + 1));
+                if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
             case 5:
                 for(int i = 0; i < m; i++){
@@ -642,7 +641,7 @@ Rcpp::List Bayes(
                 lambda = sqrt(lambda2);
                 break;
             case 6:
-                logpi = log(pi);
+                logpi = log(Pi);
                 s[0] = logpi[0];
                 // sumvg = 0;
                 varg = 0;
@@ -710,7 +709,7 @@ Rcpp::List Bayes(
                     vara_fold[j] = varg * fold_[j]; 
                     // vara_fold[j] = vara_ * fold_[j]; 
                 }
-                if(!fixpi)  pi = rdirichlet_sampler(n_fold, fold_snp_num + 1);
+                if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
         }
 
@@ -720,12 +719,11 @@ Rcpp::List Bayes(
         // sample residual variance from inv-chisq distribution
         vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
-
         if(iter >= nburn){
             count++;
             mu_store[iter - nburn] = mu;
             // sumvg_store[iter - nburn] = sumvg;
-            if(!fixpi)  pi_store.row(iter - nburn) = pi.t();
+            if(!fixpi)  pi_store.row(iter - nburn) = Pi.t();
             vara_store[iter - nburn] = vara_;
             vare_store[iter - nburn] = vare_;
             daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
@@ -765,18 +763,8 @@ Rcpp::List Bayes(
                     vara_snp = var(u_minus);
                 }
                 for(int w = 0; w < nw; w++){
-                    wu.fill(0);
                     windxi = windx[w];
-                    for(int i = 0; i < windxi.size(); i++){
-                        ni = windxi[i];
-                        gi_ = g[ni];
-                        if(gi_){
-                            dxi = X.colptr(ni);
-                            // dxi = pX+(long long)ni*n;
-                            daxpy_(&n, &gi_, dxi, &inc, wu.memptr(), &inc);
-                        }
-                        // if(g[windxi[i]]){wu += X(_, windxi[i]) * g[windxi[i]];}
-                    }
+                    wu = X.cols(windxi) * g.elem(windxi);
                     varw = var(wu);
                     wgvei[w] += (varw / vara_snp);
                     if((varw / vara_snp) >= wppa){
@@ -799,7 +787,7 @@ Rcpp::List Bayes(
                 Rcpp::Rcout << " " << iter + 1 << " ";
                 Rcpp::Rcout << NnzSnp << " ";
                 for(int i = 0; i < n_fold; i++){
-                    Rcpp::Rcout << std::fixed << pi[i] << " ";
+                    Rcpp::Rcout << std::fixed << Pi[i] << " ";
                 }
                 if(model == "BayesL")    Rcpp::Rcout << std::fixed << lambda << " ";
                 double vt = vara_ + vare_;
@@ -861,10 +849,10 @@ Rcpp::List Bayes(
     double musd = stddev(mu_store);
     vec pise;
     if(!fixpi){
-        pi= conv_to<vec>::from(mean(pi_store));
+        Pi= conv_to<vec>::from(mean(pi_store));
         pise = conv_to<vec>::from(stddev(pi_store));
     }else{
-        pise = zeros(pi.n_elem);
+        pise = zeros(Pi.n_elem);
     }
     // sumvg = mean(sumvg_store);
     // double sumvgsd = stddev(sumvg_store);
@@ -878,16 +866,16 @@ Rcpp::List Bayes(
     if(verbose){
         Rcpp::Rcout << "Posterior parameters:" << std::endl;
         Rcpp::Rcout << "    Mu " << std::fixed << Mu << "±" << std::fixed << musd << std::endl;
-        for(int i = 0; i < pi.n_elem; i++){
+        for(int i = 0; i < Pi.n_elem; i++){
             if(i == 0){
-                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << pi[i] << "±" << std::fixed << pise[i] << endl;
+                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pise[i] << endl;
             }else{
                 if(i == 1){
-                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << pi[i] << "±" << std::fixed << pise[i];
+                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pise[i];
                 }else{
-                    Rcpp::Rcout << std::fixed << pi[i] << "±" << std::fixed << pise[i];
+                    Rcpp::Rcout << std::fixed << Pi[i] << "±" << std::fixed << pise[i];
                 }
-                if(i != (pi.n_elem - 1))  Rcpp::Rcout << ", ";
+                if(i != (Pi.n_elem - 1))  Rcpp::Rcout << ", ";
             }
         }
         Rcpp::Rcout << std::endl;
@@ -926,7 +914,7 @@ Rcpp::List Bayes(
             Named("eps_J") = epsl_J_beta,
             Named("eps_R") = epsl_estR,
             Named("mu") = Mu, 
-            Named("pi") = pi, 
+            Named("pi") = Pi, 
             Named("beta") = beta,
             Named("r") = r, 
             Named("vr") = vr, 
@@ -942,7 +930,7 @@ Rcpp::List Bayes(
             Named("eps_J") = epsl_J_beta,
             Named("eps_R") = epsl_estR,
             Named("mu") = Mu,
-            Named("pi") = pi, 
+            Named("pi") = Pi, 
             Named("beta") = beta,
             Named("r") = r, 
             Named("vr") = vr, 

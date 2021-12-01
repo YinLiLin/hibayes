@@ -66,10 +66,10 @@ double rinvgaussian_sample(double mu, double lambda){
     return v;
 }
 
-vec rdirichlet_sampler(int n, vec x){
-	vec xn(n);
+arma::vec rdirichlet_sample(int n, arma::vec x){
+    vec xn(n);
     double c = 1.0;
-	for(int i = 0; i < n; i++){
+    for(int i = 0; i < n; i++){
 		xn[i] = gamma_sample(x[i], c);
 	}
 	return (xn / sum(xn));
