@@ -12,7 +12,7 @@ bayes(
   model = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC",
     "BayesBpi", "BayesRR"),
   map = NULL,
-  pi = NULL,
+  Pi = NULL,
   fold = NULL,
   niter = 20000,
   nburn = 14000,
@@ -43,10 +43,10 @@ bayes(
 \itemize{
 \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
 \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
-\item "BayesB": only a small proportion of SNPs (1-pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
-\item "BayesBpi": the same with "BayesB", but 'pi' is not fixed.
-\item "BayesC": only a small proportion of SNPs (1-pi) have non-zero effects, and share the same variance.
-\item "BayesCpi": the same with "BayesC", but 'pi' is not fixed.
+\item "BayesB": only a small proportion of SNPs (1-Pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesBpi": the same with "BayesB", but 'Pi' is not fixed.
+\item "BayesC": only a small proportion of SNPs (1-Pi) have non-zero effects, and share the same variance.
+\item "BayesCpi": the same with "BayesC", but 'Pi' is not fixed.
 \item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
 \item "BSLMM": all SNPs have non-zero effects, and take the same variance, but a small proportion of SNPs have additional shared variance.
 \item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance.
@@ -54,7 +54,7 @@ bayes(
 
 \item{map}{(optional, only for GWAS) the map information of genotype, at least 3 columns are: SNPs, chromosome, physical position.}
 
-\item{pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
+\item{Pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
 
 \item{fold}{proportion of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).}
 

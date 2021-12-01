@@ -10,7 +10,7 @@ sbayes(
   model = c("BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi",
     "BayesR", "CG"),
   map = NULL,
-  pi = NULL,
+  Pi = NULL,
   lambda = NULL,
   fold = NULL,
   niter = 20000,
@@ -38,10 +38,10 @@ sbayes(
 \itemize{
 \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
 \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
-\item "BayesB": only a small proportion of SNPs (1-pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
-\item "BayesBpi": the same with "BayesB", but 'pi' is not fixed.
-\item "BayesC": only a small proportion of SNPs (1-pi) have non-zero effects, and share the same variance.
-\item "BayesCpi": the same with "BayesC", but 'pi' is not fixed.
+\item "BayesB": only a small proportion of SNPs (1-Pi) have non-zero effects, and take different variance which follows an inverse chi-square distribution.
+\item "BayesBpi": the same with "BayesB", but 'Pi' is not fixed.
+\item "BayesC": only a small proportion of SNPs (1-Pi) have non-zero effects, and share the same variance.
+\item "BayesCpi": the same with "BayesC", but 'Pi' is not fixed.
 \item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
 \item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance.
 \item "CG": conjugate gradient algorithm with assigned lambda.
@@ -49,7 +49,7 @@ sbayes(
 
 \item{map}{(optional, only for GWAS) the map information of genotype, at least 3 columns are: SNPs, chromosome, physical position.}
 
-\item{pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
+\item{Pi}{vector, the proportion of zero effect and non-zero effect SNPs, the first value must be the proportion of non-effect markers.}
 
 \item{lambda}{value or vector, the ridge regression value for each SNPs.}
 
@@ -103,18 +103,17 @@ data = read_plink(bfile_path, out=tempfile())
 geno = data$geno
 map = data$map
 head(map)
-sumstat_path = system.file("extdata", "example.ma", package = "hibayes")
+sumstat_path = system.file("extdata", "geno.ma", package = "hibayes")
 sumstat = read.table(sumstat_path, header=TRUE)
 head(sumstat)
 
 ## computate ld variance covariance matrix
 # ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
-# ldm2 = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
 
 ## if the order of SNPs in genotype is not consistent with the order in sumstat file, 
 ## prior adjusting is necessary.
-# indx = match(sumstat[, 1], map[, 1])
-# ldm1 = ldm1[indx, indx]
+# indx = match(map[, 1], sumstat[, 1])
+# sumstat = sumstat[indx, indx]
 
 ## fit model
 # fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
