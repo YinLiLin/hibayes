@@ -120,7 +120,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 
 ```r
 > highlight <- map[pve>0.001,1]
-> CMplot(cbind(map[,1:3], pve), type="h", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained (%)",
+> CMplot(cbind(map[,1:3], 100 * pve), type="h", plot.type="m", LOG10=FALSE, ylab="Phenotypic variance explained (%)",
         highlight=highlight, highlight.col=NULL)
 ```
 <p align="center">
