@@ -7,7 +7,7 @@
 **(3)** genetic variance  
 **(4)** residual variance  
 **(5)** heritability  
-**(6)** genomic estimated breeding values for both genotyped and non-genotyped individuals  
+**(6)** genomic estimated breeding values (*GEBV*) for both genotyped and non-genotyped individuals  
 **(7)** SNP effect size  
 **(8)** phenotype/genetic variance explained (*PVE*) for single or multiple SNPs  
 **(9)** posterior probability of association of the genomic window (*WPPA*)  
@@ -71,14 +71,14 @@ In this function, missing genotype will be replaced by the major genotype of eac
 > geno <- attach.big.matrix("./test.desc")
 > map <- read.table("./test.map", header=TRUE)
 ```
-For fixed effects and covariates, please use *```model.matrix.lm()```* to make the model matrix prior to fitting models:
+For **fixed effects** and **covariates**, please use *```model.matrix.lm()```* to make the model matrix prior to fitting models:
 ```r
 > # For fixed effects, use 'as.factor', eg. 'sex'. 
 > # For covariates, use 'as.numeric', eg. 'weight'.
 > X <- model.matrix.lm(~as.factor(sex)+as.numeric(weight), data=pheno, na.action = "na.pass")
 > X <- X[, -1] #remove the intercept
 ```
-For random effects, no needs to convert, just pick them out from the phenotype data, eg. 'group', 'location':
+For **random effects**, no needs to convert, just pick them out from the phenotype data, eg. 'group', 'location':
 ```r
 > R <- pheno[, c("group", "location")]
 ```
