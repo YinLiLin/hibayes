@@ -11,6 +11,41 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// BayesK
+Rcpp::List BayesK(arma::vec& y, arma::mat& X, std::string model, arma::vec Pi, SEXP& K, arma::uvec& K_index, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const int niter, const int nburn, const Nullable<arma::vec> epsl_y_J, const Nullable<arma::sp_mat> epsl_Gi, const Nullable<arma::uvec> epsl_index, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const Nullable<arma::uvec> windindx, const double wppa, const int outfreq, const int threads, const bool verbose);
+RcppExport SEXP _hibayes_BayesK(SEXP ySEXP, SEXP XSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP KSEXP, SEXP K_indexSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP epsl_y_JSEXP, SEXP epsl_GiSEXP, SEXP epsl_indexSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type Pi(PiSEXP);
+    Rcpp::traits::input_parameter< SEXP& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< arma::uvec& >::type K_index(K_indexSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::mat> >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const Nullable<CharacterMatrix> >::type R(RSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::vec> >::type fold(foldSEXP);
+    Rcpp::traits::input_parameter< const int >::type niter(niterSEXP);
+    Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::vec> >::type epsl_y_J(epsl_y_JSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::sp_mat> >::type epsl_Gi(epsl_GiSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::uvec> >::type epsl_index(epsl_indexSEXP);
+    Rcpp::traits::input_parameter< const Nullable<double> >::type vg(vgSEXP);
+    Rcpp::traits::input_parameter< const Nullable<double> >::type dfvg(dfvgSEXP);
+    Rcpp::traits::input_parameter< const Nullable<double> >::type s2vg(s2vgSEXP);
+    Rcpp::traits::input_parameter< const Nullable<double> >::type ve(veSEXP);
+    Rcpp::traits::input_parameter< const Nullable<double> >::type dfve(dfveSEXP);
+    Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::uvec> >::type windindx(windindxSEXP);
+    Rcpp::traits::input_parameter< const double >::type wppa(wppaSEXP);
+    Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
+    Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(BayesK(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // Bayes
 Rcpp::List Bayes(arma::vec& y, arma::mat& X, std::string model, arma::vec Pi, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const int niter, const int nburn, const Nullable<arma::vec> epsl_y_J, const Nullable<arma::sp_mat> epsl_Gi, const Nullable<arma::uvec> epsl_index, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const Nullable<arma::uvec> windindx, const double wppa, const int outfreq, const int threads, const bool verbose);
 RcppExport SEXP _hibayes_Bayes(SEXP ySEXP, SEXP XSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP epsl_y_JSEXP, SEXP epsl_GiSEXP, SEXP epsl_indexSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
@@ -173,15 +208,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // make_grm
-arma::mat make_grm(arma::mat& Z, bool inverse, bool verbose);
-RcppExport SEXP _hibayes_make_grm(SEXP ZSEXP, SEXP inverseSEXP, SEXP verboseSEXP) {
+arma::mat make_grm(arma::mat& Z, double lambda, bool inverse, bool verbose);
+RcppExport SEXP _hibayes_make_grm(SEXP ZSEXP, SEXP lambdaSEXP, SEXP inverseSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< bool >::type inverse(inverseSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_grm(Z, inverse, verbose));
+    rcpp_result_gen = Rcpp::wrap(make_grm(Z, lambda, inverse, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -304,6 +340,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_hibayes_BayesK", (DL_FUNC) &_hibayes_BayesK, 25},
     {"_hibayes_Bayes", (DL_FUNC) &_hibayes_Bayes, 23},
     {"_hibayes_SBayesD", (DL_FUNC) &_hibayes_SBayesD, 18},
     {"_hibayes_SBayesS", (DL_FUNC) &_hibayes_SBayesS, 18},
@@ -312,7 +349,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_cutwind", (DL_FUNC) &_hibayes_cutwind, 3},
     {"_hibayes_rMap_c", (DL_FUNC) &_hibayes_rMap_c, 2},
     {"_hibayes_read_bed", (DL_FUNC) &_hibayes_read_bed, 6},
-    {"_hibayes_make_grm", (DL_FUNC) &_hibayes_make_grm, 3},
+    {"_hibayes_make_grm", (DL_FUNC) &_hibayes_make_grm, 4},
     {"_hibayes_make_ped", (DL_FUNC) &_hibayes_make_ped, 4},
     {"_hibayes_make_Ainv", (DL_FUNC) &_hibayes_make_Ainv, 3},
     {"_hibayes_geno_impute", (DL_FUNC) &_hibayes_geno_impute, 3},

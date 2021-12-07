@@ -33,6 +33,7 @@
 #' @param ve prior value of residual variance.
 #' @param dfve the number of degrees of freedom for the distribution of residual variance.
 #' @param s2ve scale parameter for the distribution of residual variance.
+#' @param lambda value of ridge regression for inverting a matrix.
 #' @param outfreq frequency of information output on console, the default is 100.
 #' @param seed seed for random sample.
 #' @param threads number of threads used for OpenMP.
@@ -108,6 +109,7 @@ function(
     ve = NULL,
     dfve = NULL,
     s2ve = NULL,
+	lambda = 0.0,
     outfreq = 100,
     seed = 666666,
 	threads = 4,
@@ -172,7 +174,7 @@ function(
 	}
 	yNA <- is.na(y)
 	if(sum(yNA) != 0){
-		if(verbose)	cat(sum(yNA), "'NA' have been removed from y\n")
+		if(verbose)	cat(sum(yNA), "'NA' have been detected in y\n")
 		y <- y[!yNA]
 	}
 	if(!is.matrix(M)){M <- as.matrix(M); gc()}
@@ -196,13 +198,21 @@ function(
 	if(sum(yNA) != 0){
 		Mp <- M[yNA, , drop=FALSE]
 		M <- M[!yNA, , drop=FALSE]; gc()
-		res = Bayes(y=y, X=M, model=model, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
-		g[!yNA] <- M %*% res$alpha
-		g[yNA] <- Mp %*% res$alpha
+	}else{
+		Mp <- NULL;
+	}
+	if(model == "BSLMM"){
+		G <- make_grm(M, lambda=lambda, inverse=TRUE, verbose=verbose)
+		indx <- c(1:nrow(M))
+		res = BayesK(y=y, X=M, model=model, Pi=Pi, K=G, K_index=indx, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 	}else{
 		res = Bayes(y=y, X=M, model=model, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
-		g <- M %*% res$alpha
 	}
+	g[!yNA] <- M %*% res$alpha
+	if(!is.null(Mp)){
+		g[yNA] <- Mp %*% res$alpha
+	}
+
 	res = tail(res, length(res) - 2)
 	if(!is.null(windsize)){
 		WPPA <- res$wppa

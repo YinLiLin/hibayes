@@ -30,7 +30,7 @@ After installed successfully, type *```library(hibayes)```* to use. The package 
 To fit individual level bayesian model (*```bayes```*), at least the phenotype(***n***), numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that coded by other softwares by *```read.table```* to fit model, note that 'NA' is not allowed in genotype data:
 ```r
 > pheno = read.table("your_pheno.txt")
-> geno = read.table("your_geno.txt")
+> geno = read.table("your_geno.txt") # genotype should be coded in digitals (either 0, 1, 2 or -1, 0, 1 is acceptable)
 > geno.id = read.table("your_genoid.txt")
 > # the order of individuals should be exactly the same between phenotype and genotype
 > pheno = pheno[match(geno.id[, 1], pheno[, 1]), ]   # supposing the first column is the individual id
@@ -264,7 +264,7 @@ For fixed effects, covariates, and environmental random effects, please refer to
 
 ***NOTE:*** for *```ssbayes```* model, there is no NEED to adjust the order of id in different files.
 
-The available methods for *```ssbayes```* model are consistent with *```bayes```* model. Type *```?ssbayes```* to see details of all parameters.
+The available methods for *```ssbayes```* model are consistent with *```bayes```* model, except for "BSLMM". Type *```?ssbayes```* to see details of all parameters.
 
 #### (a) Gemonic prediction/selection
 ```r

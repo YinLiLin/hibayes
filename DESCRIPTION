@@ -10,7 +10,7 @@ Authors@R: c(
     person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
            role = c("aut", "cph"))
     )
-Description: 'hibayes' is an user-friendly R package to fit 3 types of bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was desighed to estimate joint effects and genetic parameters for a complex trait, including:
+Description: A package to fit bayesian regression model, 'hibayes' can fit 3 types of bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was desighed to estimate joint effects and genetic parameters for a complex trait, including:
     (1) fixed effects and coefficients of covariates,
     (2) environmental random effects, and its corresponding variance, 
     (3) genetic variance, 

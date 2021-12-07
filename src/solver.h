@@ -16,6 +16,7 @@ using namespace Rcpp;
 using namespace arma;
 
 template<typename T> vec CG(const T A, const arma::vec b, const Nullable<NumericVector> x0 = R_NilValue, const Nullable<NumericVector> lambda = R_NilValue,  const double esp = 1e-6, const int outfreq = 100, const bool verbose = true);
-template<typename T> void Gibbs(T &A, vec &x, vec &b, double ve);
+void Gibbs(arma::mat &A, arma::vec &x, arma::vec &b, double ve);
+void Gibbs(arma::sp_mat &A, arma::vec &x, arma::vec &b, double ve);
 void solve(arma::mat &A, double lambda = 0.0);
 #endif

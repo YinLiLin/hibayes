@@ -24,6 +24,7 @@ bayes(
   ve = NULL,
   dfve = NULL,
   s2ve = NULL,
+  lambda = 0,
   outfreq = 100,
   seed = 666666,
   threads = 4,
@@ -77,6 +78,8 @@ bayes(
 \item{dfve}{the number of degrees of freedom for the distribution of residual variance.}
 
 \item{s2ve}{scale parameter for the distribution of residual variance.}
+
+\item{lambda}{value of ridge regression for inverting a matrix.}
 
 \item{outfreq}{frequency of information output on console, the default is 100.}
 

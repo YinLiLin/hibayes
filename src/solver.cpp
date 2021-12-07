@@ -113,23 +113,31 @@ vec CG(
 	}
 	return x;
 }
-template vec CG(const sp_mat A, const arma::vec b, const Nullable<NumericVector> x0, const Nullable<NumericVector> lambda,  const double esp, const int outfreq, const bool verbose);
-template vec CG(const mat A, const arma::vec b, const Nullable<NumericVector> x0, const Nullable<NumericVector> lambda,  const double esp, const int outfreq, const bool verbose);
+template vec CG(const arma::sp_mat A, const arma::vec b, const Nullable<NumericVector> x0, const Nullable<NumericVector> lambda,  const double esp, const int outfreq, const bool verbose);
+template vec CG(const arma::mat A, const arma::vec b, const Nullable<NumericVector> x0, const Nullable<NumericVector> lambda,  const double esp, const int outfreq, const bool verbose);
 
-template<typename T>
-void Gibbs(T &A, vec &x, vec &b, double ve){
+void Gibbs(arma::mat &A, arma::vec &x, arma::vec &b, double ve){
+    int n = b.n_elem;
+	int inc = 1;
+    for(int i = 0; i < n; i++){
+        double aii = A(i, i);
+		double invlhs  = 1.0 / aii;
+		double Ax = ddot_(&n, A.colptr(i), &inc, x.memptr(), &inc);
+		double u = invlhs * (b[i] - Ax) + x[i];
+		x[i] = norm_sample(u, sqrt(invlhs * ve));
+    }
+}
+
+void Gibbs(arma::sp_mat &A, arma::vec &x, arma::vec &b, double ve){
     int n = b.n_elem;
     for(int i = 0; i < n; i++){
         double aii = A(i, i);
-        if(aii){
-            double invlhs  = 1.0 / aii;
-            double u = invlhs * (b[i] - dot(A.col(i), x)) + x[i];
-            x[i] = norm_sample(u, sqrt(invlhs * ve));
-        }
+		double invlhs  = 1.0 / aii;
+		double Ax = dot(A.col(i), x);
+		double u = invlhs * (b[i] - Ax) + x[i];
+		x[i] = norm_sample(u, sqrt(invlhs * ve));
     }
 }
-template void Gibbs(sp_mat &A, vec &x, vec &b, double ve);
-template void Gibbs(mat &A, vec &x, vec &b, double ve);
 
 bool solver_chol(
 	arma::mat &A, 
@@ -156,17 +164,6 @@ bool solver_chol(
 		A.diag() = A_diag;
 		return false;
     } else {
-		double deti = 0.0;
-		double toler = abs(Aiptr[0]) * sqrt(datum::eps);
-        for (int i = 0; i < n; i++) {
-            double d_buf = Aiptr[i * n + i];
-			deti = d_buf * d_buf;
-			if(deti < toler){
-				for(int j = 0; j <= i; j++){
-					Aiptr[i * n + j] = 0.0;
-				}
-			}
-        }
 		dpotri_(&uplo, &int_n, Aiptr, &int_n, &info);
         if(info){
 			for (int j = 0; j < n; j++) {
@@ -214,7 +211,9 @@ void solver_lu(
 		dgecon_("1", &n, Aiptr, &n, &anorm, &rcond, WORK, IPIVn, &INFO);
 		delete[] IPIVn;
 		if(rcond <= datum::eps){
-			throw Rcpp::exception("matrix is not invertible, try to specify parameter 'lambda' with a small value, eg: 0.001 or bigger");
+			std::ostringstream str;
+    		str << "system is computationally singular: reciprocal condition number = " << std::scientific << rcond << ",\ntry to specify parameter 'lambda' with a small value, eg: 0.001 or bigger";
+    		throw Rcpp::exception(str.str().c_str());
 		}else{
 			LWORK = -1;
 			dgetri_(&n, Aiptr, &n, IPIV, &wkopt, &LWORK, &INFO);

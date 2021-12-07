@@ -12,8 +12,8 @@ ssbayes(
   P,
   X = NULL,
   R = NULL,
-  model = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC",
-    "BayesBpi", "BayesRR"),
+  model = c("BayesCpi", "BayesA", "BayesL", "BayesR", "BayesB", "BayesC", "BayesBpi",
+    "BayesRR"),
   map = NULL,
   Pi = NULL,
   fold = NULL,
@@ -57,7 +57,6 @@ ssbayes(
 \item "BayesC": only a small proportion of SNPs (1-Pi) have non-zero effects, and share the same variance.
 \item "BayesCpi": the same with "BayesC", but 'Pi' is not fixed.
 \item "BayesL": BayesLASSO, all SNPs have non-zero effects, and take different variance which follows an exponential distribution.
-\item "BSLMM": all SNPs have non-zero effects, and take the same variance, but a small proportion of SNPs have additional shared variance.
 \item "BayesR": only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance.
 }}
 

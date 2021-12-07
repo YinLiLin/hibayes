@@ -56,12 +56,14 @@ Rcpp::List makeZ(
     return List::create(Named("z") = z, Named("levels") = levels);
 }
 
-// [[Rcpp::export]]
+template <typename T>
 Rcpp::List Bayes(
     arma::vec &y,
     arma::mat &X,
     std::string model,
     arma::vec Pi,
+    T &K,
+    arma::uvec &K_index,
     const Nullable<arma::mat> C = R_NilValue,
     const Nullable<CharacterMatrix> R = R_NilValue,
     const Nullable<arma::vec> fold = R_NilValue,
@@ -90,7 +92,7 @@ Rcpp::List Bayes(
     //     throw Rcpp::exception("NAs are not allowed in genotype.");
     // }
     if(y.n_elem != X.n_rows)  throw Rcpp::exception("Number of individuals not equals.");
-    int model_index = (model == "BayesRR" ? 1 : (model == "BayesA" ? 2 : (model == "BayesB" || model == "BayesBpi" ? 3 : (model == "BayesC" || model == "BayesCpi" ? 4 : (model == "BayesL" ? 5 : 6)))));
+    int model_index = (model == "BayesRR" ? 1 : (model == "BayesA" ? 2 : (model == "BayesB" || model == "BayesBpi" ? 3 : (model == "BayesC" || model == "BayesCpi" || model == "BSLMM" ? 4 : (model == "BayesL" ? 5 : 6)))));
     bool fixpi = false;
     if(model == "BayesB" || model == "BayesC")    fixpi = true;
     if(Pi.n_elem < 2)  throw Rcpp::exception("Pi should be a vector.");
@@ -180,6 +182,35 @@ Rcpp::List Bayes(
         }
     }
 
+    int nk = 0;
+    double va, vb;
+    double vbtmp;
+    double vase, vbse;
+    vec va_store;
+    vec vb_store;
+    sp_mat k_Z, k_ZZ;
+    vec k_estR;
+    vec k_estR_store;
+    T k_LHS;
+    vec k_estR_tmp;
+    vec k_RHS;
+    int qk = 0;
+    if(!K_index.is_empty()){
+        if(K.is_empty())    throw Rcpp::exception("variance-covariance matrix should be provided for K term.");
+        if(K.n_cols != K.n_rows) throw Rcpp::exception("variance-covariance matrix should be in square.");
+        nk = K.n_cols;
+        K_index -= 1;
+        va_store.resize(niter - nburn + 1);
+        vb_store.resize(niter - nburn + 1);
+        k_Z.resize(K_index.n_elem, nk);
+        k_estR.zeros(nk);
+        k_estR_store.zeros(nk);
+        k_estR_tmp.zeros(nk);
+        qk = nk;
+        for(int i = 0; i < K_index.n_elem; i++){k_Z(i, K_index[i]) = 1.0;}
+        k_ZZ = k_Z.t() * k_Z;
+    }
+
     int ne = 0;
     double veps;
     double vepstmp;
@@ -213,9 +244,9 @@ Rcpp::List Bayes(
         epsl_J_beta_store.resize(niter - nburn + 1);
         epsl_Z.resize(ne, epsl_Gi_.n_cols);
         epsl_estR.zeros(epsl_Gi_.n_cols);
+        epsl_estR_tmp.zeros(epsl_Gi_.n_cols);
         epsl_estR_store.zeros(epsl_Gi_.n_cols);
         epsl_yadj.resize(ne);
-        estR_tmp.resize(epsl_Gi_.n_cols);
         qe = epsl_Gi_.n_cols;
         for(int i = 0; i < ne; i++){epsl_Z(i, epsl_index_[i]) = 1.0;}
         epsl_ZZ = epsl_Z.t() * epsl_Z;
@@ -260,6 +291,7 @@ Rcpp::List Bayes(
         xpx[i] = sum(square(Xi));
         vx[i] = var(Xi);
     }
+    double sumvx = sum(vx);
 
     if(dfvg.isNotNull()){
         dfvara_ = as<double>(dfvg);
@@ -275,6 +307,7 @@ Rcpp::List Bayes(
         vara_ = ((dfvara_ - 2) / dfvara_) * vary * h2;
     }
     vepstmp = vara_;
+    vbtmp = vara_;
     if(ve.isNotNull()){
         vare_ = as<double>(ve);
     }else{
@@ -290,8 +323,8 @@ Rcpp::List Bayes(
     }else{
         s2vara_ = vara_ * (dfvara_ - 2) / dfvara_;
     }
-    double varg = vara_ / ((1 - Pi[0]) * sum(vx));
-    s2varg_ = s2vara_ / ((1 - Pi[0]) * sum(vx));
+    double varg = vara_ / ((1 - Pi[0]) * sumvx);
+    s2varg_ = s2vara_ / ((1 - Pi[0]) * sumvx);
     if(s2ve.isNotNull()){
         s2vare_ = as<double>(s2ve);
     }else{
@@ -301,7 +334,7 @@ Rcpp::List Bayes(
         throw Rcpp::exception("Number of total iteration ('niter') shold be larger than burn-in ('nburn').");
     }
     double R2 = (dfvara_ - 2) / dfvara_;
-    double lambda2 = 2 * (1 - R2) / (R2) * sum(vx);
+    double lambda2 = 2 * (1 - R2) / (R2) * sumvx;
     double lambda = sqrt(lambda2); 
     double shape, shape0 = 1.1;
     double rate, rate0 = (shape0 - 1) / lambda2;
@@ -314,7 +347,7 @@ Rcpp::List Bayes(
     vec fold_snp_num = zeros(n_fold);
     vec logpi = zeros(n_fold);
     vec s = zeros(n_fold);
-    vec vara_fold = (vara_ / ((1 - Pi[0]) * sum(vx))) * fold_;
+    vec vara_fold = (vara_ / ((1 - Pi[0]) * sumvx)) * fold_;
     vec vare_vara_fold = zeros(n_fold);
 
     // for gwas
@@ -398,6 +431,7 @@ Rcpp::List Bayes(
             Rcpp::Rcout << "π" << i + 1 << "  ";
         }
         if(model == "BayesL")    Rcpp::Rcout << "Lambda" << "  ";
+        if(model == "BSLMM")    Rcpp::Rcout << "Va" << "  " << "Vb" << "  ";
         for(int i = 0; i < nr; i++){
             Rcpp::Rcout << "Vr" << (i + 1) << "  ";
         }
@@ -458,6 +492,26 @@ Rcpp::List Bayes(
             estR[i] = estR_tmp;
         }
 
+        if(nk){
+            k_LHS = (K * (vare_ / vbtmp));
+            k_LHS += k_ZZ;
+            k_RHS = k_Z.t() * yadj;
+            vec zzk = k_ZZ * k_estR_tmp;
+            daxpy_(&qk, &doc, zzk.memptr(), &inc, k_RHS.memptr(), &inc);
+            Gibbs(k_LHS, k_estR_tmp, k_RHS, vare_);
+            gi_ = -1;
+            daxpy_(&n, &gi_, k_estR_tmp.memptr(), &inc, k_estR.memptr(), &inc);
+            diff = k_Z * k_estR;
+            daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
+            daxpy_(&n, &gi_, diff.memptr(), &inc, u.memptr(), &inc);
+            vbtmp = as_scalar(k_estR_tmp.t() * K * k_estR_tmp);
+            vbtmp += s2vara_ * dfvara_;
+            vbtmp /= (dfvara_ + qk);
+            vbtmp = invchisq_sample(qk + dfvara_, vbtmp);
+            vb = var(k_estR_tmp) / sumvx;
+            k_estR = k_estR_tmp;
+        }
+
         if(ne){
             oldgi = epsl_J_beta;
             v = JtJ;
@@ -472,11 +526,11 @@ Rcpp::List Bayes(
             epsl_LHS = epsl_ZZ;
             epsl_LHS += (epsl_Gi_ * (vare_ / vepstmp));
             epsl_yadj = yadj.tail(ne);
-            epsl_estR_tmp = epsl_estR;
             epsl_RHS = epsl_Z.t() * epsl_yadj;
             epsl_RHS += epsl_ZZ * epsl_estR_tmp;
             Gibbs(epsl_LHS, epsl_estR_tmp, epsl_RHS, vare_);
-            epsl_estR -= epsl_estR_tmp;
+            gi_ = -1;
+            daxpy_(&n, &gi_, epsl_estR_tmp.memptr(), &inc, epsl_estR.memptr(), &inc);
             epsl_yadj = epsl_Z * epsl_estR;
             yadj.tail(ne) += epsl_yadj;
             u.tail(ne) -= epsl_yadj;
@@ -614,6 +668,7 @@ Rcpp::List Bayes(
                 NnzSnp = fold_snp_num[1];
                 varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
                 varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                if(nk) va = varg;
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
             case 5:
@@ -739,14 +794,22 @@ Rcpp::List Bayes(
                     estR_store[i] += estR[i];
                 }
             }
+            if(nk){
+                va_store[iter - nburn] = va;
+                vb_store[iter - nburn] = vb;
+                // k_estR_store += k_estR;
+                daxpy_(&qk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
+            }
             if(ne){
                 veps_store[iter - nburn] = veps;
                 epsl_J_beta_store[iter - nburn] = epsl_J_beta;
-                epsl_estR_store += epsl_estR;
+                // epsl_estR_store += epsl_estR;
+                daxpy_(&qe, &doc, epsl_estR.memptr(), &inc, epsl_estR_store.memptr(), &inc);
             }
             hsq_store[iter - nburn] = vara_ / (vt);
 
             if(!snptracker.is_empty()){
+                #pragma omp parallel for
                 for(int i = 0; i < m; i++){
                     if(snptracker[i]){
                         nzrate[i] += 1;
@@ -762,9 +825,18 @@ Rcpp::List Bayes(
                     u_minus.tail(ne) -= epsl_Z * epsl_estR;
                     vara_snp = var(u_minus);
                 }
+                vec ghat;
+                if(nk){
+                    ghat = X.t() * (k_Z * K * k_estR_store / count) / sumvx;
+                    ghat += g;
+                }
                 for(int w = 0; w < nw; w++){
                     windxi = windx[w];
-                    wu = X.cols(windxi) * g.elem(windxi);
+                    if(nk){
+                        wu = X.cols(windxi) * ghat.elem(windxi);
+                    }else{
+                        wu = X.cols(windxi) * g.elem(windxi);
+                    }
                     varw = var(wu);
                     wgvei[w] += (varw / vara_snp);
                     if((varw / vara_snp) >= wppa){
@@ -790,6 +862,7 @@ Rcpp::List Bayes(
                     Rcpp::Rcout << std::fixed << Pi[i] << " ";
                 }
                 if(model == "BayesL")    Rcpp::Rcout << std::fixed << lambda << " ";
+                if(model == "BSLMM")    Rcpp::Rcout << std::fixed << va << " " << std::fixed << vb << " ";
                 double vt = vara_ + vare_;
                 for(int i = 0; i < nr; i++){
                     vt += vr[i];
@@ -819,6 +892,15 @@ Rcpp::List Bayes(
         vepsse = stddev(veps_store);
         epsl_J_beta = mean(epsl_J_beta_store);
         epsl_estR = epsl_estR_store / count;
+    }
+    if(nk){
+        va = mean(va_store);
+        vase = stddev(va_store);
+        vb = mean(vb_store);
+        vbse = stddev(vb_store);
+        k_estR = k_estR_store / count;
+        vec ghat = X.t() * (k_Z * K * k_estR) / sumvx;
+        g += ghat;
     }
     List listr(2);
     if(nr){
@@ -895,6 +977,7 @@ Rcpp::List Bayes(
             }
             Rcpp::Rcout << std::endl;
         }
+        if(nk)  Rcpp::Rcout << "    Va: " << std::fixed << va << "±" << std::fixed << vase << ", Vb: " << std::fixed << vb << "±" << std::fixed << vbse << std::endl;
         // Rcpp::Rcout << "    SigmaSq " << std::fixed << sumvg << "±" << std::fixed << sumvgsd << std::endl;
         if(ne)  Rcpp::Rcout << "    ε var " << std::fixed << veps << "±" << std::fixed << vepsse << std::endl;
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << "±" << std::fixed << varasd << std::endl;
@@ -941,3 +1024,72 @@ Rcpp::List Bayes(
         );
     }
 }
+
+// [[Rcpp::export]]
+Rcpp::List BayesK(
+    arma::vec &y,
+    arma::mat &X,
+    std::string model,
+    arma::vec Pi,
+    SEXP &K,
+    arma::uvec &K_index,
+    const Nullable<arma::mat> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
+    const Nullable<arma::vec> fold = R_NilValue,
+    const int niter = 50000,
+    const int nburn = 20000,
+    const Nullable<arma::vec> epsl_y_J = R_NilValue,
+    const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
+    const Nullable<arma::uvec> epsl_index = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
+    const Nullable<arma::uvec> windindx = R_NilValue,
+    const double wppa = 0.01,
+    const int outfreq = 100,
+    const int threads = 0,
+    const bool verbose = true
+){
+    if(Rf_inherits(K, "dgCMatrix")){
+        arma::sp_mat K_ = Rcpp::as<arma::sp_mat>(K);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose);
+    }else{
+        arma::mat K_ = Rcpp::as<arma::mat>(K);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose);
+    }
+}
+
+// [[Rcpp::export]]
+Rcpp::List Bayes(
+    arma::vec &y,
+    arma::mat &X,
+    std::string model,
+    arma::vec Pi,
+    const Nullable<arma::mat> C = R_NilValue,
+    const Nullable<CharacterMatrix> R = R_NilValue,
+    const Nullable<arma::vec> fold = R_NilValue,
+    const int niter = 50000,
+    const int nburn = 20000,
+    const Nullable<arma::vec> epsl_y_J = R_NilValue,
+    const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
+    const Nullable<arma::uvec> epsl_index = R_NilValue,
+    const Nullable<double> vg = R_NilValue,
+    const Nullable<double> dfvg = R_NilValue,
+    const Nullable<double> s2vg = R_NilValue,
+    const Nullable<double> ve = R_NilValue,
+    const Nullable<double> dfve = R_NilValue,
+    const Nullable<double> s2ve = R_NilValue,
+    const Nullable<arma::uvec> windindx = R_NilValue,
+    const double wppa = 0.01,
+    const int outfreq = 100,
+    const int threads = 0,
+    const bool verbose = true
+){
+    arma::mat K;
+    arma::uvec K_index;
+    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose);
+}
+

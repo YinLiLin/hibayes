@@ -4,13 +4,14 @@
 // [[Rcpp::export]]
 arma::mat make_grm(
     arma::mat &Z,
+    double lambda = 0.0,
     bool inverse = false,
     bool verbose = true
 ){
 
     // int n = Z.n_rows;
     int m = Z.n_cols;
-    if(verbose) Rcpp::Rcout << "Start construct G matrix" << std::endl;
+    if(verbose) Rcpp::Rcout << "Start construct G matrix for " <<  Z.n_rows << " individuals using " << m << " markers" << std::endl;
     
     rowvec means(m);
     if(verbose) Rcpp::Rcout << "Calculate mean for all markers" << std::endl;
@@ -27,7 +28,7 @@ arma::mat make_grm(
 
     if(inverse){
         if(verbose) Rcpp::Rcout << "Invert the G matrix" << std::endl;
-        solve(G);
+        solve(G, lambda);
     }
     return G;
 }
