@@ -10,7 +10,7 @@ Authors@R: c(
     person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
            role = c("aut", "cph"))
     )
-Description: A user-friendly tool to fit bayesian regression model. It can fit 3 types of Bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:
+Description: A user-friendly tool to fit Bayesian regression model. It can fit 3 types of Bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:
     (1) fixed effects and coefficients of covariates,
     (2) environmental random effects, and its corresponding variance, 
     (3) genetic variance, 
