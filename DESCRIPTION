@@ -10,7 +10,7 @@ Authors@R: c(
     person("Xiaolei", "Liu", email = "xiaoleiliu@mail.hzau.edu.cn", 
            role = c("aut", "cph"))
     )
-Description: A package to fit bayesian regression model, it can fit 3 types of bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:
+Description: A user-friendly tool to fit bayesian regression model. It can fit 3 types of Bayesian model using individual-level, summary-level, and individual plus pedigree-level (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:
     (1) fixed effects and coefficients of covariates,
     (2) environmental random effects, and its corresponding variance, 
     (3) genetic variance, 
@@ -21,7 +21,7 @@ Description: A package to fit bayesian regression model, it can fit 3 types of b
     (8) phenotype/genetic variance explained (PVE) for single or multiple SNPs, 
     (9) posterior probability of association of the genomic window (WPPA), 
     (10) posterior inclusive probability (PIP). 
-    The functions are not limited, we will keep on going in enriching 'hibayes' with more features.
+    The functions are not limited, we will keep on going in enriching it with more features.
 License: Apache License 2.0
 Maintainer: Lilin Yin <ylilin@163.com>
 URL: https://github.com/YinLiLin/hibayes
