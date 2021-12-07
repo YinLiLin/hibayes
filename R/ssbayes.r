@@ -77,8 +77,8 @@
 #' pheno.id = pheno[, 1]
 #' 
 #' # For GS/GP
-#' fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-#' 				 model="BayesR", niter=200, nburn=100, outfreq=10)
+#' # fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
+#' #				 model="BayesR", niter=200, nburn=100, outfreq=10)
 #' # For GWAS
 #' # fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
 #' # 			  map=map, windsize=1e6, model="BayesCpi")

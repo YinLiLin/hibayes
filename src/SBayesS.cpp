@@ -546,6 +546,7 @@ Rcpp::List SBayesS(
             daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
             hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
             if(!snptracker.is_empty()){
+                #pragma omp parallel for
                 for(int i = 0; i < m; i++){
                     if(snptracker[i]){
                         nzrate[i] += 1;

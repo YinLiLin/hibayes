@@ -227,6 +227,7 @@ void solver_lu(
 	}
     delete[] IPIV;
     delete[] WORK;
+	return;
 }
 
 void solve(
