@@ -218,11 +218,12 @@ void solver_lu(
 			LWORK = -1;
 			dgetri_(&n, Aiptr, &n, IPIV, &wkopt, &LWORK, &INFO);
 			LWORK = (int)wkopt;
-			WORK = (double*)malloc(LWORK * sizeof(double));
-			dgetri_(&n, Aiptr, &n, IPIV, WORK, &LWORK, &INFO);
+			double *WORK1 = (double*)malloc(LWORK * sizeof(double));
+			dgetri_(&n, Aiptr, &n, IPIV, WORK1, &LWORK, &INFO);
 			if(INFO){
 				throw Rcpp::exception("U matrix of LU decomposition is singular.");
 			}
+			delete[] WORK1;
 		}
 	}
     delete[] IPIV;
