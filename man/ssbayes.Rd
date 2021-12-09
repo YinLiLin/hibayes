@@ -131,17 +131,20 @@ map = data$map
 geno.id = fam[, 2]
 pheno.id = pheno[, 1]
 
-# For GS/GP
-# fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-#				 model="BayesR", niter=200, nburn=100, outfreq=10)
-# For GWAS
-# fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-# 			  map=map, windsize=1e6, model="BayesCpi")
-
 # Add fixed effects, covariates, and random effect
 X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
 X <- X[, -1] #remove the intercept
-# fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
+\donttest{
+fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
+
+# For GS/GP
+fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
+			model="BayesR", niter=200, nburn=100, outfreq=10)
+# For GWAS
+fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
+			map=map, windsize=1e6, model="BayesCpi")
+}
+
 }
 \references{
 Fernando, Rohan L., Jack CM Dekkers, and Dorian J. Garrick. "A class of Bayesian methods to combine large numbers of genotyped and non-genotyped animals for whole-genome analyses." Genetics Selection Evolution 46.1 (2014): 1-13. \cr

@@ -10,17 +10,22 @@
 #' @param ldchr lpgical, whether to calulate the LD between chromosomes.
 #' @param threads the number of threads used in computation.
 #' @param verbose whether to print the information.
-
+#'
 #' @examples
 #' bfile_path = system.file("extdata", "geno", package = "hibayes")
 #' data = read_plink(bfile_path, out=tempfile())
 #' geno = data$geno
 #' map = data$map
-#' # xx = ldmat(geno, threads=4)   #chromosome wide full ld matrix
-#' # xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
-#' # xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
-#' # xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
-
+#' \donttest{
+#' xx = ldmat(geno, threads=4)   #chromosome wide full ld matrix
+#' xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
+#' xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
+#' xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
+#' }
+#' 
+#' @return
+#' For full ld matrix, it returns a standard R matrix, for sparse matrix, it returns a 'dgCMatrix'.
+#' 
 #' @export
 
 ldmat <- function(

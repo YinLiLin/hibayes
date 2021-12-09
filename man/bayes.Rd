@@ -124,15 +124,20 @@ map = data$map
 geno.id = fam[, 2]
 pheno = pheno[match(geno.id, pheno[, 1]), ]
 
-# For GS/GP
-fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100, outfreq=10)
-# For GWAS
-# fit = bayes(y=pheno[, 2], M=geno, map=map, windsize=1e6, model="BayesCpi")
-
 # Add fixed effects, covariates, and random effect
 X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
 X <- X[, -1] #remove the intercept
-# fit = bayes(..., X=X, R=pheno[,c("group")], ...)
+\donttest{
+fit = bayes(..., X=X, R=pheno[,c("group")], ...)
+}
+
+# For GS/GP
+fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100, outfreq=10)
+\donttest{
+# For GWAS
+fit = bayes(y=pheno[, 2], M=geno, map=map, windsize=1e6, model="BayesCpi")
+}
+
 }
 \references{
 Meuwissen, Theo HE, Ben J. Hayes, and Michael E. Goddard. "Prediction of total genetic value using genome-wide dense marker maps." Genetics 157.4 (2001): 1819-1829. \cr
