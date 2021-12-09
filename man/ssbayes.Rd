@@ -134,9 +134,9 @@ pheno.id = pheno[, 1]
 # Add fixed effects, covariates, and random effect
 X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
 X <- X[, -1] #remove the intercept
-\donttest{
-fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
+# then fit the model as: fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
 
+\donttest{
 # For GS/GP
 fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
 			model="BayesR", niter=200, nburn=100, outfreq=10)

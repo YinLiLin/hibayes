@@ -80,9 +80,7 @@
 #' # Add fixed effects, covariates, and random effect
 #' X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
 #' X <- X[, -1] #remove the intercept
-#' \donttest{
-#' fit = bayes(..., X=X, R=pheno[,c("group")], ...)
-#' }
+#' # then fit the model as: fit = bayes(..., X=X, R=pheno[,c("group")], ...)
 #' 
 #' # For GS/GP
 #' fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100, outfreq=10)
