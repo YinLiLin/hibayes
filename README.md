@@ -20,11 +20,15 @@ The functions are not limited, we will keep on going in enriching **```hibayes``
 ***If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.***
 
 ## Installation
-**```hibayes```** can be installed from GitHub as following, please ensure **```devtools```** has been installed prior to installing **```hibayes```**.
+The stable version of **```hibayes```** can be accessed from CRAN, type the following script to install:
+```r
+> install.packages("hibayes")
+```
+After installed successfully, type *```library(hibayes)```* to use.  
+The latest version of **```hibayes```**  in development can be installed from GitHub as following, please ensure **```devtools```** has been installed prior to installing **```hibayes```**.
 ```r
 > devtools::install_github("YinLiLin/hibayes")
 ```
-After installed successfully, type *```library(hibayes)```* to use. The package is on its way to R CRAN, and would be coming soon.
 
 ## Usage
 ### 1. Individual level bayesian model
