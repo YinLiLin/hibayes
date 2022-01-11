@@ -23,7 +23,7 @@
 #' @param niter the number of MCMC iteration.
 #' @param nburn the number of iterations to be discarded.
 #' @param windsize window size in bp for GWAS, the default is 1e6.
-#' @param wppa the threshold of genetic variance explained by single window, the default is 0.01.
+#' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
 #' @param vg prior value of genetic variance.
 #' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
 #' @param s2vg scale parameter for the distribution of genetic variance.
@@ -42,8 +42,8 @@
 #' \item{$vg}{estimated genetic variance}
 #' \item{$ve}{estimated residual variance}
 #' \item{$alpha}{estimated effect size of all markers}
-#' \item{$modfreq}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
-#' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is the ratio of the number of iterations that \eqn{Pw} (the proportion of the total genetic variance explained by the window \eqn{w}) > 1% divided by the total number of MCMC iterations, WGVE is the explained genetic variance for each window}
+#' \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
+#' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
 #' }
 #' 
 #' @references
@@ -85,7 +85,7 @@ function(
     niter = 20000,
     nburn = 14000,
     windsize = NULL,
-    wppa = 0.01,
+	windnum = NULL,
     vg = NULL,
     dfvg = NULL,
     s2vg = NULL,
@@ -104,7 +104,11 @@ function(
 	}else{
 		stop("Unrecognized type of ldm.")
 	}
-	if(!is.null(windsize)){
+	set.seed(seed)
+	model <- match.arg(model)
+	if(!is.null(windsize) || !is.null(windnum)){
+		if(model == "BayesA" || model == "BayesRR" || model == "BayesL")
+			stop(paste0("can not implement GWAS analysis for the method: ", model))
 		if(is.null(map)){
 			stop("map information must be provided.")
 		}else{
@@ -139,10 +143,16 @@ function(
 				map[map[, 1] == chr.xy[i], 1] <- max.chr + i
 			}
 		}
-		map <- matrix(as.numeric(map), nrow(map))
+		map <- apply(map, 2, as.numeric)
+		# map <- matrix(as.numeric(map), nrow(map))
 		chr <- chr[order(map[,1])]
-		if(max(map[,2]) < windsize)	stop("Maximum of physical position is less than wind size.")
-		windindx <- cutwind(map[,1], map[,2], windsize)
+		if(!is.null(windnum)){
+			if(nrow(map) < windnum)	stop("Number of markers specified in a window is larger than the total number of markers.")
+			windindx <- cutwind_by_num(map[,1], map[,2], windnum)
+		}else{
+			if(max(map[,2]) < windsize)	stop("Maximum of physical position is smaller than wind size.")
+			windindx <- cutwind_by_bp(map[,1], map[,2], windsize)
+		}
 		windrange <- do.call(rbind, tapply(map[, 2], windindx, range))
 		windsnpN <- tapply(map[, 2], windindx, length)
 		windchr <- unique(chr)[match(tapply(map[, 1], windindx, unique), unique(sort(map[,1])))]
@@ -151,8 +161,6 @@ function(
 	}else{
 		windindx <- NULL
 	}
-	set.seed(seed)
-	model <- match.arg(model)
 	if(is.null(Pi)){
 		if(match.arg(model) == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)
@@ -168,9 +176,9 @@ function(
 	sumstat <- data.matrix(sumstat)
 	if(model != "CG"){
 		if(sparse){
-			res = SBayesS(sumstat=sumstat, ldm=ldm, model=model, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+			res <- SBayesS(sumstat=sumstat, ldm=ldm, model=model, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		}else{
-			res = SBayesD(sumstat=sumstat, ldm=ldm, model=model, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+			res <- SBayesD(sumstat=sumstat, ldm=ldm, model=model, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 		}
 	}else{
 		if(!is.null(lambda)){
@@ -181,16 +189,15 @@ function(
 			}
 		}
 		if(sparse){
-			res = conjgt_spa(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=outfreq, verbose=verbose)
+			res <- conjgt_spa(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=outfreq, verbose=verbose)
 		}else{
-			res = conjgt_den(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=outfreq, verbose=verbose)
+			res <- conjgt_den(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=outfreq, verbose=verbose)
 		}
 	}
-	if(!is.null(windsize) & match.arg(model) != "CG"){
-		WPPA <- res$wppa
-		WGVE <- res$wgve
-		res <- head(res, length(res) - 2)
-		res$gwas <- data.frame(windinfo, WPPA, WGVE)
+	if((!is.null(windsize) | !is.null(windnum)) & match.arg(model) != "CG"){
+		WPPA <- res$gwas
+		res$gwas <- data.frame(windinfo, WPPA)
 	}
+
 	return(res)
 }

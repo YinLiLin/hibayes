@@ -2,7 +2,7 @@
 #include "solver.h"
 
 // [[Rcpp::export]]
-arma::mat make_grm(
+SEXP make_grm(
     arma::mat &Z,
     double lambda = 0.0,
     bool inverse = false,
@@ -23,14 +23,14 @@ arma::mat make_grm(
     Z.each_row() -= means;
 
     if(verbose) Rcpp::Rcout << "Compute Z * Z'" << std::endl;
-    mat G = Z * Z.t();
+    arma::mat G = Z * Z.t();
     G /= mean(G.diag());
 
     if(inverse){
         if(verbose) Rcpp::Rcout << "Invert the G matrix" << std::endl;
         solve(G, lambda);
     }
-    return G;
+    return wrap(G);
 }
 
 // [[Rcpp::export]]
@@ -151,7 +151,7 @@ List make_ped(
 }
 
 // [[Rcpp::export]]
-arma::sp_mat make_Ainv(
+SEXP make_Ainv(
     std::vector<int> s,
     std::vector<int> d,
     bool verbose = true
@@ -159,7 +159,7 @@ arma::sp_mat make_Ainv(
     
     if(verbose) Rcpp::Rcout << "Derive inverse of A matrix from pedigree" << std::endl;
     int n = s.size();
-    sp_mat Ainv(n, n);
+    arma::sp_mat Ainv(n, n);
 
     for (int x = 0; x < n; x++) {
         int sx = s[x] - 1;
@@ -183,11 +183,11 @@ arma::sp_mat make_Ainv(
             Ainv(dx, dx) = Ainv(dx, dx) + (1/3);
         }
     }
-    return Ainv;
+    return wrap(Ainv);
 }
 
 // [[Rcpp::export]]
-arma::mat geno_impute(
+SEXP geno_impute(
     arma::sp_mat &Ang,
     arma::mat &geno,
     int threads
@@ -195,7 +195,7 @@ arma::mat geno_impute(
     omp_setup(threads);
     int m = geno.n_cols;
     int n = Ang.n_rows;
-    mat imp_geno(n, m);
+    arma::mat imp_geno(n, m);
 
     if(threads == 1){
         imp_geno = Ang * geno;
@@ -206,5 +206,5 @@ arma::mat geno_impute(
             imp_geno.col(i) = Ang * geno.col(i);
         }
     }
-    return imp_geno;
+    return wrap(imp_geno);
 }

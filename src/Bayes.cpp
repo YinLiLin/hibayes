@@ -79,7 +79,6 @@ Rcpp::List Bayes(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const Nullable<arma::uvec> windindx = R_NilValue,
-    const double wppa = 0.01,
     const int outfreq = 100,
     const int threads = 0,
     const bool verbose = true
@@ -228,6 +227,7 @@ Rcpp::List Bayes(
     vec epsl_RHS;
     int qe = 0;
     double epsl_J_beta = 0;
+    double epsl_J_betase = 0;
     vec epsl_J_beta_store;
     if(epsl_index.isNotNull()){
         epsl_index_ = as<uvec>(epsl_index);
@@ -352,24 +352,19 @@ Rcpp::List Bayes(
 
     // for gwas
     int nw;
-    double varw;
     bool WPPA = false;
     uvec windindx_;
     vector<arma::uvec> windx;
-    vec wu;
     uvec windxi;
     vec wppai;
-    vec wgvei;
     if(windindx.isNotNull()){
         windindx_ = as<arma::uvec>(windindx);
         WPPA = true;
         nw = max(windindx_);
         wppai.zeros(nw);
-        wgvei.zeros(nw);
         for(int w = 0; w < nw; w++){
             windx.push_back(find(windindx_ == (w + 1)));
         }
-        wu.zeros(n);
     }
 
     if(verbose){
@@ -421,8 +416,7 @@ Rcpp::List Bayes(
         Rcpp::Rcout << "    Inv-Chisq alpar " << std::fixed << dfvara_ << " " << std::fixed << s2varg_ << std::endl;
         
         if(WPPA){
-            Rcpp::Rcout << "    Number of windows " << nw << std::endl;
-            Rcpp::Rcout << "    GVE threshold for windows " << wppa << std::endl;
+            Rcpp::Rcout << "    Number of windows for GWAS analysis " << nw << std::endl;
         }
         Rcpp::Rcout << "MCMC started: " << std::endl;
         Rcpp::Rcout << " Iter" << "  ";
@@ -500,7 +494,7 @@ Rcpp::List Bayes(
             daxpy_(&qk, &doc, zzk.memptr(), &inc, k_RHS.memptr(), &inc);
             Gibbs(k_LHS, k_estR_tmp, k_RHS, vare_);
             gi_ = -1;
-            daxpy_(&n, &gi_, k_estR_tmp.memptr(), &inc, k_estR.memptr(), &inc);
+            daxpy_(&qk, &gi_, k_estR_tmp.memptr(), &inc, k_estR.memptr(), &inc);
             diff = k_Z * k_estR;
             daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
             daxpy_(&n, &gi_, diff.memptr(), &inc, u.memptr(), &inc);
@@ -530,7 +524,7 @@ Rcpp::List Bayes(
             epsl_RHS += epsl_ZZ * epsl_estR_tmp;
             Gibbs(epsl_LHS, epsl_estR_tmp, epsl_RHS, vare_);
             gi_ = -1;
-            daxpy_(&n, &gi_, epsl_estR_tmp.memptr(), &inc, epsl_estR.memptr(), &inc);
+            daxpy_(&qe, &gi_, epsl_estR_tmp.memptr(), &inc, epsl_estR.memptr(), &inc);
             epsl_yadj = epsl_Z * epsl_estR;
             yadj.tail(ne) += epsl_yadj;
             u.tail(ne) -= epsl_yadj;
@@ -817,29 +811,10 @@ Rcpp::List Bayes(
                 }
             }
 
-            // record pve for each window
             if(WPPA){
-                double vara_snp = vara_;
-                if(ne){
-                    vec u_minus = u - epsl_J_beta * epsl_y_J_;
-                    u_minus.tail(ne) -= epsl_Z * epsl_estR;
-                    vara_snp = var(u_minus);
-                }
-                vec ghat;
-                if(nk){
-                    ghat = X.t() * (k_Z * K * k_estR_store / count) / sumvx;
-                    ghat += g;
-                }
                 for(int w = 0; w < nw; w++){
                     windxi = windx[w];
-                    if(nk){
-                        wu = X.cols(windxi) * ghat.elem(windxi);
-                    }else{
-                        wu = X.cols(windxi) * g.elem(windxi);
-                    }
-                    varw = var(wu);
-                    wgvei[w] += (varw / vara_snp);
-                    if((varw / vara_snp) >= wppa){
+                    if(any(snptracker.elem(windxi))){
                         wppai[w] += 1;
                     }
                 }
@@ -881,17 +856,23 @@ Rcpp::List Bayes(
         nzrate.ones(m);
     }else{
         nzrate = nzrate / count;
+        nzrate.elem(find(nzrate == 1)).fill((count - 1) / (double) count);
     }
     g = g_store / count;
+    arma::vec e = y - X * g;
     if(nc){
         beta = conv_to<vec>::from(mean(beta_store));
         betase = conv_to<vec>::from(stddev(beta_store));
+        e -= (C_ * beta);
     }
     if(ne){
         veps = mean(veps_store);
         vepsse = stddev(veps_store);
         epsl_J_beta = mean(epsl_J_beta_store);
+        epsl_J_betase = stddev(epsl_J_beta_store);
         epsl_estR = epsl_estR_store / count;
+        e -= (epsl_J_beta * epsl_y_J_);
+        e.tail(ne) -= (epsl_Z * epsl_estR);
     }
     if(nk){
         va = mean(va_store);
@@ -901,6 +882,7 @@ Rcpp::List Bayes(
         k_estR = k_estR_store / count;
         vec ghat = X.t() * (k_Z * K * k_estR) / sumvx;
         g += ghat;
+        e -= (X * ghat);
     }
     List listr(2);
     if(nr){
@@ -913,6 +895,7 @@ Rcpp::List Bayes(
                 r_levers.push_back(Z_levels[i][j]);
                 estr.push_back(estR_store[i][j] / count);
             }
+            e -= (Z[i] * estR_store[i] / count);
         }
         listr[0] = wrap(r_levers.begin(), r_levers.end());
         listr[1] = wrap(estr.begin(), estr.end());
@@ -925,9 +908,10 @@ Rcpp::List Bayes(
 
     if(WPPA){
         wppai = wppai / count;
-        wgvei = wgvei / count;
+        wppai.elem(find(wppai == 1)).fill((count - 1) / (double) count);
     }
     double Mu = mean(mu_store);
+    e -= (Mu * one);
     double musd = stddev(mu_store);
     vec pise;
     if(!fixpi){
@@ -979,7 +963,10 @@ Rcpp::List Bayes(
         }
         if(nk)  Rcpp::Rcout << "    Va: " << std::fixed << va << "±" << std::fixed << vase << ", Vb: " << std::fixed << vb << "±" << std::fixed << vbse << std::endl;
         // Rcpp::Rcout << "    SigmaSq " << std::fixed << sumvg << "±" << std::fixed << sumvgsd << std::endl;
-        if(ne)  Rcpp::Rcout << "    ε var " << std::fixed << veps << "±" << std::fixed << vepsse << std::endl;
+        if(ne){
+            Rcpp::Rcout << "    J " << std::fixed << epsl_J_beta << "±" << std::fixed << epsl_J_betase << std::endl;
+            Rcpp::Rcout << "    ε var " << std::fixed << veps << "±" << std::fixed << vepsse << std::endl;
+        }
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << "±" << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << "±" << std::fixed << varesd << std::endl;
         Rcpp::Rcout << "    Estimated h2 " << std::fixed << hsq << "±" << std::fixed << hsqsd << std::endl;
@@ -994,8 +981,8 @@ Rcpp::List Bayes(
     if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
     if(WPPA){
         return List::create(
-            Named("eps_J") = epsl_J_beta,
-            Named("eps_R") = epsl_estR,
+            Named("J") = epsl_J_beta,
+            Named("epsilon") = epsl_estR,
             Named("mu") = Mu, 
             Named("pi") = Pi, 
             Named("beta") = beta,
@@ -1004,14 +991,14 @@ Rcpp::List Bayes(
             Named("vg") = vara_, 
             Named("ve") = vare_,
             Named("alpha") = g,
-            Named("modfreq") = nzrate,
-            Named("wppa") = wppai,
-            Named("wgve") = wgvei
+            Named("e") = e,
+            Named("pip") = nzrate,
+            Named("gwas") = wppai
         );
     }else{
         return List::create(
-            Named("eps_J") = epsl_J_beta,
-            Named("eps_R") = epsl_estR,
+            Named("J") = epsl_J_beta,
+            Named("epsilon") = epsl_estR,
             Named("mu") = Mu,
             Named("pi") = Pi, 
             Named("beta") = beta,
@@ -1020,7 +1007,8 @@ Rcpp::List Bayes(
             Named("vg") = vara_, 
             Named("ve") = vare_,
             Named("alpha") = g,
-            Named("modfreq") = nzrate
+            Named("e") = e,
+            Named("pip") = nzrate
         );
     }
 }
@@ -1048,17 +1036,16 @@ Rcpp::List BayesK(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const Nullable<arma::uvec> windindx = R_NilValue,
-    const double wppa = 0.01,
     const int outfreq = 100,
     const int threads = 0,
     const bool verbose = true
 ){
     if(Rf_inherits(K, "dgCMatrix")){
         arma::sp_mat K_ = Rcpp::as<arma::sp_mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
     }else{
         arma::mat K_ = Rcpp::as<arma::mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
     }
 }
 
@@ -1083,13 +1070,12 @@ Rcpp::List Bayes(
     const Nullable<double> dfve = R_NilValue,
     const Nullable<double> s2ve = R_NilValue,
     const Nullable<arma::uvec> windindx = R_NilValue,
-    const double wppa = 0.01,
     const int outfreq = 100,
     const int threads = 0,
     const bool verbose = true
 ){
     arma::mat K;
     arma::uvec K_index;
-    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose);
+    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
 }
 

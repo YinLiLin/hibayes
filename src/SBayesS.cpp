@@ -27,7 +27,6 @@ Rcpp::List SBayesS(
 	const int nburn = 20000,
     const Nullable<arma::vec> fold = R_NilValue,
 	const Nullable<arma::uvec> windindx = R_NilValue,
-    const double wppa = 0.01,
     const Nullable<double> vg = R_NilValue,
     const Nullable<double> dfvg = R_NilValue,
     const Nullable<double> s2vg = R_NilValue,
@@ -195,24 +194,19 @@ Rcpp::List SBayesS(
     
     // for gwas
     int nw;
-    double varw;
     bool WPPA = false;
     uvec windindx_;
     vector<arma::uvec> windx;
-    vec wu;
     uvec windxi;
     vec wppai;
-    vec wgvei;
     if(windindx.isNotNull()){
         windindx_ = as<arma::uvec>(windindx);
         WPPA = true;
         nw = max(windindx_);
         wppai.zeros(nw);
-        wgvei.zeros(nw);
         for(int w = 0; w < nw; w++){
             windx.push_back(find(windindx_ == (w + 1)));
         }
-        wu.zeros(n);
     }
 
     if(verbose){
@@ -251,8 +245,7 @@ Rcpp::List SBayesS(
         Rcpp::Rcout << "    Marker var " << std::fixed << varg << std::endl;
         Rcpp::Rcout << "    Inv-Chisq alpar " << std::fixed << dfvara_ << " " << std::fixed << s2varg_ << std::endl;
         if(WPPA){
-            Rcpp::Rcout << "    Number of windows " << nw << std::endl;
-            Rcpp::Rcout << "    GVE threshold for windows " << wppa << std::endl;
+            Rcpp::Rcout << "    Number of windows for GWAS analysis " << nw << std::endl;
         }
         Rcpp::Rcout << "MCMC started: " << std::endl;
         Rcpp::Rcout << " Iter" << "  ";
@@ -555,11 +548,8 @@ Rcpp::List SBayesS(
             }
             if(WPPA){
                 for(int w = 0; w < nw; w++){
-                	windxi = windx[w]; 
-                    varw = n * spsubmatmtp(ldm, g, windxi);
-                    varw /= (n - 1);
-                    wgvei[w] += (varw / vara_);
-                    if((varw / vara_) >= wppa){
+                    windxi = windx[w];
+                    if(any(snptracker.elem(windxi))){
                         wppai[w] += 1;
                     }
                 }
@@ -593,11 +583,12 @@ Rcpp::List SBayesS(
         nzrate.ones(m);
     }else{
         nzrate = nzrate / count;
+        nzrate.elem(find(nzrate == 1)).fill((count - 1) / (double) count);
     }
     g = g_store / count;
     if(WPPA){
         wppai = wppai / count;
-        wgvei = wgvei / count;
+        wppai.elem(find(wppai == 1)).fill((count - 1) / (double) count);
     }
     vec pise;
     if(!fixpi){
@@ -646,9 +637,8 @@ Rcpp::List SBayesS(
             Named("vg") = vara_, 
             Named("ve") = vare_,
             Named("alpha") = g,
-            Named("modfreq") = nzrate,
-            Named("wppa") = wppai,
-            Named("wgve") = wgvei
+            Named("pip") = nzrate,
+            Named("gwas") = wppai
         );
     }else{
         return List::create(
@@ -656,7 +646,7 @@ Rcpp::List SBayesS(
             Named("vg") = vara_, 
             Named("ve") = vare_,
             Named("alpha") = g,
-            Named("modfreq") = nzrate
+            Named("pip") = nzrate
         );
     }
 }

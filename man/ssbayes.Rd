@@ -20,7 +20,7 @@ ssbayes(
   niter = 20000,
   nburn = 14000,
   windsize = NULL,
-  wppa = 0.01,
+  windnum = NULL,
   vg = NULL,
   dfvg = NULL,
   s2vg = NULL,
@@ -72,7 +72,7 @@ ssbayes(
 
 \item{windsize}{window size in bp for GWAS, the default is NULL.}
 
-\item{wppa}{the threshold of genetic variance explained by single window, the default is 0.01.}
+\item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
 
 \item{vg}{prior value of genetic variance.}
 
@@ -97,6 +97,8 @@ ssbayes(
 \value{
 the function returns a list containing
 \describe{
+\item{$J}{coefficient for genotype imputation residuals}
+\item{$epsilon}{genotype imputation residuals}
 \item{$mu}{the regression intercept}
 \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 \item{$beta}{estimated coefficients for all covariates}
@@ -105,9 +107,10 @@ the function returns a list containing
 \item{$vg}{estimated genetic variance}
 \item{$ve}{estimated residual variance}
 \item{$alpha}{estimated effect size of all markers}
-\item{$modfreq}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
+\item{$e}{residuals of the model}
+\item{$pip}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
 \item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
-\item{$gwas}{WPPA is defined to be the window posterior probability of association, it is the ratio of the number of iterations that \eqn{Pw} (the proportion of the total genetic variance explained by the window \eqn{w}) > 1\% divided by the total number of MCMC iterations, WGVE is the explained genetic variance for each window}
+\item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
 }
 }
 \description{

@@ -28,7 +28,7 @@
 #' @param niter the number of MCMC iteration.
 #' @param nburn the number of iterations to be discarded.
 #' @param windsize window size in bp for GWAS, the default is NULL.
-#' @param wppa the threshold of genetic variance explained by single window, the default is 0.01.
+#' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
 #' @param vg prior value of genetic variance.
 #' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
 #' @param s2vg scale parameter for the distribution of genetic variance.
@@ -43,6 +43,8 @@
 #' @return
 #' the function returns a list containing
 #' \describe{
+#' \item{$J}{coefficient for genotype imputation residuals}
+#' \item{$epsilon}{genotype imputation residuals}
 #' \item{$mu}{the regression intercept}
 #' \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 #' \item{$beta}{estimated coefficients for all covariates}
@@ -51,9 +53,10 @@
 #' \item{$vg}{estimated genetic variance}
 #' \item{$ve}{estimated residual variance}
 #' \item{$alpha}{estimated effect size of all markers}
-#' \item{$modfreq}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
+#' \item{$e}{residuals of the model}
+#' \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
 #' \item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
-#' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is the ratio of the number of iterations that \eqn{Pw} (the proportion of the total genetic variance explained by the window \eqn{w}) > 1% divided by the total number of MCMC iterations, WGVE is the explained genetic variance for each window}
+#' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
 #' }
 #'
 #' @references
@@ -109,7 +112,7 @@ function(
     niter = 20000,
     nburn = 14000,
     windsize = NULL,
-    wppa = 0.01,
+	windnum = NULL,
     vg = NULL,
     dfvg = NULL,
     s2vg = NULL,
@@ -121,7 +124,11 @@ function(
 	threads = 4,
     verbose = TRUE
 ){
-	if(!is.null(windsize)){
+	set.seed(seed)
+	model <- match.arg(model)
+	if(!is.null(windsize) || !is.null(windnum)){
+		if(model == "BayesA" || model == "BayesRR" || model == "BayesL")
+			stop(paste0("can not implement GWAS analysis for the method: ", model))
 		if(is.null(map)){
 			stop("map information must be provided.")
 		}else{
@@ -152,10 +159,16 @@ function(
 				map[map[, 1] == chr.xy[i], 1] <- max.chr + i
 			}
 		}
-		map <- matrix(as.numeric(map), nrow(map))
+		map <- apply(map, 2, as.numeric)
+		# map <- matrix(as.numeric(map), nrow(map))
 		chr <- chr[order(map[,1])]
-		if(max(map[,2]) < windsize)	stop("Maximum of physical position is smaller than wind size.")
-		windindx <- cutwind(map[,1], map[,2], windsize)
+		if(!is.null(windnum)){
+			if(nrow(map) < windnum)	stop("Number of markers specified in a window is larger than the total number of markers.")
+			windindx <- cutwind_by_num(map[,1], map[,2], windnum)
+		}else{
+			if(max(map[,2]) < windsize)	stop("Maximum of physical position is smaller than wind size.")
+			windindx <- cutwind_by_bp(map[,1], map[,2], windsize)
+		}
 		windrange <- do.call(rbind, tapply(map[, 2], windindx, range))
 		windsnpN <- tapply(map[, 2], windindx, length)
 		windchr <- unique(chr)[match(tapply(map[, 1], windindx, unique), unique(sort(map[,1])))]
@@ -164,8 +177,6 @@ function(
 	}else{
 		windindx <- NULL
 	}
-	set.seed(seed)
-	model <- match.arg(model)
 	if(is.null(Pi)){
 		if(model == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)
@@ -181,6 +192,7 @@ function(
 		if(is.character(y))	stop("y is not a vector of digital values.")
 	}
 	if(length(y) != length(y.id))	stop("number of individuals not match between 'y' and 'y.id'.")
+	e <- rep(NA, length(y))
 	yNA <- is.na(y)
 	ytmp.id <- y.id
 	if(sum(yNA) != 0){
@@ -255,25 +267,27 @@ function(
 	y.M <- rbind(M[M.id %in% y.id, ], Mn[Mn.id %in% y.id, ])
 	y.J <- c(J[M.id %in% y.id], Jn[Mn.id %in% y.id])
 
-	res = Bayes(y=y, X=y.M, model=model, Pi=Pi, fold=fold, C=X, R=R, epsl_y_J=y.J, epsl_Gi=Ai.nn, epsl_index=y.Mn.indx, niter=niter, nburn=nburn, windindx=windindx, wppa=wppa, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+	res <- Bayes(y=y, X=y.M, model=model, Pi=Pi, fold=fold, C=X, R=R, epsl_y_J=y.J, epsl_Gi=Ai.nn, epsl_index=y.Mn.indx, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 	rm(y.M, y.J, Ai.nn); gc()
 
 	if(length(y.Mn.indx)){
-		g <- c(J, Jn) * res$eps_J + c(as.vector(M %*% res$alpha), as.vector(Mn %*% res$alpha)) + c(rep(0, nrow(M)), res$eps_R)
+		g <- c(J, Jn) * res$J + c(as.vector(M %*% res$alpha), as.vector(Mn %*% res$alpha)) + c(rep(0, nrow(M)), res$epsilon)
 	}else{
 		g <- c(as.vector(M %*% res$alpha), as.vector(Mn %*% res$alpha))
 	}
-	g <- data.frame(id = c(M.id, Mn.id), g = g)
+	g <- data.frame(id = c(M.id, Mn.id), gebv = g)
+	res$g <- g
+
+	e[match(y.id.comb, ytmp.id)] <- res$e
+	res$e <- data.frame(id = ytmp.id, e = e)
 	
-	res = tail(res, length(res) - 2)
-	if(!is.null(windsize)){
-		WPPA <- res$wppa
-		WGVE <- res$wgve
-		res <- head(res, length(res) - 2)
-		res$g <- g
-		res$gwas <- data.frame(windinfo, WPPA, WGVE)
-	}else{
-		res$g <- g	
+	epsilon <- data.frame(id = Mn.id, epsilon = res$epsilon)
+	res$epsilon <- epsilon
+
+	if(!is.null(windsize) | !is.null(windnum)){
+		WPPA <- res$gwas
+		res$gwas <- data.frame(windinfo, WPPA)
 	}
+
 	return(res)
 }

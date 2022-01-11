@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // BayesK
-Rcpp::List BayesK(arma::vec& y, arma::mat& X, std::string model, arma::vec Pi, SEXP& K, arma::uvec& K_index, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const int niter, const int nburn, const Nullable<arma::vec> epsl_y_J, const Nullable<arma::sp_mat> epsl_Gi, const Nullable<arma::uvec> epsl_index, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const Nullable<arma::uvec> windindx, const double wppa, const int outfreq, const int threads, const bool verbose);
-RcppExport SEXP _hibayes_BayesK(SEXP ySEXP, SEXP XSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP KSEXP, SEXP K_indexSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP epsl_y_JSEXP, SEXP epsl_GiSEXP, SEXP epsl_indexSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List BayesK(arma::vec& y, arma::mat& X, std::string model, arma::vec Pi, SEXP& K, arma::uvec& K_index, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const int niter, const int nburn, const Nullable<arma::vec> epsl_y_J, const Nullable<arma::sp_mat> epsl_Gi, const Nullable<arma::uvec> epsl_index, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const Nullable<arma::uvec> windindx, const int outfreq, const int threads, const bool verbose);
+RcppExport SEXP _hibayes_BayesK(SEXP ySEXP, SEXP XSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP KSEXP, SEXP K_indexSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP epsl_y_JSEXP, SEXP epsl_GiSEXP, SEXP epsl_indexSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP windindxSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -38,17 +38,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type dfve(dfveSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
     Rcpp::traits::input_parameter< const Nullable<arma::uvec> >::type windindx(windindxSEXP);
-    Rcpp::traits::input_parameter< const double >::type wppa(wppaSEXP);
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(BayesK(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(BayesK(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // Bayes
-Rcpp::List Bayes(arma::vec& y, arma::mat& X, std::string model, arma::vec Pi, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const int niter, const int nburn, const Nullable<arma::vec> epsl_y_J, const Nullable<arma::sp_mat> epsl_Gi, const Nullable<arma::uvec> epsl_index, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const Nullable<arma::uvec> windindx, const double wppa, const int outfreq, const int threads, const bool verbose);
-RcppExport SEXP _hibayes_Bayes(SEXP ySEXP, SEXP XSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP epsl_y_JSEXP, SEXP epsl_GiSEXP, SEXP epsl_indexSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List Bayes(arma::vec& y, arma::mat& X, std::string model, arma::vec Pi, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const int niter, const int nburn, const Nullable<arma::vec> epsl_y_J, const Nullable<arma::sp_mat> epsl_Gi, const Nullable<arma::uvec> epsl_index, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const Nullable<arma::uvec> windindx, const int outfreq, const int threads, const bool verbose);
+RcppExport SEXP _hibayes_Bayes(SEXP ySEXP, SEXP XSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP epsl_y_JSEXP, SEXP epsl_GiSEXP, SEXP epsl_indexSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP windindxSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -71,17 +70,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type dfve(dfveSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
     Rcpp::traits::input_parameter< const Nullable<arma::uvec> >::type windindx(windindxSEXP);
-    Rcpp::traits::input_parameter< const double >::type wppa(wppaSEXP);
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(Bayes(y, X, model, Pi, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, wppa, outfreq, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(Bayes(y, X, model, Pi, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // SBayesD
-Rcpp::List SBayesD(arma::mat sumstat, arma::mat ldm, std::string model, arma::vec Pi, const int niter, const int nburn, const Nullable<arma::vec> fold, const Nullable<arma::uvec> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const int threads, const bool verbose);
-RcppExport SEXP _hibayes_SBayesD(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP foldSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List SBayesD(arma::mat sumstat, arma::mat ldm, std::string model, arma::vec Pi, const int niter, const int nburn, const Nullable<arma::vec> fold, const Nullable<arma::uvec> windindx, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const int threads, const bool verbose);
+RcppExport SEXP _hibayes_SBayesD(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP foldSEXP, SEXP windindxSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -93,7 +91,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
     Rcpp::traits::input_parameter< const Nullable<arma::vec> >::type fold(foldSEXP);
     Rcpp::traits::input_parameter< const Nullable<arma::uvec> >::type windindx(windindxSEXP);
-    Rcpp::traits::input_parameter< const double >::type wppa(wppaSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type vg(vgSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type dfvg(dfvgSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2vg(s2vgSEXP);
@@ -103,13 +100,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(SBayesD(sumstat, ldm, model, Pi, niter, nburn, fold, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(SBayesD(sumstat, ldm, model, Pi, niter, nburn, fold, windindx, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // SBayesS
-Rcpp::List SBayesS(arma::mat sumstat, arma::sp_mat ldm, std::string model, arma::vec Pi, const int niter, const int nburn, const Nullable<arma::vec> fold, const Nullable<arma::uvec> windindx, const double wppa, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const int threads, const bool verbose);
-RcppExport SEXP _hibayes_SBayesS(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP foldSEXP, SEXP windindxSEXP, SEXP wppaSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List SBayesS(arma::mat sumstat, arma::sp_mat ldm, std::string model, arma::vec Pi, const int niter, const int nburn, const Nullable<arma::vec> fold, const Nullable<arma::uvec> windindx, const Nullable<double> vg, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> ve, const Nullable<double> dfve, const Nullable<double> s2ve, const int outfreq, const int threads, const bool verbose);
+RcppExport SEXP _hibayes_SBayesS(SEXP sumstatSEXP, SEXP ldmSEXP, SEXP modelSEXP, SEXP PiSEXP, SEXP niterSEXP, SEXP nburnSEXP, SEXP foldSEXP, SEXP windindxSEXP, SEXP vgSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP veSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP outfreqSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -121,7 +118,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type nburn(nburnSEXP);
     Rcpp::traits::input_parameter< const Nullable<arma::vec> >::type fold(foldSEXP);
     Rcpp::traits::input_parameter< const Nullable<arma::uvec> >::type windindx(windindxSEXP);
-    Rcpp::traits::input_parameter< const double >::type wppa(wppaSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type vg(vgSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type dfvg(dfvgSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2vg(s2vgSEXP);
@@ -131,7 +127,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type outfreq(outfreqSEXP);
     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(SBayesS(sumstat, ldm, model, Pi, niter, nburn, fold, windindx, wppa, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(SBayesS(sumstat, ldm, model, Pi, niter, nburn, fold, windindx, vg, dfvg, s2vg, ve, dfve, s2ve, outfreq, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -167,16 +163,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cutwind
-arma::vec cutwind(const arma::vec& chr, const arma::vec& pos, double bp);
-RcppExport SEXP _hibayes_cutwind(SEXP chrSEXP, SEXP posSEXP, SEXP bpSEXP) {
+// cutwind_by_bp
+arma::vec cutwind_by_bp(const arma::vec& chr, const arma::vec& pos, double bp);
+RcppExport SEXP _hibayes_cutwind_by_bp(SEXP chrSEXP, SEXP posSEXP, SEXP bpSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec& >::type chr(chrSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type pos(posSEXP);
     Rcpp::traits::input_parameter< double >::type bp(bpSEXP);
-    rcpp_result_gen = Rcpp::wrap(cutwind(chr, pos, bp));
+    rcpp_result_gen = Rcpp::wrap(cutwind_by_bp(chr, pos, bp));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cutwind_by_num
+arma::vec cutwind_by_num(const arma::vec& chr, const arma::vec& pos, int fixN);
+RcppExport SEXP _hibayes_cutwind_by_num(SEXP chrSEXP, SEXP posSEXP, SEXP fixNSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type chr(chrSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pos(posSEXP);
+    Rcpp::traits::input_parameter< int >::type fixN(fixNSEXP);
+    rcpp_result_gen = Rcpp::wrap(cutwind_by_num(chr, pos, fixN));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -208,7 +217,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // make_grm
-arma::mat make_grm(arma::mat& Z, double lambda, bool inverse, bool verbose);
+SEXP make_grm(arma::mat& Z, double lambda, bool inverse, bool verbose);
 RcppExport SEXP _hibayes_make_grm(SEXP ZSEXP, SEXP lambdaSEXP, SEXP inverseSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -236,7 +245,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // make_Ainv
-arma::sp_mat make_Ainv(std::vector<int> s, std::vector<int> d, bool verbose);
+SEXP make_Ainv(std::vector<int> s, std::vector<int> d, bool verbose);
 RcppExport SEXP _hibayes_make_Ainv(SEXP sSEXP, SEXP dSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -249,7 +258,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // geno_impute
-arma::mat geno_impute(arma::sp_mat& Ang, arma::mat& geno, int threads);
+SEXP geno_impute(arma::sp_mat& Ang, arma::mat& geno, int threads);
 RcppExport SEXP _hibayes_geno_impute(SEXP AngSEXP, SEXP genoSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -340,13 +349,14 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_hibayes_BayesK", (DL_FUNC) &_hibayes_BayesK, 25},
-    {"_hibayes_Bayes", (DL_FUNC) &_hibayes_Bayes, 23},
-    {"_hibayes_SBayesD", (DL_FUNC) &_hibayes_SBayesD, 18},
-    {"_hibayes_SBayesS", (DL_FUNC) &_hibayes_SBayesS, 18},
+    {"_hibayes_BayesK", (DL_FUNC) &_hibayes_BayesK, 24},
+    {"_hibayes_Bayes", (DL_FUNC) &_hibayes_Bayes, 22},
+    {"_hibayes_SBayesD", (DL_FUNC) &_hibayes_SBayesD, 17},
+    {"_hibayes_SBayesS", (DL_FUNC) &_hibayes_SBayesS, 17},
     {"_hibayes_conjgt_spa", (DL_FUNC) &_hibayes_conjgt_spa, 6},
     {"_hibayes_conjgt_den", (DL_FUNC) &_hibayes_conjgt_den, 6},
-    {"_hibayes_cutwind", (DL_FUNC) &_hibayes_cutwind, 3},
+    {"_hibayes_cutwind_by_bp", (DL_FUNC) &_hibayes_cutwind_by_bp, 3},
+    {"_hibayes_cutwind_by_num", (DL_FUNC) &_hibayes_cutwind_by_num, 3},
     {"_hibayes_rMap_c", (DL_FUNC) &_hibayes_rMap_c, 2},
     {"_hibayes_read_bed", (DL_FUNC) &_hibayes_read_bed, 6},
     {"_hibayes_make_grm", (DL_FUNC) &_hibayes_make_grm, 4},

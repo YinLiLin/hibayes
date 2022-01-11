@@ -12,7 +12,7 @@ using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::export]]
-arma::vec cutwind(const arma::vec & chr, const arma::vec & pos, double bp){
+arma::vec cutwind_by_bp(const arma::vec & chr, const arma::vec & pos, double bp){
 
 	vec unichr = unique(chr);
 	vec windindx(chr.n_elem);
@@ -30,6 +30,36 @@ arma::vec cutwind(const arma::vec & chr, const arma::vec & pos, double bp){
 				count++;
 			}
 			bp0 = bp0 + bp;
+		}
+	}
+	return windindx;
+}
+
+// [[Rcpp::export]]
+arma::vec cutwind_by_num(const arma::vec & chr, const arma::vec & pos, int fixN){
+
+	vec unichr = unique(chr);
+	vec windindx(chr.n_elem);
+	uvec indx1;
+	int count = 1;
+
+	for(int i = 0; i < unichr.n_elem; i++){
+		indx1 = find(chr == unichr[i]);
+		int chrlen = indx1.n_elem;
+		if(chrlen <= fixN){
+			windindx(indx1).fill(count);
+			count++;
+		}else{
+			uvec indices = sort_index(pos(indx1));
+			int st = 0;
+			int end = 0;
+			while(end < (chrlen - 1)){
+				end = st + fixN - 1;
+				if(end > (chrlen - 1))	end = (chrlen - 1);
+				windindx(indx1(indices.subvec(st, end))).fill(count);
+				st += fixN;
+				count++;
+			}
 		}
 	}
 	return windindx;
