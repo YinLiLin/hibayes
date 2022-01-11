@@ -85,7 +85,7 @@ For **fixed effects** and **covariates**, please use *```model.matrix.lm()```* t
 ```
 We can also fit the interactions between environmental effects, for example:
 ```r
-> X <- model.matrix.lm(~~as.factor(sex)+as.numeric(weight)+
+> X <- model.matrix.lm(~as.factor(sex)+as.numeric(weight)+
    as.factor(group:location), data=pheno, na.action = "na.pass")
 > X <- X[, -1] #remove the intercept
 ```
@@ -138,7 +138,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```
 <p align="center">
 <a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/PVE.jpg">
-<img src="figure/PVE.jpg" height="350px" width="900px">
+<img src="figure/PVE.jpg" height="340px" width="900px">
 </a>
 </p>
 
@@ -168,7 +168,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```
 <p align="center">
 <a href="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/WPPA.jpg">
-<img src="figure/WPPA.jpg" height="380px" width="900px">
+<img src="figure/WPPA.jpg" height="350px" width="900px">
 </a>
 </p>
 
