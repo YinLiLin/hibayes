@@ -72,7 +72,8 @@ ldmat <- function(
 				map[map[, 1] == chr.xy[i], 1] <- max.chr + i
 			}
 		}
-		map <- matrix(as.numeric(map), nrow(map))
+		map <- apply(map, 2, as.numeric)
+		# map <- matrix(as.numeric(map), nrow(map))
 	}else{
 		if(!is.null(chisq)){
 			if(chisq == 0)	chisq = NULL

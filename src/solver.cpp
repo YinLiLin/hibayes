@@ -194,7 +194,7 @@ void solver_lu(
     int LWORK;
     double wkopt;
     double *WORK = new double[4 * n];
-    int INFO;
+    int INFO = 0;
 	if(lambda){
 		A.diag() += lambda;
 	}
