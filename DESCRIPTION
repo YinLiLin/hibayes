@@ -23,7 +23,7 @@ Description: A user-friendly tool to fit Bayesian regression models. It can fit 
     (10) posterior inclusive probability (PIP). 
     The functions are not limited, we will keep on going in enriching it with more features. 
     References: Meuwissen et al. (2001) <doi:10.1093/genetics/157.4.1819>; Gustavo et al. (2013) <doi:10.1534/genetics.112.143313>; Habier et al. (2011) <doi:10.1186/1471-2105-12-186>; Yi et al. (2008) <doi:10.1534/genetics.107.085589>; Zhou et al. (2013) <doi:10.1371/journal.pgen.1003264>; Moser et al. (2015) <doi:10.1371/journal.pgen.1004969>; Lloyd-Jones et al. (2019) <doi:10.1038/s41467-019-12653-0>; Henderson (1976) <doi:10.2307/2529339>; Fernando et al. (2014) <doi:10.1186/1297-9686-46-50>.
-License: Apache License 2.0
+License: GPL (>= 2)
 Maintainer: Lilin Yin <ylilin@163.com>
 URL: https://github.com/YinLiLin/hibayes
 BugReports: https://github.com/YinLiLin/hibayes/issues

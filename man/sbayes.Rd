@@ -106,6 +106,7 @@ head(map)
 sumstat_path = system.file("extdata", "geno.ma", package = "hibayes")
 sumstat = read.table(sumstat_path, header=TRUE)
 head(sumstat)
+
 \donttest{
 # computate ld variance covariance matrix
 ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
@@ -113,7 +114,7 @@ ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
 # if the order of SNPs in genotype is not consistent with the order in sumstat file, 
 # prior adjusting is necessary.
 indx = match(map[, 1], sumstat[, 1])
-sumstat = sumstat[indx, indx]
+sumstat = sumstat[indx, ]
 
 # fit model
 fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
