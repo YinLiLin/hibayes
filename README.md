@@ -29,7 +29,7 @@ The latest version of **```hibayes```**  in development can be installed from Gi
 ```r
 > devtools::install_github("YinLiLin/hibayes")
 ```
-## Citing for the package
+## Citing the package
 Yin LL, Zhang HH, Li XY, Zhao SH, Liu XL. [hibayes: An R Package to Fit Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies](https://www.biorxiv.org/content/10.1101/2022.02.12.480230v1), ***bioRxiv*** (2022), doi: 10.1101/2022.02.12.480230.
 ## Usage
 ### 1. Individual level Bayesian model
@@ -298,7 +298,7 @@ The available methods for *```ssbayes```* model are consistent with *```bayes```
 			  map=map, windsize=1e6, model="BayesCpi")
 ```
 
-## Citing for the methods
+## Citing the methods in package
 For *```bayes```* model, please cite following papers:
 ```
 1. Meuwissen, Theo HE, Ben J. Hayes, and Michael E. Goddard. "Prediction of total genetic value using genome-wide dense marker maps." Genetics 157.4 (2001): 1819-1829.
