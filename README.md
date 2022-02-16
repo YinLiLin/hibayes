@@ -1,6 +1,6 @@
 # hibayes 
 [![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-1.0.1-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
-## Individual-Level, Summary-Level and Single-Step Bayesian Regression Models For Genome-Wide Association and Genomic Prediction
+## Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies
 
 **```hibayes```** (say 'Hi' to Bayes) is an user-friendly [R](https://www.r-project.org) package to fit 3 types of Bayesian models using **[individual-level](#1-individual-level-bayesian-model)**, **[summary-level](#2-summary-level-bayesian-model)**, and **[individual plus pedigree-level](#3-single-step-bayesian-model)** (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:  
 **(1)** fixed effects and coefficients of covariates  
@@ -29,7 +29,8 @@ The latest version of **```hibayes```**  in development can be installed from Gi
 ```r
 > devtools::install_github("YinLiLin/hibayes")
 ```
-
+## Citing for the package
+Yin LL, Zhang HH, Li XY, Zhao SH, Liu XL. [hibayes: An R Package to Fit Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies](https://www.biorxiv.org/content/10.1101/2022.02.12.480230v1), ***bioRxiv*** (2022), doi: 10.1101/2022.02.12.480230.
 ## Usage
 ### 1. Individual level Bayesian model
 To fit individual level Bayesian model (*```bayes```*), at least the phenotype(***n***), numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that coded by other softwares by *```read.table```* to fit model, note that 'NA' is not allowed in genotype data:
@@ -297,11 +298,7 @@ The available methods for *```ssbayes```* model are consistent with *```bayes```
 			  map=map, windsize=1e6, model="BayesCpi")
 ```
 
-## Citation
-For **```hibayes```** package, 
-```
-the manuscript is on its way to submission.
-```
+## Citing for the methods
 For *```bayes```* model, please cite following papers:
 ```
 1. Meuwissen, Theo HE, Ben J. Hayes, and Michael E. Goddard. "Prediction of total genetic value using genome-wide dense marker maps." Genetics 157.4 (2001): 1819-1829.
