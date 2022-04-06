@@ -113,14 +113,18 @@ Rcpp::List Bayes(
         throw Rcpp::exception("length of Pi and fold not equals.");
     }
 
+    int n = y.n_elem;
+    int m = X.n_cols;
     double vary = var(y);
     double h2 = 0.5;
-    
+
+    int n_records = (niter - nburn) / outfreq;
+
     double* dci;
     int nc = 0;
     mat C_;
     vec beta;
-    vec betase;
+    vec betasd;
     mat beta_store;
     if(C.isNotNull()){
         C_ = as<arma::mat>(C);
@@ -128,8 +132,7 @@ Rcpp::List Bayes(
         if(C_.has_nan())  throw Rcpp::exception("Individuals with phenotypic value should not have missing covariates.");
         nc = C_.n_cols;
         beta.resize(nc);
-        betase.resize(nc);
-        beta_store.resize(niter - nburn + 1, nc);
+        beta_store.resize(nc, n_records);
     }
     vec cpc;
     if(nc){
@@ -142,20 +145,21 @@ Rcpp::List Bayes(
     
     int nr = 0;
     vec vr;
-    vec vrtmp;
     vec vrsd;
+    vec vrtmp;
     sp_mat r_LHS;
+    vec estR;
     vec estR_tmp;
+    vec R_idx;
     vec r_RHS;
     vec diff;
     int qr;
     int dfr = 5;
     double s2r;
     mat vr_store;
+    mat estR_store;
     vector<sp_mat> Z;
     vector<sp_mat> ZZ;
-    vector<vec> estR;
-    vector<vec> estR_store;
     vector< vector<string> > Z_levels;
     if(R.isNotNull()){
         CharacterMatrix R_ = as<CharacterMatrix>(R);
@@ -164,9 +168,11 @@ Rcpp::List Bayes(
         nr = R_.ncol();
         vr.resize(nr);
         vrtmp.resize(nr);
-        vr_store.resize(niter - nburn + 1, nr);
+        R_idx.resize(nr + 1); R_idx[0] = -1;
+        vr_store.resize(nr, n_records);
         vrtmp.fill(vary * (1 - h2) / (nr + 1));
         s2r = vrtmp[0] * (dfr - 2) / dfr;
+        int n_levels = 0;
         for(int i = 0; i < nr; i++){
             CharacterVector Ri = R_(_, i);
             List Z_info = makeZ(Ri);
@@ -175,35 +181,38 @@ Rcpp::List Bayes(
             Z.push_back(z);
             ZZ.push_back(z.t() * z);
             Z_levels.push_back(z_levels);
-            vec estRi = zeros(z_levels.size());
-            estR.push_back(estRi);
-            estR_store.push_back(estRi);
+            n_levels += z_levels.size();
+            R_idx[i + 1] = n_levels - 1;
         }
+        estR.zeros(n_levels);
+        estR_store.zeros(n_levels, n_records);
     }
 
     int nk = 0;
     double va, vb;
     double vbtmp;
-    double vase, vbse;
+    double vasd, vbsd;
     vec va_store;
     vec vb_store;
     sp_mat k_Z, k_ZZ;
     vec k_estR;
-    vec k_estR_store;
+    // vec k_estR_store;
     T k_LHS;
     vec k_estR_tmp;
     vec k_RHS;
+    mat ghat;
     int qk = 0;
     if(!K_index.is_empty()){
         if(K.is_empty())    throw Rcpp::exception("variance-covariance matrix should be provided for K term.");
         if(K.n_cols != K.n_rows) throw Rcpp::exception("variance-covariance matrix should be in square.");
         nk = K.n_cols;
         K_index -= 1;
-        va_store.resize(niter - nburn + 1);
-        vb_store.resize(niter - nburn + 1);
+        va_store.resize(n_records);
+        vb_store.resize(n_records);
+        ghat.resize(m, n_records);
         k_Z.resize(K_index.n_elem, nk);
         k_estR.zeros(nk);
-        k_estR_store.zeros(nk);
+        // k_estR_store.zeros(nk);
         k_estR_tmp.zeros(nk);
         qk = nk;
         for(int i = 0; i < K_index.n_elem; i++){k_Z(i, K_index[i]) = 1.0;}
@@ -213,13 +222,13 @@ Rcpp::List Bayes(
     int ne = 0;
     double veps;
     double vepstmp;
-    double vepsse;
+    double vepssd;
     double JtJ;
     vec veps_store;
     sp_mat epsl_Gi_, epsl_Z, epsl_ZZ;
     uvec epsl_index_;
     vec epsl_estR;
-    vec epsl_estR_store;
+    mat epsl_estR_store;
     vec epsl_y_J_;
     sp_mat epsl_LHS;
     vec epsl_yadj;
@@ -227,7 +236,7 @@ Rcpp::List Bayes(
     vec epsl_RHS;
     int qe = 0;
     double epsl_J_beta = 0;
-    double epsl_J_betase = 0;
+    double epsl_J_betasd = 0;
     vec epsl_J_beta_store;
     if(epsl_index.isNotNull()){
         epsl_index_ = as<uvec>(epsl_index);
@@ -240,21 +249,20 @@ Rcpp::List Bayes(
         epsl_y_J_ = as<vec>(epsl_y_J);
         if(epsl_Gi_.n_cols != epsl_Gi_.n_rows) throw Rcpp::exception("variance-covariance matrix should be in square.");
         JtJ = dot(epsl_y_J_, epsl_y_J_);
-        veps_store.resize(niter - nburn + 1);
-        epsl_J_beta_store.resize(niter - nburn + 1);
+        veps_store.resize(n_records);
+        epsl_J_beta_store.resize(n_records);
         epsl_Z.resize(ne, epsl_Gi_.n_cols);
         epsl_estR.zeros(epsl_Gi_.n_cols);
         epsl_estR_tmp.zeros(epsl_Gi_.n_cols);
-        epsl_estR_store.zeros(epsl_Gi_.n_cols);
+        epsl_estR_store.resize(epsl_Gi_.n_cols, n_records);
         epsl_yadj.resize(ne);
         qe = epsl_Gi_.n_cols;
         for(int i = 0; i < ne; i++){epsl_Z(i, epsl_index_[i]) = 1.0;}
         epsl_ZZ = epsl_Z.t() * epsl_Z;
     }
 
-    int n = y.n_elem;
-    int m = X.n_cols;
     int count = 0;
+    int nzct = 0;
     int inc = 1;
     int n_fold = fold_.n_elem;
     int NnzSnp, indistflag;
@@ -273,17 +281,17 @@ Rcpp::List Bayes(
         snptracker.zeros(m); 
     }
     vec g = zeros(m);
-    vec g_store = zeros(m);
+    mat g_store = zeros(m, n_records);
     vec u = zeros(n);
     vec xpx = zeros(m);
     vec vx = zeros(m);
-    vec mu_store = zeros(niter - nburn + 1);
+    vec mu_store = zeros(n_records);
     // vec sumvg_store = zeros(niter - nburn + 1);
-    vec vara_store = zeros(niter - nburn + 1);
-    vec vare_store = zeros(niter - nburn + 1);
-    vec hsq_store = zeros(niter - nburn + 1);
+    vec vara_store = zeros(n_records);
+    vec vare_store = zeros(n_records);
+    vec hsq_store = zeros(n_records);
     mat pi_store;
-    if(!fixpi)  pi_store.resize(niter - nburn + 1, n_fold);
+    pi_store.resize(n_fold, n_records);
 
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
@@ -400,6 +408,7 @@ Rcpp::List Bayes(
         }
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
+        Rcpp::Rcout << "    Frequency of collecting " << outfreq << std::endl;
         Rcpp::Rcout << "    Phenotypic var " << std::fixed << vary << std::endl;
         if(nr){
             Rcpp::Rcout << "    Environmental var ";
@@ -472,18 +481,17 @@ Rcpp::List Bayes(
         for(int i = 0; i < nr; i++){
             r_LHS = ZZ[i];
             r_LHS.diag() += vare_ / vrtmp[i];
-            estR_tmp = estR[i];
+            estR_tmp = estR.subvec(R_idx[i] + 1, R_idx[i + 1]);
             r_RHS = Z[i].t() * yadj;
             r_RHS += ZZ[i] * estR_tmp;
             Gibbs(r_LHS, estR_tmp, r_RHS, vare_);
-            estR[i] -= estR_tmp;
-            diff = Z[i] * estR[i];
+            diff = Z[i] * (estR.subvec(R_idx[i] + 1, R_idx[i + 1]) - estR_tmp);
             daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
             qr = estR_tmp.n_elem;
             vrtmp[i] = (ddot_(&qr, estR_tmp.memptr(), &inc, estR_tmp.memptr(), &inc) + s2r * dfr) / (qr + dfr);
             vrtmp[i] = invchisq_sample(qr + dfr, vrtmp[i]);
             vr[i] = var(estR_tmp);
-            estR[i] = estR_tmp;
+            estR.subvec(R_idx[i] + 1, R_idx[i + 1]) = estR_tmp;
         }
 
         if(nk){
@@ -768,40 +776,8 @@ Rcpp::List Bayes(
         // sample residual variance from inv-chisq distribution
         vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
         vare_ = invchisq_sample(n + dfvare_, vare_);
-        if(iter >= nburn){
-            count++;
-            mu_store[iter - nburn] = mu;
-            // sumvg_store[iter - nburn] = sumvg;
-            if(!fixpi)  pi_store.row(iter - nburn) = Pi.t();
-            vara_store[iter - nburn] = vara_;
-            vare_store[iter - nburn] = vare_;
-            daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
-            // g_store += g;
-            if(nc){
-                beta_store.row(iter - nburn) = beta.t();
-            }
-            double vt = vara_ + vare_;
-            if(nr){
-                vt += sum(vr);
-                vr_store.row(iter - nburn) = vr.t();
-                for(int i = 0; i < nr; i++){
-                    estR_store[i] += estR[i];
-                }
-            }
-            if(nk){
-                va_store[iter - nburn] = va;
-                vb_store[iter - nburn] = vb;
-                // k_estR_store += k_estR;
-                daxpy_(&qk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
-            }
-            if(ne){
-                veps_store[iter - nburn] = veps;
-                epsl_J_beta_store[iter - nburn] = epsl_J_beta;
-                // epsl_estR_store += epsl_estR;
-                daxpy_(&qe, &doc, epsl_estR.memptr(), &inc, epsl_estR_store.memptr(), &inc);
-            }
-            hsq_store[iter - nburn] = vara_ / (vt);
 
+        if(iter >= nburn){
             if(!snptracker.is_empty()){
                 #pragma omp parallel for
                 for(int i = 0; i < m; i++){
@@ -819,11 +795,51 @@ Rcpp::List Bayes(
                     }
                 }
             }
+            nzct++;
         }
-        
-        // print iteration details
-        if(verbose){
-            if((iter + 1) % outfreq == 0){
+
+        // collect the parameters to obtain posterior estimation
+        if(iter >= nburn && (iter + 1 - nburn) % outfreq == 0){
+            mu_store[count] = mu;
+            if(!fixpi)  pi_store.col(count) = Pi;
+            vara_store[count] = vara_;
+            vare_store[count] = vare_;
+
+            if(nk){
+                ghat.col(count) = X.t() * (k_Z * (K * k_estR)) / sumvx;
+                va_store[count] = va;
+                vb_store[count] = vb;
+                // k_estR_store += k_estR;
+                // daxpy_(&qk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
+            }
+
+            g_store.col(count) = g;
+            // daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
+            // g_store += g;
+            if(nc){
+                beta_store.col(count) = beta;
+            }
+            double vt = vara_ + vare_;
+            if(nr){
+                vt += sum(vr);
+                vr_store.col(count) = vr;
+                estR_store.col(count) = estR;
+            }
+            if(ne){
+                veps_store[count] = veps;
+                epsl_J_beta_store[count] = epsl_J_beta;
+                epsl_estR_store.col(count) = epsl_estR;
+                // daxpy_(&qe, &doc, epsl_estR.memptr(), &inc, epsl_estR_store.memptr(), &inc);
+            }
+            hsq_store[count] = vara_ / vt;
+
+            count++;
+        }
+
+        if(verbose && (iter + 1) % outfreq == 0){
+
+            // print iteration details
+            if(verbose){
                 timer_loop.step("end");
                 NumericVector tdiff(timer_loop);
                 tt0 = (tdiff[1] - tdiff[0]) / (iter + 1) / 1e9;
@@ -851,95 +867,136 @@ Rcpp::List Bayes(
                 Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
             }
         }
-    }
-    if(nzrate.is_empty()){
-        nzrate.ones(m);
-    }else{
-        nzrate = nzrate / count;
-        nzrate.elem(find(nzrate == 1)).fill((count - 1) / (double) count);
-    }
-    g = g_store / count;
-    arma::vec e = y - X * g;
-    if(nc){
-        beta = conv_to<vec>::from(mean(beta_store));
-        betase = conv_to<vec>::from(stddev(beta_store));
-        e -= (C_ * beta);
-    }
-    if(ne){
-        veps = mean(veps_store);
-        vepsse = stddev(veps_store);
-        epsl_J_beta = mean(epsl_J_beta_store);
-        epsl_J_betase = stddev(epsl_J_beta_store);
-        epsl_estR = epsl_estR_store / count;
-        e -= (epsl_J_beta * epsl_y_J_);
-        e.tail(ne) -= (epsl_Z * epsl_estR);
-    }
-    if(nk){
-        va = mean(va_store);
-        vase = stddev(va_store);
-        vb = mean(vb_store);
-        vbse = stddev(vb_store);
-        k_estR = k_estR_store / count;
-        vec ghat = X.t() * (k_Z * K * k_estR) / sumvx;
-        g += ghat;
-        e -= (X * ghat);
-    }
-    List listr(2);
-    if(nr){
-        vr = conv_to<vec>::from(mean(vr_store));
-        vrsd = conv_to<vec>::from(stddev(vr_store));
-        vector<string> r_levers;
-        vector<double> estr;
-        for(int i = 0; i < nr; i++){
-            for(int j = 0; j < (estR_store[i]).n_elem; j++){
-                r_levers.push_back(Z_levels[i][j]);
-                estr.push_back(estR_store[i][j] / count);
-            }
-            e -= (Z[i] * estR_store[i] / count);
-        }
-        listr[0] = wrap(r_levers.begin(), r_levers.end());
-        listr[1] = wrap(estr.begin(), estr.end());
-    }
-    DataFrame r = listr;
-    Rcpp::CharacterVector names(2);
-    names[0] = "Levels";
-    names[1] = "Estimation";
-    if(nr) r.attr("names") = names;
 
-    if(WPPA){
-        wppai = wppai / count;
-        wppai.elem(find(wppai == 1)).fill((count - 1) / (double) count);
+        if(count == n_records)  break;
     }
-    double Mu = mean(mu_store);
-    e -= (Mu * one);
-    double musd = stddev(mu_store);
-    vec pise;
-    if(!fixpi){
-        Pi= conv_to<vec>::from(mean(pi_store));
-        pise = conv_to<vec>::from(stddev(pi_store));
-    }else{
-        pise = zeros(Pi.n_elem);
+
+    List results;
+    List MCMCsample;
+
+    if(nr){
+        vr = conv_to<vec>::from(mean(vr_store, 1));
+        vrsd = conv_to<vec>::from(stddev(vr_store, 0, 1));
+        results["Vr"] = vr;
+        MCMCsample["Vr"] = vr_store;
     }
-    // sumvg = mean(sumvg_store);
-    // double sumvgsd = stddev(sumvg_store);
     vara_ = mean(vara_store);
     double varasd = stddev(vara_store);
     vare_ = mean(vare_store);
     double varesd = stddev(vare_store);
     hsq = mean(hsq_store);
     double hsqsd = stddev(hsq_store);
+    results["Vg"] = vara_;
+    results["Ve"] = vare_;
+    results["h2"] = hsq;
+    MCMCsample["Vg"] = vara_store.t();
+    MCMCsample["Ve"] = vare_store.t();
+    MCMCsample["h2"] = hsq_store.t();
+
+    double Mu = mean(mu_store);
+    vec e = y - (Mu * one);
+    double musd = stddev(mu_store);
+    results["mu"] = Mu;
+    MCMCsample["mu"] = mu_store.t();
+
+    if(nc){
+        beta = conv_to<vec>::from(mean(beta_store, 1));
+        betasd = conv_to<vec>::from(stddev(beta_store, 0, 1));
+        e -= (C_ * beta);
+        results["beta"] = beta;
+        MCMCsample["beta"] = beta_store;
+    }
+
+    if(nk){
+        g_store += ghat;
+        va = mean(va_store);
+        vasd = stddev(va_store);
+        vb = mean(vb_store);
+        vbsd = stddev(vb_store);
+    }
+    g = conv_to<vec>::from(mean(g_store, 1));
+    e -= (X * g);
+    results["alpha"] = g;
+    MCMCsample["alpha"] = g_store;
+
+    vec pisd;
+    if(!fixpi){
+        Pi = conv_to<vec>::from(mean(pi_store, 1));
+        pisd = conv_to<vec>::from(stddev(pi_store, 0, 1));
+    }else{
+        pisd = zeros(Pi.n_elem);
+        pi_store.row(0).fill(Pi[0]);
+        pi_store.row(1).fill(Pi[1]);
+    }
+    results["pi"] = Pi;
+    MCMCsample["pi"] = pi_store;
+
+    if(ne){
+        veps = mean(veps_store);
+        vepssd = stddev(veps_store);
+        epsl_J_beta = mean(epsl_J_beta_store);
+        epsl_J_betasd = stddev(epsl_J_beta_store);
+        epsl_estR = conv_to<vec>::from(mean(epsl_estR_store, 1));
+        e -= (epsl_J_beta * epsl_y_J_);
+        e.tail(ne) -= (epsl_Z * epsl_estR);
+        results["Veps"] = veps;
+        results["J"] = epsl_J_beta;
+        results["epsilon"] = epsl_estR;
+        MCMCsample["Veps"] = veps_store.t();
+        MCMCsample["J"] = epsl_J_beta_store.t();
+        MCMCsample["epsilon"] = epsl_estR_store;
+    }
+
+    if(nr){
+        List listr(2);
+        estR = conv_to<vec>::from(mean(estR_store, 1));
+        vector<string> r_levers;
+        for(int i = 0; i < nr; i++){
+            for(int j = 0; j < (Z_levels[i]).size(); j++){
+                r_levers.push_back(Z_levels[i][j]);
+            }
+            e -= (Z[i] * estR.subvec(R_idx[i] + 1, R_idx[i + 1]));
+        }
+        listr[0] = wrap(r_levers.begin(), r_levers.end());
+        listr[1] = wrap(estR);
+        DataFrame r = listr;
+        Rcpp::CharacterVector names(2);
+        names[0] = "Levels";
+        names[1] = "Estimation";
+        r.attr("names") = names;
+        results["r"] = r;
+        MCMCsample["r"] = estR_store;
+    }
+    results["g"] = u;
+    results["e"] = e;
+
+    if(nzrate.is_empty()){
+        nzrate.ones(m);
+    }else{
+        nzrate = nzrate / nzct;
+        nzrate.elem(find(nzrate == 1)).fill((nzct - 1) / (double) nzct);
+    }
+    results["pip"] = nzrate;
+
+    if(WPPA){
+        wppai = wppai / nzct;
+        wppai.elem(find(wppai == 1)).fill((nzct - 1) / (double) nzct);
+        results["gwas"] = wppai;
+    }
+
+    results["MCMCsamples"] = MCMCsample;
 
     if(verbose){
         Rcpp::Rcout << "Posterior parameters:" << std::endl;
         Rcpp::Rcout << "    Mu " << std::fixed << Mu << "±" << std::fixed << musd << std::endl;
         for(int i = 0; i < Pi.n_elem; i++){
             if(i == 0){
-                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pise[i] << endl;
+                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pisd[i] << endl;
             }else{
                 if(i == 1){
-                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pise[i];
+                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pisd[i];
                 }else{
-                    Rcpp::Rcout << std::fixed << Pi[i] << "±" << std::fixed << pise[i];
+                    Rcpp::Rcout << std::fixed << Pi[i] << "±" << std::fixed << pisd[i];
                 }
                 if(i != (Pi.n_elem - 1))  Rcpp::Rcout << ", ";
             }
@@ -948,7 +1005,7 @@ Rcpp::List Bayes(
         if(nc){
             Rcpp::Rcout << "    Effects for covariates ";
             for(int i = 0; i < nc; i++){
-                Rcpp::Rcout << std::fixed << beta[i] << "±" << std::fixed << betase[i];
+                Rcpp::Rcout << std::fixed << beta[i] << "±" << std::fixed << betasd[i];
                 if(i != (nc - 1))  Rcpp::Rcout << ", ";
             }
             Rcpp::Rcout << std::endl;
@@ -961,11 +1018,11 @@ Rcpp::List Bayes(
             }
             Rcpp::Rcout << std::endl;
         }
-        if(nk)  Rcpp::Rcout << "    Va: " << std::fixed << va << "±" << std::fixed << vase << ", Vb: " << std::fixed << vb << "±" << std::fixed << vbse << std::endl;
+        if(nk)  Rcpp::Rcout << "    Va: " << std::fixed << va << "±" << std::fixed << vasd << ", Vb: " << std::fixed << vb << "±" << std::fixed << vbsd << std::endl;
         // Rcpp::Rcout << "    SigmaSq " << std::fixed << sumvg << "±" << std::fixed << sumvgsd << std::endl;
         if(ne){
-            Rcpp::Rcout << "    J " << std::fixed << epsl_J_beta << "±" << std::fixed << epsl_J_betase << std::endl;
-            Rcpp::Rcout << "    ε var " << std::fixed << veps << "±" << std::fixed << vepsse << std::endl;
+            Rcpp::Rcout << "    J " << std::fixed << epsl_J_beta << "±" << std::fixed << epsl_J_betasd << std::endl;
+            Rcpp::Rcout << "    ε var " << std::fixed << veps << "±" << std::fixed << vepssd << std::endl;
         }
         Rcpp::Rcout << "    Genetic var " << std::fixed << vara_ << "±" << std::fixed << varasd << std::endl;
         Rcpp::Rcout << "    Residual var " << std::fixed << vare_ << "±" << std::fixed << varesd << std::endl;
@@ -979,38 +1036,8 @@ Rcpp::List Bayes(
     min = floor(tt % 3600 / 60);
     sec = floor(tt % 3600 % 60);
     if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
-    if(WPPA){
-        return List::create(
-            Named("J") = epsl_J_beta,
-            Named("epsilon") = epsl_estR,
-            Named("mu") = Mu, 
-            Named("pi") = Pi, 
-            Named("beta") = beta,
-            Named("r") = r, 
-            Named("vr") = vr, 
-            Named("vg") = vara_, 
-            Named("ve") = vare_,
-            Named("alpha") = g,
-            Named("e") = e,
-            Named("pip") = nzrate,
-            Named("gwas") = wppai
-        );
-    }else{
-        return List::create(
-            Named("J") = epsl_J_beta,
-            Named("epsilon") = epsl_estR,
-            Named("mu") = Mu,
-            Named("pi") = Pi, 
-            Named("beta") = beta,
-            Named("r") = r, 
-            Named("vr") = vr, 
-            Named("vg") = vara_, 
-            Named("ve") = vare_,
-            Named("alpha") = g,
-            Named("e") = e,
-            Named("pip") = nzrate
-        );
-    }
+    
+    return results;
 }
 
 // [[Rcpp::export]]

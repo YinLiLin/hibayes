@@ -35,28 +35,31 @@
 #' @param ve prior value of residual variance.
 #' @param dfve the number of degrees of freedom for the distribution of residual variance.
 #' @param s2ve scale parameter for the distribution of residual variance.
-#' @param outfreq frequency of information output on console, the default is 100.
+#' @param outfreq frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.
 #' @param seed seed for random sample.
 #' @param threads number of threads used for OpenMP.
-#' @param verbose whether to print the iteration information.
+#' @param verbose whether to print the iteration information on console.
 #'
 #' @return
 #' the function returns a list containing
 #' \describe{
 #' \item{$J}{coefficient for genotype imputation residuals}
+#' \item{$Veps}{estimated variance of genotype imputation residuals}
 #' \item{$epsilon}{genotype imputation residuals}
 #' \item{$mu}{the regression intercept}
 #' \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 #' \item{$beta}{estimated coefficients for all covariates}
 #' \item{$r}{estimated environmental random effects}
-#' \item{$vr}{estimated variance for all environmental random effect}
-#' \item{$vg}{estimated genetic variance}
-#' \item{$ve}{estimated residual variance}
+#' \item{$Vr}{estimated variance for all environmental random effect}
+#' \item{$Vg}{estimated genetic variance}
+#' \item{$Ve}{estimated residual variance}
+#' \item{$h2}{estimated heritability (h2 = Vg / (Vr + Vg + Ve))}
+#' \item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
 #' \item{$alpha}{estimated effect size of all markers}
 #' \item{$e}{residuals of the model}
 #' \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
-#' \item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
 #' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
+#' \item{$MCMCsamples}{the collected samples of posterior estimation for all the above parameters across MCMC iterations}
 #' }
 #'
 #' @references
@@ -87,13 +90,16 @@
 #' \donttest{
 #' # For GS/GP
 #' fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-#' 			model="BayesR", niter=200, nburn=100, outfreq=10)
+#' 			model="BayesR", niter=200, nburn=100)
 #' # For GWAS
 #' fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
 #' 			map=map, windsize=1e6, model="BayesCpi")
+#' 
+#' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
+#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
+#' gebv_pev = apply(fit$MCMCsamples$g, 1, var)    # get the prediction error variance (PEV) of estimated breeding values
 #' }
 #' 
-
 #' @export
 
 ssbayes <- 
@@ -110,7 +116,7 @@ function(
     Pi = NULL,
     fold = NULL,
     niter = 20000,
-    nburn = 14000,
+    nburn = 12000,
     windsize = NULL,
 	windnum = NULL,
     vg = NULL,
@@ -119,7 +125,7 @@ function(
     ve = NULL,
     dfve = NULL,
     s2ve = NULL,
-    outfreq = 100,
+    outfreq = NULL,
     seed = 666666,
 	threads = 4,
     verbose = TRUE
@@ -177,6 +183,10 @@ function(
 	}else{
 		windindx <- NULL
 	}
+	if(is.null(outfreq) || outfreq <= 0){
+		outfreq <- ifelse(niter > 1000, niter %/% 1000, 1)
+	}
+	if(outfreq >= (niter - nburn))	stop("bad setting for out frequency.")
 	if(is.null(Pi)){
 		if(model == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)
@@ -185,10 +195,10 @@ function(
 			Pi <- c(0.95, 0.05)
 		}
 	}
-	y.id <- as.character(y.id)
-	M.id <- as.character(M.id)
+	y.id <- as.character(as.matrix(y.id)[, 1, drop=TRUE])
+	M.id <- as.character(as.matrix(M.id)[, 1, drop=TRUE])
 	if(!is.numeric(y)){
-		y <- as.matrix(y)[,1,drop=TRUE]
+		y <- as.matrix(y)[, 1, drop=TRUE]
 		if(is.character(y))	stop("y is not a vector of digital values.")
 	}
 	if(length(y) != length(y.id))	stop("number of individuals not match between 'y' and 'y.id'.")
@@ -251,7 +261,8 @@ function(
 	A.ng <- solve(Ai.nn, -Ai.ng)
 	rm(Ai.ng); gc();
 	if(verbose)	cat("Start to impute genotype for", length(Mn.id), "individuals\n")
-	Mn <- geno_impute(A.ng, M, threads)
+	# Mn <- geno_impute(A.ng, M, threads)
+	Mn <- as.matrix(A.ng %*% M);
 	J <- rep(-1, nrow(M))
 	Jn <- as.vector(A.ng %*% J)
 	rm(A.ng); gc();
@@ -271,18 +282,17 @@ function(
 	rm(y.M, y.J, Ai.nn); gc()
 
 	if(length(y.Mn.indx)){
-		g <- c(J, Jn) * res$J + c(as.vector(M %*% res$alpha), as.vector(Mn %*% res$alpha)) + c(rep(0, nrow(M)), res$epsilon)
+		res$MCMCsamples$g <- as.matrix(c(J, Jn)) %*% res$MCMCsamples$J + rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha + res$MCMCsamples$epsilon)
+		epsilon <- data.frame(id = Mn.id, epsilon = res$epsilon)
+		res$epsilon <- epsilon
 	}else{
-		g <- c(as.vector(M %*% res$alpha), as.vector(Mn %*% res$alpha))
+		warning("all phenotypic individuals have genotype information, thus can't fit imputation errors.")
+		res$MCMCsamples$g <- rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha)
 	}
-	g <- data.frame(id = c(M.id, Mn.id), gebv = g)
-	res$g <- g
+	res$g <- data.frame(id = c(M.id, Mn.id), gebv = apply(res$MCMCsamples$g, 1, mean))
 
 	e[match(y.id.comb, ytmp.id)] <- res$e
 	res$e <- data.frame(id = ytmp.id, e = e)
-	
-	epsilon <- data.frame(id = Mn.id, epsilon = res$epsilon)
-	res$epsilon <- epsilon
 
 	if(!is.null(windsize) | !is.null(windnum)){
 		WPPA <- res$gwas

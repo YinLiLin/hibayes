@@ -30,20 +30,22 @@
 #' @param ve prior value of residual variance.
 #' @param dfve the number of degrees of freedom for the distribution of residual variance.
 #' @param s2ve scale parameter for the distribution of residual variance.
-#' @param outfreq frequency of information output on console, the default is 100.
+#' @param outfreq frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.
 #' @param seed seed for random sample.
 #' @param threads number of threads used for OpenMP.
-#' @param verbose whether to print the iteration information.
+#' @param verbose whether to print the iteration information on console.
 #'
 #' @return
 #' the function returns a list containing
 #' \describe{
 #' \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
-#' \item{$vg}{estimated genetic variance}
-#' \item{$ve}{estimated residual variance}
+#' \item{$Vg}{estimated genetic variance}
+#' \item{$Ve}{estimated residual variance}
+#' \item{$h2}{estimated heritability (h2 = Vg / (Vg + Ve))}
 #' \item{$alpha}{estimated effect size of all markers}
 #' \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
 #' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
+#' \item{$MCMCsamples}{the collected samples of posterior estimation for all the above parameters across MCMC iterations}
 #' }
 #' 
 #' @references
@@ -70,6 +72,10 @@
 #' 
 #' # fit model
 #' fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
+#' 
+#' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
+#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
+#' 
 #' }
 #'
 #' @export
@@ -84,7 +90,7 @@ function(
     lambda = NULL,
     fold = NULL,
     niter = 20000,
-    nburn = 14000,
+    nburn = 12000,
     windsize = NULL,
 	windnum = NULL,
     vg = NULL,
@@ -93,7 +99,7 @@ function(
     ve = NULL,
     dfve = NULL,
     s2ve = NULL,
-    outfreq = 100,
+    outfreq = NULL,
     seed = 666666,
 	threads = 4,
     verbose = TRUE
@@ -162,6 +168,10 @@ function(
 	}else{
 		windindx <- NULL
 	}
+	if(is.null(outfreq) || outfreq <= 0){
+		outfreq <- ifelse(niter > 1000, niter %/% 1000, 1)
+	}
+	if(outfreq >= (niter - nburn))	stop("bad setting for out frequency.")
 	if(is.null(Pi)){
 		if(match.arg(model) == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)

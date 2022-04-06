@@ -15,7 +15,7 @@ bayes(
   Pi = NULL,
   fold = NULL,
   niter = 20000,
-  nburn = 14000,
+  nburn = 12000,
   windsize = NULL,
   windnum = NULL,
   vg = NULL,
@@ -25,7 +25,7 @@ bayes(
   dfve = NULL,
   s2ve = NULL,
   lambda = 0,
-  outfreq = 100,
+  outfreq = NULL,
   seed = 666666,
   threads = 4,
   verbose = TRUE
@@ -81,13 +81,13 @@ bayes(
 
 \item{lambda}{value of ridge regression for inverting a matrix.}
 
-\item{outfreq}{frequency of information output on console, the default is 100.}
+\item{outfreq}{frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.}
 
 \item{seed}{seed for random sample.}
 
 \item{threads}{number of threads used for OpenMP.}
 
-\item{verbose}{whether to print the iteration information.}
+\item{verbose}{whether to print the iteration information on console.}
 }
 \value{
 the function returns a list containing
@@ -96,14 +96,16 @@ the function returns a list containing
 \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 \item{$beta}{estimated coefficients for all covariates}
 \item{$r}{estimated environmental random effects}
-\item{$vr}{estimated variance for all environmental random effect}
-\item{$vg}{estimated genetic variance}
-\item{$ve}{estimated residual variance}
+\item{$Vr}{estimated variance for all environmental random effect}
+\item{$Vg}{estimated genetic variance}
+\item{$Ve}{estimated residual variance}
+\item{$h2}{estimated heritability (h2 = Vg / (Vr + Vg + Ve))}
 \item{$alpha}{estimated effect size of all markers}
+\item{$g}{genomic estimated breeding value}
 \item{$e}{residuals of the model}
 \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, known as posterior inclusive probability (PIP)}
-\item{$g}{genomic estimated breeding value}
 \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
+\item{$MCMCsamples}{the collected samples of posterior estimation for all the above parameters across MCMC iterations}
 }
 }
 \description{
@@ -131,11 +133,15 @@ X <- X[, -1] #remove the intercept
 # then fit the model as: fit = bayes(..., X=X, R=pheno[,c("group")], ...)
 
 # For GS/GP
-fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100, outfreq=10)
+fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100)
 \donttest{
 # For GWAS
 fit = bayes(y=pheno[, 2], M=geno, map=map, windsize=1e6, model="BayesCpi")
 }
+
+# The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
+snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
+gebv_pev = apply(fit$MCMCsamples$g, 1, var)    # get the prediction error variance (PEV) of estimated breeding values
 
 }
 \references{

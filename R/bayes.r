@@ -34,10 +34,10 @@
 #' @param dfve the number of degrees of freedom for the distribution of residual variance.
 #' @param s2ve scale parameter for the distribution of residual variance.
 #' @param lambda value of ridge regression for inverting a matrix.
-#' @param outfreq frequency of information output on console, the default is 100.
+#' @param outfreq frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.
 #' @param seed seed for random sample.
 #' @param threads number of threads used for OpenMP.
-#' @param verbose whether to print the iteration information.
+#' @param verbose whether to print the iteration information on console.
 #'
 #' @references
 #' Meuwissen, Theo HE, Ben J. Hayes, and Michael E. Goddard. "Prediction of total genetic value using genome-wide dense marker maps." Genetics 157.4 (2001): 1819-1829. \cr 
@@ -54,14 +54,16 @@
 #' \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 #' \item{$beta}{estimated coefficients for all covariates}
 #' \item{$r}{estimated environmental random effects}
-#' \item{$vr}{estimated variance for all environmental random effect}
-#' \item{$vg}{estimated genetic variance}
-#' \item{$ve}{estimated residual variance}
+#' \item{$Vr}{estimated variance for all environmental random effect}
+#' \item{$Vg}{estimated genetic variance}
+#' \item{$Ve}{estimated residual variance}
+#' \item{$h2}{estimated heritability (h2 = Vg / (Vr + Vg + Ve))}
 #' \item{$alpha}{estimated effect size of all markers}
+#' \item{$g}{genomic estimated breeding value}
 #' \item{$e}{residuals of the model}
 #' \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, known as posterior inclusive probability (PIP)}
-#' \item{$g}{genomic estimated breeding value}
 #' \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
+#' \item{$MCMCsamples}{the collected samples of posterior estimation for all the above parameters across MCMC iterations}
 #' }
 #'
 #' @examples
@@ -84,11 +86,15 @@
 #' # then fit the model as: fit = bayes(..., X=X, R=pheno[,c("group")], ...)
 #' 
 #' # For GS/GP
-#' fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100, outfreq=10)
+#' fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100)
 #' \donttest{
 #' # For GWAS
 #' fit = bayes(y=pheno[, 2], M=geno, map=map, windsize=1e6, model="BayesCpi")
 #' }
+#' 
+#' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
+#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
+#' gebv_pev = apply(fit$MCMCsamples$g, 1, var)    # get the prediction error variance (PEV) of estimated breeding values
 #' 
 #' @export
 
@@ -103,7 +109,7 @@ function(
     Pi = NULL,
     fold = NULL,
     niter = 20000,
-    nburn = 14000,
+    nburn = 12000,
     windsize = NULL,
 	windnum = NULL,
     vg = NULL,
@@ -113,7 +119,7 @@ function(
     dfve = NULL,
     s2ve = NULL,
 	lambda = 0.0,
-    outfreq = 100,
+    outfreq = NULL,
     seed = 666666,
 	threads = 4,
     verbose = TRUE
@@ -171,6 +177,10 @@ function(
 	}else{
 		windindx <- NULL
 	}
+	if(is.null(outfreq) || outfreq <= 0){
+		outfreq <- ifelse(niter > 1000, niter %/% 1000, 1)
+	}
+	if(outfreq >= (niter - nburn))	stop("bad setting for out frequency.")
 	if(is.null(Pi)){
 		if(model == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)
@@ -205,8 +215,6 @@ function(
 		R <- R[!yNA, , drop=FALSE]
 		R <- apply(R, 2, as.character)
 	}
-	g <- rep(NA, length(yNA))
-	e <- rep(NA, length(yNA))
 	if(sum(yNA) != 0){
 		Mp <- M[yNA, , drop=FALSE]
 		M <- M[!yNA, , drop=FALSE]; gc()
@@ -220,15 +228,17 @@ function(
 	}else{
 		res <- Bayes(y=y, X=M, model=model, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
 	}
-	g[!yNA] <- M %*% res$alpha
+	res$MCMCsamples$g <- matrix(0, length(yNA), ncol(res$MCMCsamples$alpha))
+	res$MCMCsamples$g[!yNA, ] <- M %*% res$MCMCsamples$alpha
 	if(!is.null(Mp)){
-		g[yNA] <- Mp %*% res$alpha
+		res$MCMCsamples$g[yNA, ] <- Mp %*% res$MCMCsamples$alpha
 	}
-	res$g <- g
+	res$g <- apply(res$MCMCsamples$g, 1, mean)
+
+	e <- rep(NA, length(yNA))
 	e[!yNA] <- res$e
 	res$e <- e
 
-	res <- tail(res, length(res) - 2)
 	if(!is.null(windsize) | !is.null(windnum)){
 		WPPA <- res$gwas
 		res$gwas <- data.frame(windinfo, WPPA)

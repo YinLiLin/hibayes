@@ -68,11 +68,14 @@ Rcpp::List SBayesS(
         throw Rcpp::exception("length of Pi and fold not equals.");
     }
 
+    int n_records = (niter - nburn) / outfreq;
+
     int count = 0;
+    int nzct = 0;
     int inc = 1;
     int n_fold = fold_.n_elem;
     int NnzSnp, indistflag;
-    double doc = 1.0;
+    // double doc = 1.0;
     double xx, gi, gi_, rhs, lhs, logdetV, acceptProb, uhat, v;
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, vargi, hsq, s2varg_;
     vec snptracker;
@@ -91,16 +94,16 @@ Rcpp::List SBayesS(
 	vec tmp = zeros(m);
 	vec yyi = zeros(m);
     vec g = zeros(m);
-    vec g_store = zeros(m);
+    mat g_store = zeros(m, n_records);
     vec u = zeros(n);
     vec xpx = zeros(m);
     vec vx = zeros(m);
     // vec sumvg_store = zeros(niter - nburn + 1);
-    vec vara_store = zeros(niter - nburn + 1);
-    vec vare_store = zeros(niter - nburn + 1);
-    vec hsq_store = zeros(niter - nburn + 1);
+    vec vara_store = zeros(n_records);
+    vec vare_store = zeros(n_records);
+    vec hsq_store = zeros(n_records);
     mat pi_store;
-    if(!fixpi)  pi_store.resize(niter - nburn + 1, n_fold);
+    pi_store.resize(n_fold, n_records);
 
     #pragma omp parallel for
     for(int i = 0; i < m; i++){
@@ -532,12 +535,7 @@ Rcpp::List SBayesS(
 		vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
-            count++;
-            if(!fixpi)  pi_store.row(iter - nburn) = Pi.t();
-            vara_store[iter - nburn] = vara_;
-            vare_store[iter - nburn] = vare_;
-            daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
-            hsq_store[iter - nburn] = vara_ / (vara_ + vare_);
+            
             if(!snptracker.is_empty()){
                 #pragma omp parallel for
                 for(int i = 0; i < m; i++){
@@ -546,6 +544,7 @@ Rcpp::List SBayesS(
                     }
                 }
             }
+            
             if(WPPA){
                 for(int w = 0; w < nw; w++){
                     windxi = windx[w];
@@ -554,66 +553,106 @@ Rcpp::List SBayesS(
                     }
                 }
             }
+            
+            nzct++;
+        }
+
+        if(iter >= nburn && (iter + 1 - nburn) % outfreq == 0){
+            
+            if(!fixpi)  pi_store.col(count) = Pi;
+            vara_store[count] = vara_;
+            vare_store[count] = vare_;
+            
+            // daxpy_(&m, &doc, g.memptr(), &inc, g_store.memptr(), &inc);
+            g_store.col(count) = g;
+
+            hsq_store[count] = vara_ / (vara_ + vare_);
+
+            count++;
         }
         
         // print iteration details
-        if(verbose){
-            if((iter + 1) % outfreq == 0){
-                timer_loop.step("end");
-                NumericVector tdiff(timer_loop);
-                tt0 = (tdiff[1] - tdiff[0]) / (iter + 1) / 1e9;
-                tt = floor(tt0 * (niter - iter));
-                hor = floor(tt / 3600);
-                min = floor(tt % 3600 / 60);
-                sec = floor(tt % 3600 % 60);
-                Rcpp::Rcout << " " << iter + 1 << " ";
-                Rcpp::Rcout << NnzSnp << " ";
-                for(int i = 0; i < n_fold; i++){
-                    Rcpp::Rcout << std::fixed << Pi[i] << " ";
-                }
-                if(model == "BayesL")    Rcpp::Rcout << std::fixed << lambda << " ";
-                Rcpp::Rcout << std::fixed << vara_ << " ";
-                Rcpp::Rcout << std::fixed << vare_ << " ";
-                Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
-                Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
+        if(verbose && (iter + 1) % outfreq == 0){
+            timer_loop.step("end");
+            NumericVector tdiff(timer_loop);
+            tt0 = (tdiff[1] - tdiff[0]) / (iter + 1) / 1e9;
+            tt = floor(tt0 * (niter - iter));
+            hor = floor(tt / 3600);
+            min = floor(tt % 3600 / 60);
+            sec = floor(tt % 3600 % 60);
+            Rcpp::Rcout << " " << iter + 1 << " ";
+            Rcpp::Rcout << NnzSnp << " ";
+            for(int i = 0; i < n_fold; i++){
+                Rcpp::Rcout << std::fixed << Pi[i] << " ";
             }
+            if(model == "BayesL")    Rcpp::Rcout << std::fixed << lambda << " ";
+            Rcpp::Rcout << std::fixed << vara_ << " ";
+            Rcpp::Rcout << std::fixed << vare_ << " ";
+            Rcpp::Rcout << std::fixed << (vara_ / (vara_ + vare_)) << " ";
+            Rprintf("%02dh%02dm%02ds \n", hor, min, sec);
         }
+
+        if(count == n_records)  break;
     }
-    if(nzrate.is_empty()){
-        nzrate.ones(m);
-    }else{
-        nzrate = nzrate / count;
-        nzrate.elem(find(nzrate == 1)).fill((count - 1) / (double) count);
-    }
-    g = g_store / count;
-    if(WPPA){
-        wppai = wppai / count;
-        wppai.elem(find(wppai == 1)).fill((count - 1) / (double) count);
-    }
-    vec pise;
-    if(!fixpi){
-        Pi= conv_to<vec>::from(mean(pi_store));
-        pise = conv_to<vec>::from(stddev(pi_store));
-    }else{
-        pise = zeros(Pi.n_elem);
-    }
+
+    List results;
+    List MCMCsample;
+
     vara_ = mean(vara_store);
     double varasd = stddev(vara_store);
     vare_ = mean(vare_store);
     double varesd = stddev(vare_store);
     hsq = mean(hsq_store);
     double hsqsd = stddev(hsq_store);
+    results["Vg"] = vara_;
+    results["Ve"] = vare_;
+    results["h2"] = hsq;
+    MCMCsample["Vg"] = vara_store.t();
+    MCMCsample["Ve"] = vare_store.t();
+    MCMCsample["h2"] = hsq_store.t();
+    
+    g = conv_to<vec>::from(mean(g_store, 1));
+    results["alpha"] = g;
+    MCMCsample["alpha"] = g_store;
+
+    vec pisd;
+    if(!fixpi){
+        Pi = conv_to<vec>::from(mean(pi_store, 1));
+        pisd = conv_to<vec>::from(stddev(pi_store, 0, 1));
+    }else{
+        pisd = zeros(Pi.n_elem);
+        pi_store.row(0).fill(Pi[0]);
+        pi_store.row(1).fill(Pi[1]);
+    }
+    results["pi"] = Pi;
+    MCMCsample["pi"] = pi_store;
+
+    if(nzrate.is_empty()){
+        nzrate.ones(m);
+    }else{
+        nzrate = nzrate / nzct;
+        nzrate.elem(find(nzrate == 1)).fill((nzct - 1) / (double) nzct);
+    }
+    results["pip"] = nzrate;
+
+    if(WPPA){
+        wppai = wppai / nzct;
+        wppai.elem(find(wppai == 1)).fill((nzct - 1) / (double) nzct);
+        results["gwas"] = wppai;
+    }
+
+    results["MCMCsamples"] = MCMCsample;
 
     if(verbose){
         Rcpp::Rcout << "Posterior parameters:" << std::endl;
         for(int i = 0; i < Pi.n_elem; i++){
             if(i == 0){
-                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pise[i] << endl;
+                Rcpp::Rcout << "    π for markers in zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pisd[i] << endl;
             }else{
                 if(i == 1){
-                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pise[i];
+                    Rcpp::Rcout << "    π for markers in non-zero effect size " << std::fixed << Pi[i] << "±" << std::fixed << pisd[i];
                 }else{
-                    Rcpp::Rcout << std::fixed << Pi[i] << "±" << std::fixed << pise[i];
+                    Rcpp::Rcout << std::fixed << Pi[i] << "±" << std::fixed << pisd[i];
                 }
                 if(i != (Pi.n_elem - 1))  Rcpp::Rcout << ", ";
             }
@@ -631,22 +670,6 @@ Rcpp::List SBayesS(
     min = floor(tt % 3600 / 60);
     sec = floor(tt % 3600 % 60);
     if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
-    if(WPPA){
-        return List::create(
-            Named("pi") = Pi, 
-            Named("vg") = vara_, 
-            Named("ve") = vare_,
-            Named("alpha") = g,
-            Named("pip") = nzrate,
-            Named("gwas") = wppai
-        );
-    }else{
-        return List::create(
-            Named("pi") = Pi, 
-            Named("vg") = vara_, 
-            Named("ve") = vare_,
-            Named("alpha") = g,
-            Named("pip") = nzrate
-        );
-    }
+    
+    return results;
 }

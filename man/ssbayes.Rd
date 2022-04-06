@@ -18,7 +18,7 @@ ssbayes(
   Pi = NULL,
   fold = NULL,
   niter = 20000,
-  nburn = 14000,
+  nburn = 12000,
   windsize = NULL,
   windnum = NULL,
   vg = NULL,
@@ -27,7 +27,7 @@ ssbayes(
   ve = NULL,
   dfve = NULL,
   s2ve = NULL,
-  outfreq = 100,
+  outfreq = NULL,
   seed = 666666,
   threads = 4,
   verbose = TRUE
@@ -86,31 +86,34 @@ ssbayes(
 
 \item{s2ve}{scale parameter for the distribution of residual variance.}
 
-\item{outfreq}{frequency of information output on console, the default is 100.}
+\item{outfreq}{frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.}
 
 \item{seed}{seed for random sample.}
 
 \item{threads}{number of threads used for OpenMP.}
 
-\item{verbose}{whether to print the iteration information.}
+\item{verbose}{whether to print the iteration information on console.}
 }
 \value{
 the function returns a list containing
 \describe{
 \item{$J}{coefficient for genotype imputation residuals}
+\item{$Veps}{estimated variance of genotype imputation residuals}
 \item{$epsilon}{genotype imputation residuals}
 \item{$mu}{the regression intercept}
 \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 \item{$beta}{estimated coefficients for all covariates}
 \item{$r}{estimated environmental random effects}
-\item{$vr}{estimated variance for all environmental random effect}
-\item{$vg}{estimated genetic variance}
-\item{$ve}{estimated residual variance}
+\item{$Vr}{estimated variance for all environmental random effect}
+\item{$Vg}{estimated genetic variance}
+\item{$Ve}{estimated residual variance}
+\item{$h2}{estimated heritability (h2 = Vg / (Vr + Vg + Ve))}
+\item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
 \item{$alpha}{estimated effect size of all markers}
 \item{$e}{residuals of the model}
 \item{$pip}{the frequency for markers to be included in the model during MCMC iteration, also known as posterior inclusive probability (PIP)}
-\item{$g}{data.frame, the first column is the list of individual id, the second column is the genomic estimated breeding value for all individuals, including genotyped and non-genotyped.}
 \item{$gwas}{WPPA is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which \deqn{\alpha} is nonzero for at least one SNP in the window}
+\item{$MCMCsamples}{the collected samples of posterior estimation for all the above parameters across MCMC iterations}
 }
 }
 \description{
@@ -142,10 +145,14 @@ X <- X[, -1] #remove the intercept
 \donttest{
 # For GS/GP
 fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-			model="BayesR", niter=200, nburn=100, outfreq=10)
+			model="BayesR", niter=200, nburn=100)
 # For GWAS
 fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
 			map=map, windsize=1e6, model="BayesCpi")
+
+# The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
+snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
+gebv_pev = apply(fit$MCMCsamples$g, 1, var)    # get the prediction error variance (PEV) of estimated breeding values
 }
 
 }

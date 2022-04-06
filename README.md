@@ -1,5 +1,5 @@
 # hibayes 
-[![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-1.0.1-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
+[![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-1.1.0-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
 ## Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies
 
 **```hibayes```** (say 'Hi' to Bayes) is an user-friendly [R](https://www.r-project.org) package to fit 3 types of Bayesian models using **[individual-level](#1-individual-level-bayesian-model)**, **[summary-level](#2-summary-level-bayesian-model)**, and **[individual plus pedigree-level](#3-single-step-bayesian-model)** (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:  
@@ -50,6 +50,13 @@ Additionally, we pertinently provide a function *```read_plink```* to load [PLIN
 > pheno = data$fam
 > nrow(pheno) # number of individuals
 [1] 4798
+> head(pheno)
+1 F1 Ind1 0 0 0  -2.0464930
+2 F2 Ind2 0 0 0  -7.7857772
+3 F3 Ind3 0 0 0   3.4085493
+4 F4 Ind4 0 0 0 -10.3651915
+5 F5 Ind5 0 0 0   0.4604928
+6 F6 Ind6 0 0 0  -9.7750056
 > geno = data$geno
 > dim(geno) # number of individuals and markers
 [1] 4798 7385
@@ -70,7 +77,9 @@ Additionally, we pertinently provide a function *```read_plink```* to load [PLIN
 5 snp5   1 4195032  T  C
 6 snp6   1 4412357  T  C
 ```
-In this function, missing genotype will be replaced by the major genotype of each allele. **```hibayes```** will code the genotype ***A1A1*** as 2, ***A1A2*** as 1, and ***A2A2*** as 0, where ***A1*** is the first allele of each marker in *\*.bim* file, therefore the estimated effect size is on ***A1*** allele, users should pay attention to it when a process involves marker effect. By default, the memory-mapped files are directed into work directory, users could redirect to new path as following:
+In this function, missing genotype will be replaced by the major genotype of each allele. **```hibayes```** will code the genotype ***A1A1*** as 2, ***A1A2*** as 1, and ***A2A2*** as 0, where ***A1*** is the first allele of each marker in *\*.bim* file, therefore the estimated effect size is on ***A1*** allele, users should pay attention to it when a process involves marker effect. 
+
+By default, the memory-mapped files are directed into work directory, users could redirect to new path as following:
 ```r
 > data <- read_plink(bfile=bfile_path, out="./test")
 > # directly use the genotype for the next time, no need to use 'read_plink' again:
@@ -94,7 +103,7 @@ For **random effects**, no needs to convert, just pick them out from the phenoty
 ```r
 > R <- pheno[, c("group", "location")]
 ```
-Then assign it to different model:
+Then add it into different models like:
 ```r
 fit <- bayes(..., X=X, R=R, ...)    # bayes model
 fit <- ssbayes(..., X=X, R=R, ...)  # single-step bayes model
@@ -114,11 +123,35 @@ Type *```?bayes```* to see details of all parameters.
 
 #### (a) Gemonic prediction/selection
 ```r
-> fit <- bayes(bayes(y = pheno[, 6], M = geno, model = "BayesCpi", niter = 20000, 
-		Pi = c(0.95, 0.05), nburn = 12000, outfreq=100)
-> SNPeffect <- fit$alpha
-> gebv <- fit$g
-> pve <- apply(as.matrix(geno),2,var) * (fit$alpha^2) / var(pheno[, 6])    # the phenotypic variance explained for each SNPs
+> fit <- bayes(y = pheno[, 6], M = geno, model = "BayesCpi", niter = 20000, 
+		Pi = c(0.95, 0.05), nburn = 12000)
+> str(fit)	# overview of the returns
+List of 10
+ $ Vg         : num 3.91
+ $ Ve         : num 24.9
+ $ h2         : num 0.136
+ $ mu         : num 0.405
+ $ alpha      : num [1:7385, 1] 0.00 -3.17e-04 2.56e-04 -2.36e-05 0.00 ...
+ $ pi         : num [1:2, 1] 0.99762 0.00238
+ $ g          : num [1:4798] -2.98 -5.45 1.52 -2.34 -3.26 ...
+ $ e          : num [1:4798] 0.527 -2.744 1.479 -8.43 3.317 ...
+ $ pip        : num [1:7385, 1] 0.000125 0.0005 0.000625 0.0005 0.000375 ...
+ $ MCMCsamples:List of 7
+  ..$ Vg   : num [1, 1:400] 3.68 3.83 3.88 3.9 3.93 ...
+  ..$ Ve   : num [1, 1:400] 25.3 24.6 24.5 24.3 25.4 ...
+  ..$ h2   : num [1, 1:400] 0.127 0.135 0.137 0.138 0.134 ...
+  ..$ mu   : num [1, 1:400] 0.4576 0.4069 0.4688 -0.0538 -0.0587 ...
+  ..$ alpha: num [1:7385, 1:400] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ pi   : num [1:2, 1:400] 0.99648 0.00352 0.99881 0.00119 0.99812 ...
+  ..$ g    : num [1:4798, 1:400] -2.02 -6.15 1.51 -2.42 -2.28 ...
+> SNPeffect <- fit$alpha	# get the estimated SNP effects for markers
+> gebv <- fit$g		# get the genomic estimated breeding values (GEBV) for all individuals
+> pve <- apply(as.matrix(geno), 2, var) * (fit$alpha^2) / var(pheno[, 6])    # the phenotypic variance explained (pve) for each SNPs
+```
+Note that the standard deviation of all estimated unknow parameters ('p') can be obtained by the function *```apply(fit$MCMCsamples$p, 1, sd)```*, for example:
+```r
+> SNPeffect_SD <- apply(fit$MCMCsamples$alpha, 1, sd)	# get the SD of estimated SNP effects for markers
+> gebv_pev <- apply(fit$MCMCsamples$g, 1, var)	# get the prediction error variance (PEV) of estimated breeding values
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```r
@@ -147,7 +180,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 **WPPA** is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which the effect size is nonzero for at least one SNP in the window. To run GWAS, *```map```* should be provided, every marker should have clear physical position for the downstream genome cutting, and also the argument *```windsize```* or *```windnum```* should be specified, the argument *```windsize```* is used to control the size of the windows, the number  of markers in a window is not fixed. Contrarily, the argument *```windnum```*, e.g. windnum = 10, can be used to control the fixed number of markers in a window, the size for the window is not fixed for this case.
 ```r
 > fit <- bayes(y = pheno[, 6], M = geno, model = "BayesCpi", niter = 20000,
-		Pi = c(0.95, 0.05), nburn = 12000, outfreq = 100, seed = 666666,
+		Pi = c(0.95, 0.05), nburn = 12000, seed = 666666,
 		map = map, windsize = 1e6)
 > gwas <- fit$gwas
 > head(gwas)
@@ -212,7 +245,7 @@ Sparse matrix could significantly reduce the memory cost by setting some of elem
 From ```ldm1``` to ```ldm4```, the memory cost less, but the model stability of *```sbayes```* would be worse.
 
 #### Step2: fit SBayes model
-If the order of SNPs in variance-covariance matrix is not consistent with the order in summary data file, prior adjusting is necessary.
+If the order of SNPs in variance-covariance matrix is not consistent with the order in summary data file, prior adjusting is necessary:
 ```r
 > sumstat_path = system.file("extdata", "geno.ma", package = "hibayes")
 > sumstat = read.table(sumstat_path, header=TRUE)
@@ -230,13 +263,17 @@ Note that **```hibayes```** only use the 'BETA', 'SE' and 'NMISS' columns.
 Type *```?sbayes```* to see details of all parameters.
 #### (a) Gemonic prediction/selection
 ```r
-> fit = sbayes(sumstat=sumstat, ldm=ldm1, model="SBayesCpi", niter=20000, nburn=12000, outfreq=100)
+> fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesCpi", niter=20000, nburn=12000)
 ```
 #### (b) Gemone-Wide association study
 ```r
-> fit = sbayes(sumstat=sumstat, ldm=ldm1, map=map, model="SBayesCpi", windsize=1e6, wppa=0.01, niter=20000, nburn=12000)
+> fit = sbayes(sumstat=sumstat, ldm=ldm1, map=map, model="BayesCpi", windsize=1e6, niter=20000, nburn=12000)
 ```
-
+Note that the standard deviation of all estimated unknow parameters ('p') can be obtained by the function *```apply(fit$MCMCsamples$p, 1, sd)```*, for example:
+```r
+> SNPeffect <- fit$alpha	# get the estimated SNP effects for markers
+> SNPeffect_SD <- apply(fit$MCMCsamples$alpha, 1, sd)	# get the SD of estimated SNP effects for markers
+```
 -----
 
 ### 3. Single-step Bayesian model
@@ -282,7 +319,11 @@ For example, load the attached tutorial data in **```hibayes```**:
 > pheno.id = pheno[, 1]
 ```
 For fixed effects, covariates, and environmental random effects, please refer to the chapter of [*bayes*](#1-individual-level-bayesian-model) model.
-
+```r
+> X <- model.matrix.lm(~as.factor(sex)+as.numeric(scale), data=pheno, na.action = "na.pass")
+> X <- X[, -1]	# fixed effects and covariates
+> R <- pheno[, c("group")]	# environmental random effects
+```
 ***NOTE:*** for *```ssbayes```* model, there is no NEED to adjust the order of id in different files.
 
 The available methods for *```ssbayes```* model are consistent with *```bayes```* model, except for "BSLMM". Type *```?ssbayes```* to see details of all parameters.
@@ -290,14 +331,59 @@ The available methods for *```ssbayes```* model are consistent with *```bayes```
 #### (a) Gemonic prediction/selection
 ```r
 > fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-				model="BayesR", niter=20000, nburn=12000, outfreq=100)
+				X=X, R=R, model="BayesR", niter=20000, nburn=12000)
+> str(fit)	# overview of the returns
+List of 16
+ $ Vr         : num [1, 1] 0.464
+ $ Vg         : num 0.568
+ $ Ve         : num 0.283
+ $ h2         : num 0.433
+ $ mu         : num -0.947
+ $ beta       : num [1:2, 1] 0.0798 1.0948
+ $ alpha      : num [1:1000, 1] 0.00379 -0.00721 0.00186 -0.00282 0.00267 ...
+ $ pi         : num [1:2, 1] 0.893 0.107
+ $ Veps       : num 0.146
+ $ J          : num 0.208
+ $ epsilon    :'data.frame':	40 obs. of  2 variables:
+  ..$ id     : chr [1:40] "ind20" "ind17" "ind12" "ind3" ...
+  ..$ epsilon: num [1:40] 0.00261 0.34582 -0.23766 -0.1511 -0.32559 ...
+ $ r          :'data.frame':	5 obs. of  2 variables:
+  ..$ Levels    : chr [1:5] "g1" "g2" "g3" "g4" ...
+  ..$ Estimation: num [1:5] -0.22552 0.00772 -0.27953 -0.4405 1.19692
+ $ g          :'data.frame':	100 obs. of  2 variables:
+  ..$ id  : chr [1:100] "ind41" "ind42" "ind43" "ind44" ...
+  ..$ gebv: num [1:100] -0.705 -0.521 -0.23 -0.23 0.417 ...
+ $ e          :'data.frame':	100 obs. of  2 variables:
+  ..$ id: chr [1:100] "ind1" "ind2" "ind3" "ind4" ...
+  ..$ e : num [1:100] -0.145 -0.0251 0.0337 -0.2476 0.4869 ...
+ $ pip        : num [1:1000, 1] 0.092 0.1008 0.0925 0.0959 0.0877 ...
+ $ MCMCsamples:List of 13
+  ..$ Vr     : num [1, 1:400] 0.407 0.472 0.491 0.537 0.454 ...
+  ..$ Vg     : num [1, 1:400] 0.505 0.691 0.713 0.484 0.51 ...
+  ..$ Ve     : num [1, 1:400] 0.372 0.285 0.205 0.296 0.194 ...
+  ..$ h2     : num [1, 1:400] 0.393 0.477 0.506 0.367 0.441 ...
+  ..$ mu     : num [1, 1:400] -1.252 -1.515 -0.661 -1.256 -0.839 ...
+  ..$ beta   : num [1:2, 1:400] -0.1551 1.0734 0.0364 1.1592 0.1838 ...
+  ..$ alpha  : num [1:1000, 1:400] 0 0.0513 0 0 0 ...
+  ..$ pi     : num [1:2, 1:400] 0.822 0.178 0.829 0.171 0.799 ...
+  ..$ Veps   : num [1, 1:400] 0.0936 0.1755 0.153 0.118 0.038 ...
+  ..$ J      : num [1, 1:400] -0.00933 0.35316 0.62347 0.66544 0.85299 ...
+  ..$ epsilon: num [1:40, 1:400] 0.2484 0.2465 -0.0985 -0.3612 0.2507 ...
+  ..$ r      : num [1:5, 1:400] 0.14696 0.62815 0.31242 -0.00248 1.5989 ...
+  ..$ g      : num [1:100, 1:400] -0.3187 -0.7824 0.3202 0.0458 -0.0824 ...
 ```
 #### (b) Gemone-Wide association study
 ```r
 > fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-			  map=map, windsize=1e6, model="BayesCpi")
+				X=X, R=R, map=map, windsize=1e6, model="BayesCpi")
 ```
-
+Note that the standard deviation of all estimated unknow parameters ('p') can be obtained by the function *```apply(fit$MCMCsamples$p, 1, sd)```*, for example:
+```r
+> SNPeffect <- fit$alpha	# get the estimated SNP effects for markers
+> SNPeffect_SD <- apply(fit$MCMCsamples$alpha, 1, sd)	# get the SD of estimated SNP effects for markers
+> gebv <- fit$g		# get the genomic estimated breeding values (GEBV) for all individuals
+> gebv_pev <- apply(fit$MCMCsamples$g, 1, var)	# get the prediction error variance (PEV) of GEBV
+```
 ## Citing the methods in package
 For *```bayes```* model, please cite following papers:
 ```
