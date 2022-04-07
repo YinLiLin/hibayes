@@ -196,11 +196,11 @@ Rcpp::List Bayes(
     vec vb_store;
     sp_mat k_Z, k_ZZ;
     vec k_estR;
-    // vec k_estR_store;
+    vec k_estR_store;
     T k_LHS;
     vec k_estR_tmp;
     vec k_RHS;
-    mat ghat;
+    // mat ghat;
     int qk = 0;
     if(!K_index.is_empty()){
         if(K.is_empty())    throw Rcpp::exception("variance-covariance matrix should be provided for K term.");
@@ -209,10 +209,10 @@ Rcpp::List Bayes(
         K_index -= 1;
         va_store.resize(n_records);
         vb_store.resize(n_records);
-        ghat.resize(m, n_records);
+        // ghat.resize(m, n_records);
         k_Z.resize(K_index.n_elem, nk);
         k_estR.zeros(nk);
-        // k_estR_store.zeros(nk);
+        k_estR_store.zeros(nk);
         k_estR_tmp.zeros(nk);
         qk = nk;
         for(int i = 0; i < K_index.n_elem; i++){k_Z(i, K_index[i]) = 1.0;}
@@ -300,6 +300,7 @@ Rcpp::List Bayes(
         vx[i] = var(Xi);
     }
     double sumvx = sum(vx);
+    int nvar0 = sum(vx == 0);
 
     if(dfvg.isNotNull()){
         dfvara_ = as<double>(dfvg);
@@ -547,6 +548,7 @@ Rcpp::List Bayes(
         switch(model_index){
             case 1:
                 for(int i = 0; i < m; i++){
+                    if(!vx[i])   continue;
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
@@ -559,14 +561,14 @@ Rcpp::List Bayes(
                     gi_ *= -1;
                     daxpy_(&n, &gi_, dxi, &inc, u.memptr(), &inc);
                     g[i] = gi;
-
                 }
-                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / (dfvara_ + m);
-                varg = invchisq_sample(m + dfvara_, varg);
+                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / (dfvara_ + m - nvar0);
+                varg = invchisq_sample(m - nvar0 + dfvara_, varg);
                 // sumvg = sum(vx * varg);
                 break;
             case 2:
                 for(int i = 0; i < m; i++){
+                    if(!vx[i])   continue;
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
@@ -589,6 +591,7 @@ Rcpp::List Bayes(
                 s[0] = logpi[0];
                 // sumvg = 0;
                 for(int i = 0; i < m; i++){
+                    if(!vx[i])   continue;
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
@@ -623,7 +626,7 @@ Rcpp::List Bayes(
                     g[i] = gi;
                 }
                 fold_snp_num[1] = sum(snptracker);
-                fold_snp_num[0] = m - fold_snp_num[1];
+                fold_snp_num[0] = m - nvar0 - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
@@ -633,6 +636,7 @@ Rcpp::List Bayes(
                 // sumvg = 0;
                 vargi = 0;
                 for(int i = 0; i < m; i++){
+                    if(!vx[i])   continue;
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
@@ -666,7 +670,7 @@ Rcpp::List Bayes(
                     g[i] = gi;
                 }
                 fold_snp_num[1] = sum(snptracker);
-                fold_snp_num[0] = m - fold_snp_num[1];
+                fold_snp_num[0] = m - nvar0 - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
                 varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
                 varg = invchisq_sample(NnzSnp + dfvara_, varg);
@@ -675,6 +679,7 @@ Rcpp::List Bayes(
                 break;
             case 5:
                 for(int i = 0; i < m; i++){
+                    if(!vx[i])   continue;
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
@@ -692,7 +697,7 @@ Rcpp::List Bayes(
                     g[i] = gi;
                     // sumvg += (gi * gi) * vx[i];
                 }
-                shape = shape0 + m;
+                shape = shape0 + m - nvar0;
                 rate = rate0 + sum(vargL) / 2;
                 lambda2 = gamma_sample(shape, 1 / rate);
                 lambda = sqrt(lambda2);
@@ -706,6 +711,7 @@ Rcpp::List Bayes(
                     vare_vara_fold[j] = vare_ / vara_fold[j];
                 }
                 for(int i = 0; i < m; i++){
+                    if(!vx[i])   continue;
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
@@ -766,6 +772,7 @@ Rcpp::List Bayes(
                     vara_fold[j] = varg * fold_[j]; 
                     // vara_fold[j] = vara_ * fold_[j]; 
                 }
+                fold_snp_num[0] -= nvar0;
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
         }
@@ -806,11 +813,10 @@ Rcpp::List Bayes(
             vare_store[count] = vare_;
 
             if(nk){
-                ghat.col(count) = X.t() * (k_Z * (K * k_estR)) / sumvx;
                 va_store[count] = va;
                 vb_store[count] = vb;
                 // k_estR_store += k_estR;
-                // daxpy_(&qk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
+                daxpy_(&qk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
             }
 
             g_store.col(count) = g;
@@ -908,7 +914,8 @@ Rcpp::List Bayes(
     }
 
     if(nk){
-        g_store += ghat;
+        vec ghat = X.t() * (k_Z * (K * k_estR_store  / count)) / sumvx;
+        g_store.each_col() += ghat;
         va = mean(va_store);
         vasd = stddev(va_store);
         vb = mean(vb_store);

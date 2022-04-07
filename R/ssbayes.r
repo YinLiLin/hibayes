@@ -29,6 +29,7 @@
 #' @param nburn the number of iterations to be discarded.
 #' @param windsize window size in bp for GWAS, the default is NULL.
 #' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
+#' @param maf the effects of markers whose MAF are lower than the threshold will be not estimated.
 #' @param vg prior value of genetic variance.
 #' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
 #' @param s2vg scale parameter for the distribution of genetic variance.
@@ -119,6 +120,7 @@ function(
     nburn = 12000,
     windsize = NULL,
 	windnum = NULL,
+	maf = 0.01,
     vg = NULL,
     dfvg = NULL,
     s2vg = NULL,
@@ -212,6 +214,8 @@ function(
 	}
 	if(!is.matrix(M)){M <- as.matrix(M); gc()}
 	if(nrow(M) != length(M.id))	stop("number of individuals not match between 'M' and 'M.id'.")
+	p <- apply(M, 2, function(x){p <- mean(x) / 2; return(min(c(p, 1 - p)))})
+	if(sum(p < maf)){M[, p < maf] <- 0}
 	if(ncol(P) != 3)	stop("3 columns ('id', 'sir', 'dam') are required for pedigree.")
 	ped <- as.matrix(P)
 	ped <- apply(ped, 2, as.character)

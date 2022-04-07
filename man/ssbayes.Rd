@@ -21,6 +21,7 @@ ssbayes(
   nburn = 12000,
   windsize = NULL,
   windnum = NULL,
+  maf = 0.01,
   vg = NULL,
   dfvg = NULL,
   s2vg = NULL,
@@ -73,6 +74,8 @@ ssbayes(
 \item{windsize}{window size in bp for GWAS, the default is NULL.}
 
 \item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
+
+\item{maf}{the effects of markers whose MAF are lower than the threshold will be not estimated.}
 
 \item{vg}{prior value of genetic variance.}
 

@@ -111,10 +111,12 @@ Rcpp::List SBayesS(
 		xpx[i] = vx[i] * n;
 	}
     int count_y = 0;
-    std::vector<bool> ifest(m); std::fill(ifest.begin(), ifest.end(), true);
+    uvec ifest(m); ifest.fill(1);
+    int nvar0 = 0;
     for(int k = 0; k < m; k++){
 		if(Rcpp::NumericVector::is_na(sumstat(k, 1)) || Rcpp::NumericVector::is_na(sumstat(k, 2)) || Rcpp::NumericVector::is_na(sumstat(k, 3))){
-			ifest[k] = false;
+			ifest[k] = 0;
+            nvar0++;
 		}else{
             xy[k] = xpx[k] * sumstat(k, 1);
             r_hat[k] = xy[k];
@@ -354,7 +356,7 @@ Rcpp::List SBayesS(
                     }
                 }
                 fold_snp_num[1] = sum(snptracker);
-                fold_snp_num[0] = m - fold_snp_num[1];
+                fold_snp_num[0] = m - nvar0 - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
@@ -406,7 +408,7 @@ Rcpp::List SBayesS(
                     }
                 }
                 fold_snp_num[1] = sum(snptracker);
-                fold_snp_num[0] = m - fold_snp_num[1];
+                fold_snp_num[0] = m - nvar0 - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
                 varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
                 varg = invchisq_sample(NnzSnp + dfvara_, varg);
@@ -516,6 +518,7 @@ Rcpp::List SBayesS(
                     vara_fold[j] = varg * fold_[j]; 
                     // vara_fold[j] = vara_ * fold_[j]; 
                 }
+                fold_snp_num[0] -= nvar0;
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, fold_snp_num + 1);
                 break;
         }
