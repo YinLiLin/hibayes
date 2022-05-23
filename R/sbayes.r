@@ -74,7 +74,8 @@
 #' fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
 #' 
 #' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
-#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
+#' # get the SD of estimated SNP effects for markers
+#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
 #' 
 #' }
 #'

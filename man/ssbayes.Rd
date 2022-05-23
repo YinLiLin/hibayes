@@ -154,8 +154,10 @@ fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped,
 			map=map, windsize=1e6, model="BayesCpi")
 
 # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
-snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)    # get the SD of estimated SNP effects for markers
-gebv_pev = apply(fit$MCMCsamples$g, 1, var)    # get the prediction error variance (PEV) of estimated breeding values
+# get the SD of estimated SNP effects for markers
+snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
+# get the prediction error variance (PEV) of estimated breeding values
+gebv_pev = apply(fit$MCMCsamples$g, 1, var) 
 }
 
 }
