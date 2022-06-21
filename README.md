@@ -19,7 +19,7 @@ The functions are not limited, we will keep on going in enriching **```hibayes``
 
 ***If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.***
 
-## :toolbox: Software tools for genetic analyses and genomic breeding
+## :toolbox: Relevant software tools for genetic analyses and genomic breeding
 <table>
     <tr>
 	<td><g-emoji class="g-emoji" alias="mailbox" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/1f4eb.png">📫</g-emoji> <strong><a href="https://www.hiblup.com/" rel="nofollow">HIBLUP</a></strong>: Versatile and easy-to-use GS toolbox.</td>
