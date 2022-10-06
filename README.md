@@ -49,7 +49,7 @@ The latest version of **```hibayes```**  in development can be installed from Gi
 Yin LL, Zhang HH, Li XY, Zhao SH, Liu XL. [hibayes: An R Package to Fit Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies](https://www.biorxiv.org/content/10.1101/2022.02.12.480230v2), ***bioRxiv*** (2022), doi: 10.1101/2022.02.12.480230.
 ## Usage
 ### 1. Individual level Bayesian model
-To fit individual level Bayesian model (*```bayes```*), at least the phenotype(***n***), numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that coded by other softwares by *```read.table```* to fit model, note that 'NA' is not allowed in genotype data:
+To fit individual level Bayesian model (*```bayes```*), at least the phenotype(***n***), numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that are coded from other software by *```read.table```* to fit model, note that 'NA' is not allowed in genotype data:
 ```r
 > pheno = read.table("your_pheno.txt")
 > geno = read.table("your_geno.txt") # genotype should be coded in digits (either 0, 1, 2 or -1, 0, 1 is acceptable)
@@ -57,7 +57,7 @@ To fit individual level Bayesian model (*```bayes```*), at least the phenotype(*
 > # the order of individuals should be exactly the same between phenotype and genotype
 > pheno = pheno[match(geno.id[, 1], pheno[, 1]), ]   # supposing the first column is the individual id
 ```
-Additionally, we pertinently provide a function *```read_plink```* to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory. For example, load the attached tutorial data in **```hibayes```**:
+Additionally, we pertinently provide a function *```read_plink```* to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory, and three memory-mapping files named "*.map", "*.desc" and "*.bin" will be generated in the users work directory. For example, load the attached tutorial data in **```hibayes```**:
 ```r
 > bfile_path = system.file("extdata", "example", package = "hibayes")
 > data = read_plink(bfile=bfile_path, mode="A", threads=4)
@@ -95,9 +95,12 @@ Additionally, we pertinently provide a function *```read_plink```* to load [PLIN
 ```
 In this function, missing genotype will be replaced by the major genotype of each allele. **```hibayes```** will code the genotype ***A1A1*** as 2, ***A1A2*** as 1, and ***A2A2*** as 0, where ***A1*** is the first allele of each marker in *\*.bim* file, therefore the estimated effect size is on ***A1*** allele, users should pay attention to it when a process involves marker effect. 
 
-By default, the memory-mapped files are directed into work directory, users could redirect to new path as following:
+By default, the generated memory-mapped files are directed into users work directory, users could redirect to a new path as follows:
 ```r
 > data <- read_plink(bfile=bfile_path, out="./test")
+```
+**Note that** it's actually not required to transform the genotype into memory-mapping files by the function *```read_plink```* for each time of running, just do it at the first time, then use the following script to fast load the coded numerical genotype matrix:
+```r
 > # directly use the genotype for the next time, no need to use 'read_plink' again:
 > geno <- attach.big.matrix("./test.desc")
 > map <- read.table("./test.map", header=TRUE)
@@ -164,7 +167,7 @@ List of 10
 > gebv <- fit$g		# get the genomic estimated breeding values (GEBV) for all individuals
 > pve <- apply(as.matrix(geno), 2, var) * (fit$alpha^2) / var(pheno[, 6])    # the phenotypic variance explained (pve) for each SNPs
 ```
-Note that the standard deviation of all estimated unknow parameters ('p') can be obtained by the function *```apply(fit$MCMCsamples$p, 1, sd)```*, for example:
+Note that the **standard deviation** of all estimated unknow parameters ('p') can be obtained by the function *```apply(fit$MCMCsamples$p, 1, sd)```*, for example:
 ```r
 > SNPeffect_SD <- apply(fit$MCMCsamples$alpha, 1, sd)	# get the SD of estimated SNP effects for markers
 > gebv_pev <- apply(fit$MCMCsamples$g, 1, var)	# get the prediction error variance (PEV) of estimated breeding values
