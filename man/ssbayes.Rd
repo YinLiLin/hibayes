@@ -5,20 +5,19 @@
 \title{Single-step Bayes model}
 \usage{
 ssbayes(
-  y,
-  y.id,
-  M,
-  M.id,
-  P,
-  X = NULL,
-  R = NULL,
-  model = c("BayesCpi", "BayesA", "BayesL", "BayesR", "BayesB", "BayesC", "BayesBpi",
+  formula,
+  data = NULL,
+  M = NULL,
+  M.id = NULL,
+  pedigree = NULL,
+  method = c("BayesCpi", "BayesA", "BayesL", "BayesR", "BayesB", "BayesC", "BayesBpi",
     "BayesRR"),
   map = NULL,
   Pi = NULL,
   fold = NULL,
   niter = 20000,
   nburn = 12000,
+  thin = 5,
   windsize = NULL,
   windnum = NULL,
   maf = 0.01,
@@ -28,28 +27,24 @@ ssbayes(
   ve = NULL,
   dfve = NULL,
   s2ve = NULL,
-  outfreq = NULL,
+  printfreq = 100,
   seed = 666666,
   threads = 4,
   verbose = TRUE
 )
 }
 \arguments{
-\item{y}{vector of phenotype, use 'NA' for the missings.}
+\item{formula}{a two-sided linear formula object describing both the fixed-effects and random-effects part of the model, with the response on the left of a ‘~’ operator and the terms, separated by ‘+’ operators, on the right. Random-effects terms are distinguished by vertical bars (1|’) separating expressions for design matrices from grouping factors.}
 
-\item{y.id}{vector of id for phenotype.}
+\item{data}{the data frame containing the variables named in 'formula', NOTE that the first column in 'data' should be the individual id.}
 
 \item{M}{numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.}
 
 \item{M.id}{vector of id for genotype.}
 
-\item{P}{matrix of pedigree, 3 columns limited, the order of columns shoud be "id", "sir", "dam".}
+\item{pedigree}{matrix of pedigree, 3 columns limited, the order of columns shoud be "id", "sir", "dam".}
 
-\item{X}{(optional) covariate matrix of all individuals, all values should be in digits, characters are not allowed, please use 'model.matrix.lm' function to prepare it.}
-
-\item{R}{(optional) environmental random effects matrix of all individuals, NAs are not allowed for the individuals with phenotypic value.}
-
-\item{model}{bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "BSLMM".
+\item{method}{bayes methods including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR".
 \itemize{
 \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
 \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
@@ -71,11 +66,13 @@ ssbayes(
 
 \item{nburn}{the number of iterations to be discarded.}
 
+\item{thin}{the number of thinning after burn-in. Note that smaller thinning frequency may have higher accuracy of estimated parameters, but would result in more memory for collecting process, on contrary, bigger frequency may have negative effect on accuracy of estimations.}
+
 \item{windsize}{window size in bp for GWAS, the default is NULL.}
 
 \item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
 
-\item{maf}{the effects of markers whose MAF are lower than the threshold will be not estimated.}
+\item{maf}{the effects of markers whose MAF is lower than the threshold will not be estimated.}
 
 \item{vg}{prior value of genetic variance.}
 
@@ -89,7 +86,7 @@ ssbayes(
 
 \item{s2ve}{scale parameter for the distribution of residual variance.}
 
-\item{outfreq}{frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.}
+\item{printfreq}{frequency of printing iterative details on console.}
 
 \item{seed}{seed for random sample.}
 
@@ -126,39 +123,47 @@ where \eqn{y} is the vector of phenotypic values for both genotyped and non-geno
 }
 \examples{
 # Load the example data attached in the package
-pheno_file_path = system.file("extdata", "pheno.txt", package = "hibayes")
+pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 pheno = read.table(pheno_file_path, header=TRUE)
-pedigree_file_path = system.file("extdata", "ped.txt", package = "hibayes")
-ped = read.table(pedigree_file_path, header=TRUE)
-bfile_path = system.file("extdata", "geno", package = "hibayes")
-data = read_plink(bfile_path, out=tempfile())
+bfile_path = system.file("extdata", "demo", package = "hibayes")
+data = read_plink(bfile_path)
 fam = data$fam
 geno = data$geno
 map = data$map
 
-# NOTE: for ssbayes model, there is no NEED to adjust the order of id in different files
-geno.id = fam[, 2]
-pheno.id = pheno[, 1]
+pedigree_file_path = system.file("extdata", "demo.ped", package = "hibayes")
+ped = read.table(pedigree_file_path, header=TRUE)
 
-# Add fixed effects, covariates, and random effect
-X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
-X <- X[, -1] #remove the intercept
-# then fit the model as: fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
+# For GS/GP
+## no environmental effects:
+fit = ssbayes(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
+	method="BayesCpi", niter=20000, nburn=12000, thin=5, printfreq=100)
+
+## overview of the returned results
+summary(fit)
+
+## add fixed effects or covariates:
+fit = ssbayes(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
+	method="BayesCpi")
+
+## add environmental random effects:
+fit = ssbayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+	pedigree=ped, method="BayesCpi")
 
 \donttest{
-# For GS/GP
-fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-			model="BayesR", niter=200, nburn=100)
 # For GWAS
-fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-			map=map, windsize=1e6, model="BayesCpi")
+fit = ssbayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+	pedigree=ped, map=map, windsize=1e6, method="BayesCpi")
+}
+
+# overview of the returned results:
+summary(fit)
 
 # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 # get the SD of estimated SNP effects for markers
 snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
 # get the prediction error variance (PEV) of estimated breeding values
-gebv_pev = apply(fit$MCMCsamples$g, 1, var) 
-}
+gebv_pev = apply(fit$MCMCsamples$g, 1, var)
 
 }
 \references{

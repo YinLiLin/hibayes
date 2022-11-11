@@ -4,14 +4,12 @@
 #' \deqn{y = X \beta + R r + M \alpha + U \epsilon + e}
 #' where \eqn{y} is the vector of phenotypic values for both genotyped and non-genotyped individuals, \eqn{\beta} is a vector of estimated coefficient for covariates, \eqn{M} contains the genotype (\eqn{M_2}) for genotyped individuals and the imputed genotype (\eqn{M_1 = A_{12}A_{22}^{-1}M_2}) for non-genotyped individuals, \eqn{\epsilon} is the vector of genotype imputation error, \eqn{e} is a vector of residuals.
 #'
-#' @param y vector of phenotype, use 'NA' for the missings.
-#' @param y.id vector of id for phenotype.
+#' @param formula a two-sided linear formula object describing both the fixed-effects and random-effects part of the model, with the response on the left of a ‘~’ operator and the terms, separated by ‘+’ operators, on the right. Random-effects terms are distinguished by vertical bars (1|’) separating expressions for design matrices from grouping factors.
+#' @param data the data frame containing the variables named in 'formula', NOTE that the first column in 'data' should be the individual id.
 #' @param M numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.
 #' @param M.id vector of id for genotype.
-#' @param P matrix of pedigree, 3 columns limited, the order of columns shoud be "id", "sir", "dam".
-#' @param X (optional) covariate matrix of all individuals, all values should be in digits, characters are not allowed, please use 'model.matrix.lm' function to prepare it.
-#' @param R (optional) environmental random effects matrix of all individuals, NAs are not allowed for the individuals with phenotypic value.
-#' @param model bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "BSLMM".
+#' @param pedigree matrix of pedigree, 3 columns limited, the order of columns shoud be "id", "sir", "dam".
+#' @param method bayes methods including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR".
 #' \itemize{
 #' \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP. 
 #' \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution. 
@@ -27,16 +25,17 @@
 #' @param fold proportion of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).
 #' @param niter the number of MCMC iteration.
 #' @param nburn the number of iterations to be discarded.
+#' @param thin the number of thinning after burn-in. Note that smaller thinning frequency may have higher accuracy of estimated parameters, but would result in more memory for collecting process, on contrary, bigger frequency may have negative effect on accuracy of estimations.
 #' @param windsize window size in bp for GWAS, the default is NULL.
 #' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
-#' @param maf the effects of markers whose MAF are lower than the threshold will be not estimated.
+#' @param maf the effects of markers whose MAF is lower than the threshold will not be estimated.
 #' @param vg prior value of genetic variance.
 #' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
 #' @param s2vg scale parameter for the distribution of genetic variance.
 #' @param ve prior value of residual variance.
 #' @param dfve the number of degrees of freedom for the distribution of residual variance.
 #' @param s2ve scale parameter for the distribution of residual variance.
-#' @param outfreq frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.
+#' @param printfreq frequency of printing iterative details on console.
 #' @param seed seed for random sample.
 #' @param threads number of threads used for OpenMP.
 #' @param verbose whether to print the iteration information on console.
@@ -69,57 +68,64 @@
 #'
 #' @examples
 #' # Load the example data attached in the package
-#' pheno_file_path = system.file("extdata", "pheno.txt", package = "hibayes")
+#' pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 #' pheno = read.table(pheno_file_path, header=TRUE)
-#' pedigree_file_path = system.file("extdata", "ped.txt", package = "hibayes")
-#' ped = read.table(pedigree_file_path, header=TRUE)
-#' bfile_path = system.file("extdata", "geno", package = "hibayes")
-#' data = read_plink(bfile_path, out=tempfile())
+#' bfile_path = system.file("extdata", "demo", package = "hibayes")
+#' data = read_plink(bfile_path)
 #' fam = data$fam
 #' geno = data$geno
 #' map = data$map
 #' 
-#' # NOTE: for ssbayes model, there is no NEED to adjust the order of id in different files
-#' geno.id = fam[, 2]
-#' pheno.id = pheno[, 1]
+#' pedigree_file_path = system.file("extdata", "demo.ped", package = "hibayes")
+#' ped = read.table(pedigree_file_path, header=TRUE)
 #' 
-#' # Add fixed effects, covariates, and random effect
-#' X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
-#' X <- X[, -1] #remove the intercept
-#' # then fit the model as: fit = ssbayes(..., X=X, R=pheno[,c("group")], ...)
+#' # For GS/GP
+#' ## no environmental effects:
+#' fit = ssbayes(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
+#' 	method="BayesCpi", niter=20000, nburn=12000, thin=5, printfreq=100)
+#' 
+#' ## overview of the returned results
+#' summary(fit)
+#' 
+#' ## add fixed effects or covariates:
+#' fit = ssbayes(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
+#' 	method="BayesCpi")
+#' 
+#' ## add environmental random effects:
+#' fit = ssbayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' 	pedigree=ped, method="BayesCpi")
 #' 
 #' \donttest{
-#' # For GS/GP
-#' fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-#' 			model="BayesR", niter=200, nburn=100)
 #' # For GWAS
-#' fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
-#' 			map=map, windsize=1e6, model="BayesCpi")
+#' fit = ssbayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' 	pedigree=ped, map=map, windsize=1e6, method="BayesCpi")
+#' }
+#' 
+#' # overview of the returned results:
+#' summary(fit)
 #' 
 #' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 #' # get the SD of estimated SNP effects for markers
 #' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
 #' # get the prediction error variance (PEV) of estimated breeding values
-#' gebv_pev = apply(fit$MCMCsamples$g, 1, var) 
-#' }
+#' gebv_pev = apply(fit$MCMCsamples$g, 1, var)
 #' 
 #' @export
 
 ssbayes <- 
 function(
-    y,
-	y.id,
-	M,
-	M.id,
-	P,
-	X = NULL,
-	R = NULL,
-    model = c("BayesCpi", "BayesA", "BayesL", "BayesR", "BayesB", "BayesC", "BayesBpi", "BayesRR"),
+	formula,
+	data = NULL,
+	M = NULL,
+	M.id = NULL,
+	pedigree = NULL,
+    method = c("BayesCpi", "BayesA", "BayesL", "BayesR", "BayesB", "BayesC", "BayesBpi", "BayesRR"),
 	map = NULL,
     Pi = NULL,
     fold = NULL,
     niter = 20000,
     nburn = 12000,
+	thin = 5,
     windsize = NULL,
 	windnum = NULL,
 	maf = 0.01,
@@ -129,16 +135,26 @@ function(
     ve = NULL,
     dfve = NULL,
     s2ve = NULL,
-    outfreq = NULL,
+    printfreq = 100,
     seed = 666666,
 	threads = 4,
     verbose = TRUE
 ){
 	set.seed(seed)
-	model <- match.arg(model)
+
+	if(!inherits(formula, "formula"))	stop("not a standard formula.")
+	if(is.null(data))	stop("no data assigned.")
+	if(ncol(data) < 2)	stop("the first column in 'data' should be the individual id.")
+	if(is.null(M))	stop("no genotype data.")
+	if(is.null(M.id))	stop("please assign the individuals id to 'M.id'.")
+	if(length(M.id) != nrow(M))	stop("number of individuals mismatched in 'M' and 'M.id'.")
+	if(is.null(pedigree))	stop("pedigree should be provided for single-step bayesian model.")
+	# if(nrow(data) != nrow(M))	stop("mismatched number of individuals between 'data' and 'M'.")
+
+	method <- match.arg(method)
 	if(!is.null(windsize) || !is.null(windnum)){
-		if(model == "BayesA" || model == "BayesRR" || model == "BayesL")
-			stop(paste0("can not implement GWAS analysis for the method: ", model))
+		if(method == "BayesA" || method == "BayesRR" || method == "BayesL")
+			stop(paste0("can not implement GWAS analysis for the method: ", method))
 		if(is.null(map)){
 			stop("map information must be provided.")
 		}else{
@@ -187,72 +203,81 @@ function(
 	}else{
 		windindx <- NULL
 	}
-	if(is.null(outfreq) || outfreq <= 0){
-		outfreq <- ifelse(niter > 1000, niter %/% 1000, 1)
-	}
-	if(outfreq >= (niter - nburn))	stop("bad setting for out frequency.")
+	if(thin >= (niter - nburn))	stop("bad setting for collecting frequency 'thin'.")
+	if(printfreq <= 0)	verbose <- FALSE
 	if(is.null(Pi)){
-		if(model == "BayesR"){
+		if(method == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)
 			if(is.null(fold))	fold <- c(0, 0.0001, 0.001, 0.01)
 		}else{
 			Pi <- c(0.95, 0.05)
 		}
 	}
-	y.id <- as.character(as.matrix(y.id)[, 1, drop=TRUE])
-	M.id <- as.character(as.matrix(M.id)[, 1, drop=TRUE])
-	if(!is.numeric(y)){
-		y <- as.matrix(y)[, 1, drop=TRUE]
-		if(is.character(y))	stop("y is not a vector of digital values.")
+	
+	myformula  <- paste(formula[2], formula[3], sep=' ~ ')
+	groups <- unlist(str_extract_all(myformula, pattern = "(?<=[\\)\\w\\d])\\W*?\\(.*?\\)"))
+	for (g in groups) {
+		# if g not starts with '~' or '+'
+		if (!(str_extract(g, pattern = "\\S") %in% c("~", "+"))) {
+			stop(paste0("Invalid random effects expression '", g, "', only operator '+' is allowed."))
+		}
+		# if the format not match '(1 | [:\w\d]+)'
+		if (!str_detect(g, pattern = "\\(1 \\| [:\\w\\d]+\\)")) {
+			stop(paste0("Invalid random effects expression '", str_extract(g, "\\(.*?\\)"), "', it should be in the format '(1 | x)'."))
+		}
 	}
-	if(length(y) != length(y.id))	stop("number of individuals not match between 'y' and 'y.id'.")
-	e <- rep(NA, length(y))
-	yNA <- is.na(y)
-	ytmp.id <- y.id
-	if(sum(yNA) != 0){
-		if(verbose)	cat(sum(yNA), "'NA' have been detected from y\n")
-		y <- y[!yNA]
-		y.id <- y.id[!yNA]
+	rand_term  <- sapply(groups, function(g) {str_extract(g, "\\S+(?=\\))")}, USE.NAMES = FALSE)
+	R <- NULL
+	for(r in rand_term){
+		split_str = unlist(strsplit(r,":"))
+		if(length(split_str) != 1){
+			Ri <- as.matrix(apply(data[, split_str], 1, function(x){if(sum(is.na(x)) != 0){NA}else{paste(x, collapse = ":")}}))
+		}else{
+			Ri <- as.matrix(as.character(data[, split_str]))
+		}
+		R <- cbind(R, Ri)
 	}
+	fixed_formula <- str_replace_all(myformula, pattern = "( \\+ )?\\(1 \\| \\S+\\)", replacement = "" )
+	fixed_formula <- str_replace_all(fixed_formula, pattern = "~ \\+ ", replacement = "~" )
+	fixed_formula <- str_replace_all(fixed_formula, pattern = "~$", replacement = "~1" )
+	fixed_formula <- formula(fixed_formula)
+
+	yNA <- union(attr(model.frame(fixed_formula, data = data), "na.action"), attr(na.omit(R), "na.action"))
+	yNA <- union(yNA, which(is.na(data[, as.character(formula[2]), drop = TRUE])))
+	yNA <- c(1:nrow(data)) %in% yNA
+	if(all(yNA))	stop("no effective data left.")
+	if(verbose && sum(yNA))	cat(sum(yNA), " individuals have been removed due to missings.\n")
+	
 	if(!is.matrix(M)){M <- as.matrix(M); gc()}
-	if(nrow(M) != length(M.id))	stop("number of individuals not match between 'M' and 'M.id'.")
+	M.id <- as.character(as.matrix(M.id)[, 1, drop=TRUE])
+	
 	p <- apply(M, 2, function(x){p <- mean(x) / 2; return(min(c(p, 1 - p)))})
 	if(sum(p < maf)){M[, p < maf] <- 0}
-	if(ncol(P) != 3)	stop("3 columns ('id', 'sir', 'dam') are required for pedigree.")
-	ped <- as.matrix(P)
+	if(ncol(pedigree) != 3)	stop("3 columns ('id', 'sir', 'dam') are required in pedigree.")
+	ped <- as.matrix(pedigree)
 	ped <- apply(ped, 2, as.character)
 	ped.id <- unique(as.character(ped))
 	Msub.id <- M.id[!M.id %in% ped.id]
-	if(length(Msub.id) == length(M.id))	stop("no shared individuals between 'M.id' and 'P'.")
+	if(length(Msub.id) == length(M.id))	stop("no shared individuals between 'M.id' and 'pedigree'.")
 	if(length(Msub.id)){
 		ped <- rbind(ped, cbind(Msub.id, "0", "0"))
 		ped.id <- c(Msub.id, ped.id)
 	}
-	ysub.id <- y.id[!y.id %in% ped.id]
-	if(length(ysub.id) == length(y.id))	stop("no shared individuals between 'y.id' and 'P'.")
-	if(length(ysub.id)){
-		if(verbose)	cat(length(ysub.id), " individuals can not be found in genotype or pedigree\n")
-		y.id <- y.id[y.id %in% ped.id]
-		y <- y[y.id %in% ped.id]
-	}
 	if(all(ped.id %in% M.id))	stop("all individuals have been genotyped, no necessaries to fit single-step bayes model.")
-	indx <- match(y.id, ytmp.id)
 
-	if(!is.null(X)){
-		if(!is.matrix(X))	X <- as.matrix(X)
-		if(nrow(X) != length(yNA))	stop("number of individuals not match between 'y' and 'X'.")
-		X <- X[indx, , drop=FALSE]
-		X_is_num <- apply(X, 2, is.numeric)
-		if(!all(X_is_num))	stop("covariates must be a numeric matrix, please use 'model.matrix' to convert.")
-		if(!all(apply(X, 2, function(x){unix <- unique(x); if(length(unix) == 1 && unix == 1){FALSE}else{TRUE}})))	stop("please remove intercept from covariates.")
-		if(!all(apply(X, 2, function(x){length(unique(x)) > 1})))	stop("covariates should not be a constant.")
+	y.id <- as.character(data[!yNA, 1, drop=TRUE])
+	ysub.id <- y.id[!y.id %in% ped.id]
+	if(length(ysub.id) == length(y.id))	stop("no shared individuals between 'data' and 'pedigree'.")
+	if(length(ysub.id)){
+		if(verbose)	cat(length(ysub.id), " individuals cannot be found in genotype or pedigree\n")
+		yNA[match(ysub.id, data[, as.character(formula[2]), drop = TRUE])] <- TRUE
+		y.id <- as.character(data[!yNA, 1, drop=TRUE])
 	}
-	if(!is.null(R)){
-		if(!is.matrix(R))	R <- as.matrix(R)
-		if(nrow(R) != length(yNA))	stop("number of individuals not match between 'y' and 'R'.")
-		R <- R[indx, , drop=FALSE]
-		R <- apply(R, 2, as.character)
-	}
+	y <- data[!yNA, as.character(formula[2]), drop = TRUE]
+	X <- model.matrix(fixed_formula, data = data[!yNA, , drop = FALSE])
+	X <- X[, !apply(X, 2, function(x){all(x == 1)}), drop = FALSE]
+	if(!ncol(X))	X <- NULL
+	R <- R[!yNA, , drop = FALSE]
 
 	pednew <- make_ped(ped[, 1], ped[, 2], ped[, 3], verbose)
 	ped.id <- pednew[[1]]
@@ -284,7 +309,7 @@ function(
 	y.M <- rbind(M[M.id %in% y.id, ], Mn[Mn.id %in% y.id, ])
 	y.J <- c(J[M.id %in% y.id], Jn[Mn.id %in% y.id])
 
-	res <- Bayes(y=y, X=y.M, model=model, Pi=Pi, fold=fold, C=X, R=R, epsl_y_J=y.J, epsl_Gi=Ai.nn, epsl_index=y.Mn.indx, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+	res <- Bayes(y=y, X=y.M, model=method, Pi=Pi, fold=fold, C=X, R=R, epsl_y_J=y.J, epsl_Gi=Ai.nn, epsl_index=y.Mn.indx, niter=niter, thin=thin, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	rm(y.M, y.J, Ai.nn); gc()
 
 	if(length(y.Mn.indx)){
@@ -297,8 +322,9 @@ function(
 	}
 	res$g <- data.frame(id = c(M.id, Mn.id), gebv = apply(res$MCMCsamples$g, 1, mean))
 
-	e[match(y.id.comb, ytmp.id)] <- res$e
-	res$e <- data.frame(id = ytmp.id, e = e)
+	e <- rep(NA, length(y))
+	e[match(y.id.comb, y.id)] <- res$e
+	res$e <- data.frame(id = y.id, e = e)
 
 	if(!is.null(windsize) | !is.null(windnum)){
 		WPPA <- res$gwas

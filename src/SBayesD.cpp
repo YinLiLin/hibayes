@@ -9,6 +9,7 @@ Rcpp::List SBayesD(
 	arma::vec Pi,
 	const int niter = 50000,
 	const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> fold = R_NilValue,
 	const Nullable<arma::uvec> windindx = R_NilValue,
     const Nullable<double> vg = R_NilValue,
@@ -52,7 +53,7 @@ Rcpp::List SBayesD(
         throw Rcpp::exception("length of Pi and fold not equals.");
     }
 
-    int n_records = (niter - nburn) / outfreq;
+    int n_records = (niter - nburn) / thin;
     int count = 0;
     int nzct = 0;
     int inc = 1;
@@ -190,9 +191,9 @@ Rcpp::List SBayesD(
         Rcpp::Rcout.precision(4);
         Rcpp::Rcout << "Prior parameters:" << std::endl;
         Rcpp::Rcout << "    Model fitted at [" << (model == "BayesRR" ? "Bayes Ridge Regression" : model) << "]" << std::endl;
-        Rcpp::Rcout << "    Number of observations " << n << std::endl;
+        Rcpp::Rcout << "    Population size " << n << std::endl;
         Rcpp::Rcout << "    Number of markers " << m << std::endl;
-        Rcpp::Rcout << "    Number of markers used for analysis" << count_y << std::endl;
+        Rcpp::Rcout << "    Number of markers used for analysis " << count_y << std::endl;
         for(int i = 0; i < Pi.n_elem; i++){
             if(i == 0){
                 Rcpp::Rcout << "    π for markers in zero effect size " << Pi[i] << endl;
@@ -464,7 +465,7 @@ Rcpp::List SBayesD(
         // vare_ = (yy - sum(g * (xy + r_hat)) + s2vare_ * dfvare_) / (n + dfvare_);
         tmp = (xy + r_hat);
 		vare_ = (yy - ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vare_ * dfvare_) / (n + dfvare_);
-		if(vare_ < 0)	vare_ = 0;
+		if(vare_ < 0)	vare_ = vara_ * 0.5;
 		vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
@@ -490,7 +491,7 @@ Rcpp::List SBayesD(
             nzct++;
         }
 
-        if(iter >= nburn && (iter + 1 - nburn) % outfreq == 0){
+        if(iter >= nburn && (iter + 1 - nburn) % thin == 0){
             
             if(!fixpi)  pi_store.col(count) = Pi;
             vara_store[count] = vara_;

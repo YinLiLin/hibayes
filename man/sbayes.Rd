@@ -7,7 +7,7 @@
 sbayes(
   sumstat,
   ldm,
-  model = c("BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi",
+  method = c("BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi",
     "BayesR", "CG"),
   map = NULL,
   Pi = NULL,
@@ -15,6 +15,7 @@ sbayes(
   fold = NULL,
   niter = 20000,
   nburn = 12000,
+  thin = 5,
   windsize = NULL,
   windnum = NULL,
   vg = NULL,
@@ -23,7 +24,7 @@ sbayes(
   ve = NULL,
   dfve = NULL,
   s2ve = NULL,
-  outfreq = NULL,
+  printfreq = 100,
   seed = 666666,
   threads = 4,
   verbose = TRUE
@@ -34,7 +35,7 @@ sbayes(
 
 \item{ldm}{dense or sparse matrix, ld for reference panel (m * m, m is the number of SNPs). NOTE that the order of SNPs should be consistent with summary data.}
 
-\item{model}{bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG".
+\item{method}{bayes methods including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG".
 \itemize{
 \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
 \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
@@ -59,6 +60,8 @@ sbayes(
 
 \item{nburn}{the number of iterations to be discarded.}
 
+\item{thin}{the number of thinning after burn-in. Note that smaller thinning frequency may have higher accuracy of estimated parameters, but would result in more memory for collecting process, on contrary, bigger frequency may have negative effect on accuracy of estimations.}
+
 \item{windsize}{window size in bp for GWAS, the default is 1e6.}
 
 \item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
@@ -75,7 +78,7 @@ sbayes(
 
 \item{s2ve}{scale parameter for the distribution of residual variance.}
 
-\item{outfreq}{frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.}
+\item{printfreq}{frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.}
 
 \item{seed}{seed for random sample.}
 
@@ -99,19 +102,33 @@ the function returns a list containing
 \description{
 Bayes linear regression model using summary level data
 }
+\details{
+\itemize{
+\item{if any one of the options 'windsize' and 'windnum' is specified, the GWAS results will be returned, and the 'map' information must be provided, in which the physical positions should be all in digital values.}
+\item{the 'windsize' or 'windnum' option only works for the methods of which the assumption has a proportion of zero effect markers, e.g., BayesB, BayesBpi, BayesC, BayesCpi, BSLMM, and BayesR.}
+}
+}
 \examples{
-bfile_path = system.file("extdata", "geno", package = "hibayes")
-data = read_plink(bfile_path, out=tempfile())
+bfile_path = system.file("extdata", "demo", package = "hibayes")
+data = read_plink(bfile_path)
+fam = data$fam
 geno = data$geno
 map = data$map
 head(map)
-sumstat_path = system.file("extdata", "geno.ma", package = "hibayes")
+sumstat_path = system.file("extdata", "demo.ma", package = "hibayes")
 sumstat = read.table(sumstat_path, header=TRUE)
 head(sumstat)
 
 \donttest{
 # computate ld variance covariance matrix
-ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
+## construct genome wide full variance-covariance matrix
+ldm1 <- ldmat(geno, threads=4)	
+## construct genome wide sparse variance-covariance matrix
+ldm2 <- ldmat(geno, chisq=5, threads=4)	
+## construct chromosome wide full variance-covariance matrix
+ldm3 <- ldmat(geno, map, ldchr=FALSE, threads=4)	
+## construct chromosome wide sparse variance-covariance matrix
+ldm4 <- ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)
 
 # if the order of SNPs in genotype is not consistent with the order in sumstat file, 
 # prior adjusting is necessary.
@@ -119,7 +136,11 @@ indx = match(map[, 1], sumstat[, 1])
 sumstat = sumstat[indx, ]
 
 # fit model
-fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
+fit = sbayes(sumstat=sumstat, ldm=ldm1, method="BayesCpi", Pi = c(0.95, 0.05), 
+	niter=20000, nburn=12000, seed=666666, map=map, windsize=1e6)
+
+# overview of the returned results
+summary(fit)
 
 # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 # get the SD of estimated SNP effects for markers

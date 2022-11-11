@@ -30,23 +30,25 @@ function(
 	out = NULL, 
 	threads = 4
 ){
-	if(is.null(out)){
-		backingfile <- paste0(basename(bfile),".bin")
-		descriptorfile <- paste0(basename(bfile),".desc")
-		backingpath <- "."
-	}else{
+	if(is.null(out))	out <- tempfile()
+	# {
+	# 	backingfile <- paste0(basename(bfile),".bin")
+	# 	descriptorfile <- paste0(basename(bfile),".desc")
+	# 	backingpath <- "."
+	# }else{
 		backingfile <- paste0(basename(out),".bin")
 		descriptorfile <- paste0(basename(out),".desc")
 		backingpath <- dirname(out)
-	}
-	map_file <- unlist(strsplit(descriptorfile, "", fixed = TRUE))
-	sep_index <- which(map_file == ".")
-	if(length(sep_index)){
-		map_file <- paste0(map_file[1 : (sep_index[length(sep_index)] - 1)], collapse="")
-	}else{
-		map_file <- paste0(map_file, collapse="")
-	}
-	map_file <- paste0(backingpath, "/", map_file)
+	# }
+	# map_file <- unlist(strsplit(descriptorfile, "", fixed = TRUE))
+	# sep_index <- which(map_file == ".")
+	# if(length(sep_index)){
+	# 	map_file <- paste0(map_file[1 : (sep_index[length(sep_index)] - 1)], collapse="")
+	# }else{
+	# 	map_file <- paste0(map_file, collapse="")
+	# }
+	# map_file <- paste0(backingpath, "/", map_file)
+	map_file <- out
 	map <- as.data.frame(rMap_c(paste0(bfile, ".bim"), out = map_file), stringsAsFactors=FALSE)
 	fam <- read.table(paste(bfile, ".fam", sep=""), header=FALSE, stringsAsFactors=FALSE)
 	colnames(fam) <- NULL

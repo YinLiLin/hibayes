@@ -69,6 +69,7 @@ Rcpp::List Bayes(
     const Nullable<arma::vec> fold = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> epsl_y_J = R_NilValue,
     const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
     const Nullable<arma::uvec> epsl_index = R_NilValue,
@@ -118,7 +119,7 @@ Rcpp::List Bayes(
     double vary = var(y);
     double h2 = 0.5;
 
-    int n_records = (niter - nburn) / outfreq;
+    int n_records = (niter - nburn) / thin;
 
     double* dci;
     int nc = 0;
@@ -385,7 +386,7 @@ Rcpp::List Bayes(
             Rcpp::Rcout << "    Observations with genotype " << (n - ne) << std::endl;
             Rcpp::Rcout << "    Observations with imputed genotype " << ne << std::endl;
         }
-        Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
+        Rcpp::Rcout << "    Number of covariates " << (nc + 1) << std::endl;
         Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
         Rcpp::Rcout << "    Number of markers " << m << std::endl;
         for(int i = 0; i < Pi.n_elem; i++){
@@ -409,7 +410,7 @@ Rcpp::List Bayes(
         }
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
-        Rcpp::Rcout << "    Frequency of collecting " << outfreq << std::endl;
+        Rcpp::Rcout << "    Frequency of collecting " << thin << std::endl;
         Rcpp::Rcout << "    Phenotypic var " << std::fixed << vary << std::endl;
         if(nr){
             Rcpp::Rcout << "    Environmental var ";
@@ -806,7 +807,7 @@ Rcpp::List Bayes(
         }
 
         // collect the parameters to obtain posterior estimation
-        if(iter >= nburn && (iter + 1 - nburn) % outfreq == 0){
+        if(iter >= nburn && (iter + 1 - nburn) % thin == 0){
             mu_store[count] = mu;
             if(!fixpi)  pi_store.col(count) = Pi;
             vara_store[count] = vara_;
@@ -1060,6 +1061,7 @@ Rcpp::List BayesK(
     const Nullable<arma::vec> fold = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> epsl_y_J = R_NilValue,
     const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
     const Nullable<arma::uvec> epsl_index = R_NilValue,
@@ -1076,10 +1078,10 @@ Rcpp::List BayesK(
 ){
     if(Rf_inherits(K, "dgCMatrix")){
         arma::sp_mat K_ = Rcpp::as<arma::sp_mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
     }else{
         arma::mat K_ = Rcpp::as<arma::mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
     }
 }
 
@@ -1094,6 +1096,7 @@ Rcpp::List Bayes(
     const Nullable<arma::vec> fold = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> epsl_y_J = R_NilValue,
     const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
     const Nullable<arma::uvec> epsl_index = R_NilValue,
@@ -1110,6 +1113,5 @@ Rcpp::List Bayes(
 ){
     arma::mat K;
     arma::uvec K_index;
-    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
+    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
 }
-

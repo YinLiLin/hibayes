@@ -14,6 +14,9 @@ NULL
 #' @import Rcpp
 NULL
 
+#' @import stringr
+NULL
+
 #' @importFrom stats runif
 NULL
 #' @importFrom stats rnorm
