@@ -33,7 +33,7 @@ hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is 
 To load plink binary data
 }
 \examples{
-bfile_path = system.file("extdata", "geno", package = "hibayes")
+bfile_path = system.file("extdata", "demo", package = "hibayes")
 data = read_plink(bfile_path, out=tempfile(), mode="A")
 fam = data$fam
 geno = data$geno

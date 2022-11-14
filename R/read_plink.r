@@ -10,7 +10,7 @@
 #' @param threads number, the number of used threads for parallel process
 
 #' @examples
-#' bfile_path = system.file("extdata", "geno", package = "hibayes")
+#' bfile_path = system.file("extdata", "demo", package = "hibayes")
 #' data = read_plink(bfile_path, out=tempfile(), mode="A")
 #' fam = data$fam
 #' geno = data$geno

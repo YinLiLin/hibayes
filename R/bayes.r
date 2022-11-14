@@ -57,7 +57,7 @@
 #' Moser, Gerhard, et al. "Simultaneous discovery, estimation and prediction analysis of complex traits using a Bayesian mixture model." PLoS genetics 11.4 (2015): e1004969. \cr 
 #'
 #' @return
-#' the function returns a list containing
+#' the function returns a 'blrMod' object containing
 #' \describe{
 #' \item{$mu}{the regression intercept}
 #' \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
@@ -79,42 +79,40 @@
 #' # Load the example data attached in the package
 #' pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 #' pheno = read.table(pheno_file_path, header=TRUE)
+#' 
 #' bfile_path = system.file("extdata", "demo", package = "hibayes")
-#' data = read_plink(bfile_path)
-#' fam = data$fam
-#' geno = data$geno
-#' map = data$map
+#' bin = read_plink(bfile_path)
+#' fam = bin$fam
+#' geno = bin$geno
+#' map = bin$map
 #' 
 #' # For GS/GP
 #' ## no environmental effects:
 #' fit = bayes(T1~1, data=pheno, M=geno, M.id=fam[,2], method="BayesCpi",
-#' 	niter=20000, nburn=12000, thin=5)
+#' 	niter=2000, nburn=1200, thin=5)
 #' 
 #' ## overview of the returned results
 #' summary(fit)
 #' 
+#' \donttest{
+#'
 #' ## add fixed effects or covariates:
 #' fit = bayes(T1~sex+season+day+bwt, data=pheno, M=geno, M.id=fam[,2],
 #' 	method="BayesCpi")
-#' 
+#'  
 #' ## add environmental random effects:
-#' fit = bayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' fit = bayes(T1~sex+(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	method="BayesCpi")
 #' 
-#' \donttest{
 #' # For GWAS
 #' fit = bayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	method="BayesCpi", map=map, windsize=1e6)
 #' }
 #' 
-#' # overview of the returned results:
-#' summary(fit)
-#' 
-#' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 #' # get the SD of estimated SNP effects for markers
-#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-#' # get the prediction error variance (PEV) of estimated breeding values
-#' gebv_pev = apply(fit$MCMCsamples$g, 1, var)
+#' summary(fit)$alpha
+#' # get the SD of estimated breeding values
+#' summary(fit)$g
 #' 
 #' @export
 
@@ -179,7 +177,7 @@ function(
 
 	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *\\+ ", replacement = "~" )
 	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *\\- ", replacement = "~" )
-	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~$", replacement = "~1" )
+	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *$", replacement = "~1" )
 
 	# warning
 	warn_pattern = "(. |~)\\(.*? \\| .*?\\)"
@@ -289,18 +287,18 @@ function(
 		res <- Bayes(y=y, X=M, model=method, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	}
 
-	if(!is.null(res$beta))	names(res$beta) <- colnames(X)
-	if(!is.null(res$Vr))	names(res$Vr) <- rand_term
-	if(!is.null(res$r))	attr(res$r, "nlevel") <- apply(R, 2, function(x){length(unique(x))})
+	if(!is.null(res[["beta"]]))	names(res[["beta"]]) <- colnames(X)
+	if(!is.null(res[["Vr"]]))	names(res[["Vr"]]) <- rand_term
+	if(!is.null(res[["r"]]))	attr(res[["r"]], "nlevel") <- apply(R, 2, function(x){length(unique(x))})
 
-	res$MCMCsamples$g <- matrix(0, length(M.id), ncol(res$MCMCsamples$alpha))
-	res$MCMCsamples$g[!yNA, ] <- M %*% res$MCMCsamples$alpha
+	res$MCMCsamples[["g"]] <- matrix(0, length(M.id), ncol(res$MCMCsamples$alpha))
+	res$MCMCsamples[["g"]][!yNA, ] <- M %*% res$MCMCsamples$alpha
 	if(!is.null(Mp)){
-		res$MCMCsamples$g[yNA, ] <- Mp %*% res$MCMCsamples$alpha
+		res$MCMCsamples[["g"]][yNA, ] <- Mp %*% res$MCMCsamples$alpha
 	}
-	res$g <- data.frame(id = M.id, gebv = apply(res$MCMCsamples$g, 1, mean))
+	res[["g"]] <- data.frame(id = M.id, gebv = apply(res$MCMCsamples[["g"]], 1, mean))
 
-	res$e <- data.frame(id = M.id[!yNA], e = res$e)
+	res[["e"]] <- data.frame(id = M.id[!yNA], e = res[["e"]])
 
 	if(!is.null(windsize) | !is.null(windnum)){
 		WPPA <- res$gwas

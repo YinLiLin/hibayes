@@ -95,7 +95,7 @@ ssbayes(
 \item{verbose}{whether to print the iteration information on console.}
 }
 \value{
-the function returns a list containing
+the function returns a  a 'blrMod' object containing
 \describe{
 \item{$J}{coefficient for genotype imputation residuals}
 \item{$Veps}{estimated variance of genotype imputation residuals}
@@ -125,11 +125,12 @@ where \eqn{y} is the vector of phenotypic values for both genotyped and non-geno
 # Load the example data attached in the package
 pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 pheno = read.table(pheno_file_path, header=TRUE)
+
 bfile_path = system.file("extdata", "demo", package = "hibayes")
-data = read_plink(bfile_path)
-fam = data$fam
-geno = data$geno
-map = data$map
+bin = read_plink(bfile_path)
+fam = bin$fam
+geno = bin$geno
+map = bin$map
 
 pedigree_file_path = system.file("extdata", "demo.ped", package = "hibayes")
 ped = read.table(pedigree_file_path, header=TRUE)
@@ -137,10 +138,12 @@ ped = read.table(pedigree_file_path, header=TRUE)
 # For GS/GP
 ## no environmental effects:
 fit = ssbayes(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
-	method="BayesCpi", niter=20000, nburn=12000, thin=5, printfreq=100)
+	method="BayesCpi", niter=1000, nburn=600, thin=5, printfreq=100)
 
 ## overview of the returned results
 summary(fit)
+
+\donttest{
 
 ## add fixed effects or covariates:
 fit = ssbayes(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
@@ -150,20 +153,15 @@ fit = ssbayes(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
 fit = ssbayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 	pedigree=ped, method="BayesCpi")
 
-\donttest{
 # For GWAS
 fit = ssbayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
-	pedigree=ped, map=map, windsize=1e6, method="BayesCpi")
+	pedigree=ped, method="BayesCpi", map=map, windsize=1e6)
 }
 
-# overview of the returned results:
-summary(fit)
-
-# The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 # get the SD of estimated SNP effects for markers
-snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-# get the prediction error variance (PEV) of estimated breeding values
-gebv_pev = apply(fit$MCMCsamples$g, 1, var)
+summary(fit)$alpha
+# get the SD of estimated breeding values
+summary(fit)$g
 
 }
 \references{

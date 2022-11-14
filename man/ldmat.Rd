@@ -12,7 +12,7 @@ ldmat(
   chisq = NULL,
   ldchr = FALSE,
   threads = 4,
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{
@@ -39,15 +39,15 @@ For full ld matrix, it returns a standard R matrix, for sparse matrix, it return
 To calculate density or sparse LD variance-covariance matrix with genotype in bigmemory format.
 }
 \examples{
-bfile_path = system.file("extdata", "geno", package = "hibayes")
-data = read_plink(bfile_path, out=tempfile())
+bfile_path = system.file("extdata", "demo", package = "hibayes")
+data = read_plink(bfile_path)
 geno = data$geno
 map = data$map
 \donttest{
-xx = ldmat(geno, threads=4)   #chromosome wide full ld matrix
-xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
-xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
-xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
+xx = ldmat(geno, threads=4, verbose=FALSE)   #chromosome wide full ld matrix
+# xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
+# xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
+# xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
 }
 
 }

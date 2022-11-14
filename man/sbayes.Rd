@@ -87,7 +87,7 @@ sbayes(
 \item{verbose}{whether to print the iteration information on console.}
 }
 \value{
-the function returns a list containing
+the function returns a 'blrMod' object containing
 \describe{
 \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 \item{$Vg}{estimated genetic variance}
@@ -110,11 +110,11 @@ Bayes linear regression model using summary level data
 }
 \examples{
 bfile_path = system.file("extdata", "demo", package = "hibayes")
-data = read_plink(bfile_path)
-fam = data$fam
-geno = data$geno
-map = data$map
-head(map)
+bin = read_plink(bfile_path)
+fam = bin$fam
+geno = bin$geno
+map = bin$map
+
 sumstat_path = system.file("extdata", "demo.ma", package = "hibayes")
 sumstat = read.table(sumstat_path, header=TRUE)
 head(sumstat)
@@ -124,11 +124,11 @@ head(sumstat)
 ## construct genome wide full variance-covariance matrix
 ldm1 <- ldmat(geno, threads=4)	
 ## construct genome wide sparse variance-covariance matrix
-ldm2 <- ldmat(geno, chisq=5, threads=4)	
+# ldm2 <- ldmat(geno, chisq=5, threads=4)	
 ## construct chromosome wide full variance-covariance matrix
-ldm3 <- ldmat(geno, map, ldchr=FALSE, threads=4)	
+# ldm3 <- ldmat(geno, map, ldchr=FALSE, threads=4)	
 ## construct chromosome wide sparse variance-covariance matrix
-ldm4 <- ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)
+# ldm4 <- ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)
 
 # if the order of SNPs in genotype is not consistent with the order in sumstat file, 
 # prior adjusting is necessary.
@@ -142,10 +142,8 @@ fit = sbayes(sumstat=sumstat, ldm=ldm1, method="BayesCpi", Pi = c(0.95, 0.05),
 # overview of the returned results
 summary(fit)
 
-# The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 # get the SD of estimated SNP effects for markers
-snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-
+summary(fit)$alpha
 }
 
 }

@@ -93,7 +93,7 @@ bayes(
 \item{verbose}{whether to print the iteration information on console.}
 }
 \value{
-the function returns a list containing
+the function returns a 'blrMod' object containing
 \describe{
 \item{$mu}{the regression intercept}
 \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
@@ -128,42 +128,40 @@ where \eqn{\beta} is a vector of estimated coefficient for covariates, and \eqn{
 # Load the example data attached in the package
 pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 pheno = read.table(pheno_file_path, header=TRUE)
+
 bfile_path = system.file("extdata", "demo", package = "hibayes")
-data = read_plink(bfile_path)
-fam = data$fam
-geno = data$geno
-map = data$map
+bin = read_plink(bfile_path)
+fam = bin$fam
+geno = bin$geno
+map = bin$map
 
 # For GS/GP
 ## no environmental effects:
 fit = bayes(T1~1, data=pheno, M=geno, M.id=fam[,2], method="BayesCpi",
-	niter=20000, nburn=12000, thin=5)
+	niter=2000, nburn=1200, thin=5)
 
 ## overview of the returned results
 summary(fit)
 
+\donttest{
+
 ## add fixed effects or covariates:
 fit = bayes(T1~sex+season+day+bwt, data=pheno, M=geno, M.id=fam[,2],
 	method="BayesCpi")
-
+ 
 ## add environmental random effects:
-fit = bayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+fit = bayes(T1~sex+(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 	method="BayesCpi")
 
-\donttest{
 # For GWAS
 fit = bayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 	method="BayesCpi", map=map, windsize=1e6)
 }
 
-# overview of the returned results:
-summary(fit)
-
-# The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 # get the SD of estimated SNP effects for markers
-snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-# get the prediction error variance (PEV) of estimated breeding values
-gebv_pev = apply(fit$MCMCsamples$g, 1, var)
+summary(fit)$alpha
+# get the SD of estimated breeding values
+summary(fit)$g
 
 }
 \references{

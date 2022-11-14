@@ -41,7 +41,7 @@
 #' @param verbose whether to print the iteration information on console.
 #'
 #' @return
-#' the function returns a list containing
+#' the function returns a  a 'blrMod' object containing
 #' \describe{
 #' \item{$J}{coefficient for genotype imputation residuals}
 #' \item{$Veps}{estimated variance of genotype imputation residuals}
@@ -70,11 +70,12 @@
 #' # Load the example data attached in the package
 #' pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 #' pheno = read.table(pheno_file_path, header=TRUE)
+#' 
 #' bfile_path = system.file("extdata", "demo", package = "hibayes")
-#' data = read_plink(bfile_path)
-#' fam = data$fam
-#' geno = data$geno
-#' map = data$map
+#' bin = read_plink(bfile_path)
+#' fam = bin$fam
+#' geno = bin$geno
+#' map = bin$map
 #' 
 #' pedigree_file_path = system.file("extdata", "demo.ped", package = "hibayes")
 #' ped = read.table(pedigree_file_path, header=TRUE)
@@ -82,10 +83,12 @@
 #' # For GS/GP
 #' ## no environmental effects:
 #' fit = ssbayes(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
-#' 	method="BayesCpi", niter=20000, nburn=12000, thin=5, printfreq=100)
+#' 	method="BayesCpi", niter=1000, nburn=600, thin=5, printfreq=100)
 #' 
 #' ## overview of the returned results
 #' summary(fit)
+#' 
+#' \donttest{
 #' 
 #' ## add fixed effects or covariates:
 #' fit = ssbayes(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
@@ -95,20 +98,15 @@
 #' fit = ssbayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	pedigree=ped, method="BayesCpi")
 #' 
-#' \donttest{
 #' # For GWAS
 #' fit = ssbayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
-#' 	pedigree=ped, map=map, windsize=1e6, method="BayesCpi")
+#' 	pedigree=ped, method="BayesCpi", map=map, windsize=1e6)
 #' }
 #' 
-#' # overview of the returned results:
-#' summary(fit)
-#' 
-#' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 #' # get the SD of estimated SNP effects for markers
-#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-#' # get the prediction error variance (PEV) of estimated breeding values
-#' gebv_pev = apply(fit$MCMCsamples$g, 1, var)
+#' summary(fit)$alpha
+#' # get the SD of estimated breeding values
+#' summary(fit)$g
 #' 
 #' @export
 
@@ -231,7 +229,7 @@ function(
 
 	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *\\+ ", replacement = "~" )
 	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *\\- ", replacement = "~" )
-	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~$", replacement = "~1" )
+	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *$", replacement = "~1" )
 
 	# warning
 	warn_pattern = "(. |~)\\(.*? \\| .*?\\)"
@@ -314,23 +312,23 @@ function(
 	rm(y.M, y.J, Ai.nn); gc()
 
 	if(length(y.Mn.indx)){
-		res$MCMCsamples$g <- as.matrix(c(J, Jn)) %*% res$MCMCsamples$J + rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha + res$MCMCsamples$epsilon)
+		res$MCMCsamples[["g"]] <- as.matrix(c(J, Jn)) %*% res$MCMCsamples[["J"]] + rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha + res$MCMCsamples$epsilon)
 		epsilon <- data.frame(id = Mn.id, epsilon = res$epsilon)
 		res$epsilon <- epsilon
 	}else{
 		warning("all phenotypic individuals have genotype information, thus can't fit imputation errors.")
-		res$MCMCsamples$g <- rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha)
+		res$MCMCsamples[["g"]] <- rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha)
 	}
 
-	if(!is.null(res$beta))	names(res$beta) <- colnames(X)
-	if(!is.null(res$Vr))	names(res$Vr) <- rand_term
-	if(!is.null(res$r))	attr(res$r, "nlevel") <- apply(R, 2, function(x){length(unique(x))})
+	if(!is.null(res[["beta"]]))	names(res[["beta"]]) <- colnames(X)
+	if(!is.null(res[["Vr"]]))	names(res[["Vr"]]) <- rand_term
+	if(!is.null(res[["r"]]))	attr(res[["r"]], "nlevel") <- apply(R, 2, function(x){length(unique(x))})
 
-	res$g <- data.frame(id = c(M.id, Mn.id), gebv = apply(res$MCMCsamples$g, 1, mean))
+	res[["g"]] <- data.frame(id = c(M.id, Mn.id), gebv = apply(res$MCMCsamples[["g"]], 1, mean))
 
 	e <- rep(NA, length(y))
-	e[match(y.id.comb, y.id)] <- res$e
-	res$e <- data.frame(id = y.id, e = e)
+	e[match(y.id.comb, y.id)] <- res[["e"]]
+	res[["e"]] <- data.frame(id = y.id, e = e)
 
 	if(!is.null(windsize) | !is.null(windnum)){
 		WPPA <- res$gwas

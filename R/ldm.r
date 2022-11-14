@@ -12,15 +12,15 @@
 #' @param verbose whether to print the information.
 #'
 #' @examples
-#' bfile_path = system.file("extdata", "geno", package = "hibayes")
-#' data = read_plink(bfile_path, out=tempfile())
+#' bfile_path = system.file("extdata", "demo", package = "hibayes")
+#' data = read_plink(bfile_path)
 #' geno = data$geno
 #' map = data$map
 #' \donttest{
-#' xx = ldmat(geno, threads=4)   #chromosome wide full ld matrix
-#' xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
-#' xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
-#' xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
+#' xx = ldmat(geno, threads=4, verbose=FALSE)   #chromosome wide full ld matrix
+#' # xx = ldmat(geno, chisq=5, threads=4)   #chromosome wide sparse ld matrix
+#' # xx = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
+#' # xx = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
 #' }
 #' 
 #' @return
@@ -36,7 +36,7 @@ ldmat <- function(
 	chisq = NULL,
 	ldchr = FALSE,
 	threads = 4,
-	verbose = TRUE
+	verbose = FALSE
 ){
 	if(!is.big.matrix(geno)){
 		geno <- as.big.matrix(geno)

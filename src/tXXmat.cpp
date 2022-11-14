@@ -529,7 +529,7 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
-			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs " << chrindx.n_elem << std::endl;
+			if(verbose)	Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs " << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
 			Progress p(chrindx.n_elem, verbose, pb);
 
@@ -567,7 +567,7 @@ SEXP tXXmat_Chr(XPtr<BigMatrix> pMat, const NumericVector chr, const Nullable<do
 		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
-			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs " << chrindx.n_elem << std::endl;
+			if(verbose)	Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs " << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
 			arma::mat ldmat_chr(chrindx.n_elem, chrindx.n_elem);
 			Progress p(chrindx.n_elem, verbose, pb);
@@ -663,7 +663,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
-			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in reference panel" << chrindx.n_elem << std::endl;
+			if(verbose)	Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in reference panel" << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
 			Progress p(chrindx.n_elem, verbose, pb);
 
@@ -702,7 +702,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 			}
 			chrindx = find(vecgwaschr == unichr[cc]);
 			if(chrindx.n_elem > 0){
-				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
+				if(verbose)	Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
 				MinimalProgressBar pb;
 				Progress p(chrindx.n_elem, verbose, pb);
 				#pragma omp parallel for schedule(dynamic) private(j, p1, m1, sum1, i, p12, p2, m2, sum2, k, r)
@@ -740,7 +740,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 		arma::sp_mat ldmat(m, m);
 		for(int cc = 0; cc < unichr.n_elem; cc++){
 			uvec chrindx = find(vecchr == unichr[cc]);
-			Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in reference panel" << chrindx.n_elem << std::endl;
+			if(verbose)	Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in reference panel" << chrindx.n_elem << std::endl;
 			MinimalProgressBar pb;
 			arma::mat ldmat_chr(chrindx.n_elem, chrindx.n_elem);
 			Progress p(chrindx.n_elem, verbose, pb);
@@ -779,7 +779,7 @@ SEXP tXXmat_Chr_gwas(XPtr<BigMatrix> pMat, const NumericVector chr, SEXP gwasgen
 
 			chrindx = find(vecgwaschr == unichr[cc]);
 			if(chrindx.n_elem > 0){
-				Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
+				if(verbose)	Rcpp::Rcout << "Loop on chromosome No." << cc + 1 << " with total number of SNPs in GWAS panel" << chrindx.n_elem << std::endl;
 				MinimalProgressBar pb;
 				Progress p(chrindx.n_elem, verbose, pb);
 				arma::mat ldmat_chr(chrindx.n_elem, chrindx.n_elem);
