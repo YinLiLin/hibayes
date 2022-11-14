@@ -228,6 +228,8 @@ function(
 		WPPA <- res$gwas
 		res$gwas <- data.frame(windinfo, WPPA)
 	}
-
+	res$call <- "b ~ nD^{-1}Vα + e"
+	attr(res$call, "model") <- paste0("Summary level Bayesian model fit by [", method, "]")
+	class(res) <- "blrMod"
 	return(res)
 }

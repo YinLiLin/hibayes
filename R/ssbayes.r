@@ -214,19 +214,8 @@ function(
 		}
 	}
 	
-	myformula  <- paste(formula[2], formula[3], sep=' ~ ')
-	groups <- unlist(str_extract_all(myformula, pattern = "(?<=[\\)\\w\\d])\\W*?\\(.*?\\)"))
-	for (g in groups) {
-		# if g not starts with '~' or '+'
-		if (!(str_extract(g, pattern = "\\S") %in% c("~", "+"))) {
-			stop(paste0("Invalid random effects expression '", g, "', only operator '+' is allowed."))
-		}
-		# if the format not match '(1 | [:\w\d]+)'
-		if (!str_detect(g, pattern = "\\(1 \\| [:\\w\\d]+\\)")) {
-			stop(paste0("Invalid random effects expression '", str_extract(g, "\\(.*?\\)"), "', it should be in the format '(1 | x)'."))
-		}
-	}
-	rand_term  <- sapply(groups, function(g) {str_extract(g, "\\S+(?=\\))")}, USE.NAMES = FALSE)
+	myformula  <- paste(formula[2], formula[3], sep='~')
+	rand_term <- unlist(str_extract_all(myformula, "(?<=(\\+ |~)\\(1 \\| )[:\\w\\d]+(?=\\))"))
 	R <- NULL
 	for(r in rand_term){
 		split_str = unlist(strsplit(r,":"))
@@ -237,9 +226,21 @@ function(
 		}
 		R <- cbind(R, Ri)
 	}
-	fixed_formula <- str_replace_all(myformula, pattern = "( \\+ )?\\(1 \\| \\S+\\)", replacement = "" )
-	fixed_formula <- str_replace_all(fixed_formula, pattern = "~ \\+ ", replacement = "~" )
-	fixed_formula <- str_replace_all(fixed_formula, pattern = "~$", replacement = "~1" )
+
+	fixed_formula  <- str_replace_all(myformula, pattern = "(\\+ |(?<=~))\\(1 \\| [:\\w\\d]+\\)", replacement = "" )
+
+	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *\\+ ", replacement = "~" )
+	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~ *\\- ", replacement = "~" )
+	fixed_formula  <- str_replace_all(fixed_formula, pattern = "~$", replacement = "~1" )
+
+	# warning
+	warn_pattern = "(. |~)\\(.*? \\| .*?\\)"
+	if (str_detect(fixed_formula, pattern = warn_pattern)) {
+		stop(paste0("Invalid random effects expression '", 
+			paste(unlist(str_extract_all(fixed_formula, warn_pattern)), collapse = "', '"), 
+			"',\n  it should be in the format '(1 | x)' or '+ (1 | x1:x2:...:xn)'."))
+	}
+
 	fixed_formula <- formula(fixed_formula)
 
 	yNA <- union(attr(model.frame(fixed_formula, data = data), "na.action"), attr(na.omit(R), "na.action"))
@@ -320,6 +321,11 @@ function(
 		warning("all phenotypic individuals have genotype information, thus can't fit imputation errors.")
 		res$MCMCsamples$g <- rbind(M %*% res$MCMCsamples$alpha, Mn %*% res$MCMCsamples$alpha)
 	}
+
+	if(!is.null(res$beta))	names(res$beta) <- colnames(X)
+	if(!is.null(res$Vr))	names(res$Vr) <- rand_term
+	if(!is.null(res$r))	attr(res$r, "nlevel") <- apply(R, 2, function(x){length(unique(x))})
+
 	res$g <- data.frame(id = c(M.id, Mn.id), gebv = apply(res$MCMCsamples$g, 1, mean))
 
 	e <- rep(NA, length(y))
@@ -330,6 +336,8 @@ function(
 		WPPA <- res$gwas
 		res$gwas <- data.frame(windinfo, WPPA)
 	}
-
+	res$call <- paste(formula[2], paste(formula[3], "J", "M[pedigree]", sep=" + "), sep=' ~ ')
+	attr(res$call, "model") <- paste0("Single-step Bayesian model fit by [", method, "]")
+	class(res) <- "blrMod"
 	return(res)
 }

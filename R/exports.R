@@ -14,7 +14,11 @@ NULL
 #' @import Rcpp
 NULL
 
-#' @import stringr
+#' @importFrom stringr str_extract_all
+NULL
+#' @importFrom stringr str_replace_all
+NULL
+#' @importFrom stringr str_detect
 NULL
 
 #' @importFrom stats runif
@@ -32,6 +36,8 @@ NULL
 #' @importFrom stats rcauchy
 NULL
 #' @importFrom stats rexp
+NULL
+#' @importFrom stats grepl
 NULL
 
 #' @importFrom methods new
