@@ -60,7 +60,7 @@ summary.blrMod <- function(object) {
 
 print.summary.hibayes <- function(x, ...) {
     
-    cat(attr(res$call, "model"), "\n")
+    cat(attr(x$call, "model"), "\n")
     cat("Formula:", x$call, "\n")
 
     if(!is.null(x$residuals)){
@@ -81,7 +81,7 @@ print.summary.hibayes <- function(x, ...) {
         cat("Number of obs:", nrow(x$residuals))
         if(nrow(x$envirR) > 1){
             cat(", group: ")
-            cat(paste(rownames(x$envirR)[-nrow(envirR)], attr(res$r, "nlevel"), sep = ", ", collapse="; "))
+            cat(paste(rownames(x$envirR)[-nrow(envirR)], attr(x$r, "nlevel"), sep = ", ", collapse="; "))
             cat("\n")
         }
     }
