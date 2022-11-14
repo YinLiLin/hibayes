@@ -39,6 +39,8 @@ NULL
 NULL
 #' @importFrom stats grepl
 NULL
+#' @importFrom stats printCoefmat
+NULL
 
 #' @importFrom methods new
 #' @export

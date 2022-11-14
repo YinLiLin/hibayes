@@ -1,4 +1,4 @@
-summary.blrMod <- function(object) {
+summary.blrMod <- function(object, ...) {
 
     is_bayes <- grepl("Individual", attr(object$call, "model"))
     is_sbayes <- grepl("Summary", attr(object$call, "model"))
@@ -91,7 +91,7 @@ print.summary.hibayes <- function(x, ...) {
     cat("Number of markers:", nrow(x$residuals), "predicted Individuals:", nrow(x$g))
 
     cat("\nMarker effects:\n")
-    print(summary(x$alpha, digits=6)[-4])
+    print(summary(x$alpha[, 2], digits=6)[-4])
 
     invisible(x)
 }
