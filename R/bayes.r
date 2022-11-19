@@ -28,6 +28,8 @@
 #' @param thin the number of thinning after burn-in. Note that smaller thinning frequency may have higher accuracy of estimated parameters, but would result in more memory for collecting process, on contrary, bigger frequency may have negative effect on accuracy of estimations.
 #' @param windsize window size in bp for GWAS, the default is NULL.
 #' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
+#' @param dfvr the number of degrees of freedom for the distribution of environmental variance. 
+#' @param s2vr scale parameter for the distribution of environmental variance.
 #' @param vg prior value of genetic variance.
 #' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
 #' @param s2vg scale parameter for the distribution of genetic variance.
@@ -131,6 +133,8 @@ function(
 	thin = 5,
     windsize = NULL,
 	windnum = NULL,
+	dfvr = NULL,
+	s2vr = NULL,
     vg = NULL,
     dfvg = NULL,
     s2vg = NULL,
@@ -282,9 +286,9 @@ function(
 	if(method == "BSLMM"){
 		G <- make_grm(M, lambda=lambda, inverse=TRUE, verbose=verbose)
 		indx <- c(1:nrow(M))
-		res <- BayesK(y=y, X=M, model=method, Pi=Pi, K=G, K_index=indx, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
+		res <- BayesK(y=y, X=M, model=method, Pi=Pi, K=G, K_index=indx, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, dfvr=dfvr, s2vr=s2vr, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	}else{
-		res <- Bayes(y=y, X=M, model=method, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
+		res <- Bayes(y=y, X=M, model=method, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, dfvr=dfvr, s2vr=s2vr, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	}
 
 	if(!is.null(res[["beta"]]))	names(res[["beta"]]) <- colnames(X)

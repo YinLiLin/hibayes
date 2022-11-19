@@ -17,7 +17,7 @@
 #' map = data$map
 
 #' @return
-#' hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is the first allele of each marker in *.bim file, therefore the estimated effect size is on A1 allele, users should pay attention to it when a process involves marker effect.
+#' four files will be generated in the directed folder: *.desc, *.bin, *.id, *.map, where '*' is the prefix of the argument 'out', the memory-mapping files can be fast loaded into memory by 'geno = attach.big.matrix("*.desc")'. Note that hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is the first allele of each marker in *.bim file, therefore the estimated effect size is on A1 allele, users should pay attention to it when a process involves marker effect.
 
 #' @export
 
@@ -72,5 +72,6 @@ function(
 			read_bed(bfile = bfile, pBigMat = geno@address, maxLine = maxLine, impt = impute, d = TRUE, threads = threads)
 		}
 	)
+	write.table(fam[, 2], paste0(out, ".id"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
 	return(list(fam=fam, geno=geno, map=map))	
 }

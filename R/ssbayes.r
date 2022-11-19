@@ -29,6 +29,8 @@
 #' @param windsize window size in bp for GWAS, the default is NULL.
 #' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
 #' @param maf the effects of markers whose MAF is lower than the threshold will not be estimated.
+#' @param dfvr the number of degrees of freedom for the distribution of environmental variance. 
+#' @param s2vr scale parameter for the distribution of environmental variance.
 #' @param vg prior value of genetic variance.
 #' @param dfvg the number of degrees of freedom for the distribution of genetic variance. 
 #' @param s2vg scale parameter for the distribution of genetic variance.
@@ -127,6 +129,8 @@ function(
     windsize = NULL,
 	windnum = NULL,
 	maf = 0.01,
+	dfvr = NULL,
+	s2vr = NULL,
     vg = NULL,
     dfvg = NULL,
     s2vg = NULL,
@@ -308,7 +312,7 @@ function(
 	y.M <- rbind(M[M.id %in% y.id, ], Mn[Mn.id %in% y.id, ])
 	y.J <- c(J[M.id %in% y.id], Jn[Mn.id %in% y.id])
 
-	res <- Bayes(y=y, X=y.M, model=method, Pi=Pi, fold=fold, C=X, R=R, epsl_y_J=y.J, epsl_Gi=Ai.nn, epsl_index=y.Mn.indx, niter=niter, thin=thin, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
+	res <- Bayes(y=y, X=y.M, model=method, Pi=Pi, fold=fold, C=X, R=R, epsl_y_J=y.J, epsl_Gi=Ai.nn, epsl_index=y.Mn.indx, niter=niter, thin=thin, nburn=nburn, windindx=windindx, dfvr=dfvr, s2vr=s2vr, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	rm(y.M, y.J, Ai.nn); gc()
 
 	if(length(y.Mn.indx)){

@@ -21,6 +21,8 @@ ssbayes(
   windsize = NULL,
   windnum = NULL,
   maf = 0.01,
+  dfvr = NULL,
+  s2vr = NULL,
   vg = NULL,
   dfvg = NULL,
   s2vg = NULL,
@@ -73,6 +75,10 @@ ssbayes(
 \item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
 
 \item{maf}{the effects of markers whose MAF is lower than the threshold will not be estimated.}
+
+\item{dfvr}{the number of degrees of freedom for the distribution of environmental variance.}
+
+\item{s2vr}{scale parameter for the distribution of environmental variance.}
 
 \item{vg}{prior value of genetic variance.}
 

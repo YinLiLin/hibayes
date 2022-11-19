@@ -19,6 +19,8 @@ bayes(
   thin = 5,
   windsize = NULL,
   windnum = NULL,
+  dfvr = NULL,
+  s2vr = NULL,
   vg = NULL,
   dfvg = NULL,
   s2vg = NULL,
@@ -69,6 +71,10 @@ bayes(
 \item{windsize}{window size in bp for GWAS, the default is NULL.}
 
 \item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
+
+\item{dfvr}{the number of degrees of freedom for the distribution of environmental variance.}
+
+\item{s2vr}{scale parameter for the distribution of environmental variance.}
 
 \item{vg}{prior value of genetic variance.}
 

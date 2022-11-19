@@ -139,6 +139,23 @@ void Gibbs(arma::sp_mat &A, arma::vec &x, arma::vec &b, double ve){
     }
 }
 
+void Gibbs(arma::sp_mat &A, arma::vec &x, arma::vec &b, double ve, int iter){
+    int n = b.n_elem;
+	arma::vec xmean = zeros(n);
+	for(int j = 0; j < iter; j++){
+		for(int i = 0; i < n; i++){
+			double aii = A(i, i);
+			double invlhs  = 1.0 / aii;
+			double Ax = dot(A.col(i), x);
+			double u = invlhs * (b[i] - Ax) + x[i];
+			x[i] = norm_sample(u, sqrt(invlhs * ve));
+		}
+		xmean += (x / iter);
+		// xmean += ((x - xmean) / iter);
+	}
+	x = xmean;
+}
+
 bool solver_chol(
 	arma::mat &A, 
 	double lambda = 0.0
