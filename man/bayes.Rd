@@ -5,19 +5,22 @@
 \title{Bayes model}
 \usage{
 bayes(
-  y,
-  M,
-  X = NULL,
-  R = NULL,
-  model = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC",
+  formula,
+  data = NULL,
+  M = NULL,
+  M.id = NULL,
+  method = c("BayesCpi", "BayesA", "BayesL", "BSLMM", "BayesR", "BayesB", "BayesC",
     "BayesBpi", "BayesRR"),
   map = NULL,
   Pi = NULL,
   fold = NULL,
   niter = 20000,
   nburn = 12000,
+  thin = 5,
   windsize = NULL,
   windnum = NULL,
+  dfvr = NULL,
+  s2vr = NULL,
   vg = NULL,
   dfvg = NULL,
   s2vg = NULL,
@@ -25,22 +28,22 @@ bayes(
   dfve = NULL,
   s2ve = NULL,
   lambda = 0,
-  outfreq = NULL,
+  printfreq = 100,
   seed = 666666,
   threads = 4,
   verbose = TRUE
 )
 }
 \arguments{
-\item{y}{vector of phenotype, use 'NA' for the missings. The number and order of individuals of y, M, X, R should be exactly the same.}
+\item{formula}{a two-sided linear formula object describing both the fixed-effects and random-effects part of the model, with the response on the left of a ‘~’ operator and the terms, separated by ‘+’ operators, on the right. Random-effects terms are distinguished by vertical bars (1|’) separating expressions for design matrices from grouping factors.}
+
+\item{data}{the data frame containing the variables named in 'formula', NOTE that the first column in 'data' should be the individual id.}
 
 \item{M}{numeric matrix of genotype with individuals in rows and markers in columns, NAs are not allowed.}
 
-\item{X}{(optional) covariate matrix of all individuals, all values should be in digits, characters are not allowed, please use 'model.matrix.lm' function to prepare it.}
+\item{M.id}{vector of id for genotyped individuals, NOTE that no need to adjust the order of id to be the same between 'data' and 'M', the package will do it automatically.}
 
-\item{R}{(optional) environmental random effects matrix of all individuals, NAs are not allowed for the individuals with phenotypic value.}
-
-\item{model}{bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "BSLMM".
+\item{method}{bayes methods including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "BSLMM".
 \itemize{
 \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP.
 \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution.
@@ -63,9 +66,15 @@ bayes(
 
 \item{nburn}{the number of iterations to be discarded.}
 
+\item{thin}{the number of thinning after burn-in. Note that smaller thinning frequency may have higher accuracy of estimated parameters, but would result in more memory for collecting process, on contrary, bigger frequency may have negative effect on accuracy of estimations.}
+
 \item{windsize}{window size in bp for GWAS, the default is NULL.}
 
 \item{windnum}{fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.}
+
+\item{dfvr}{the number of degrees of freedom for the distribution of environmental variance.}
+
+\item{s2vr}{scale parameter for the distribution of environmental variance.}
 
 \item{vg}{prior value of genetic variance.}
 
@@ -81,7 +90,7 @@ bayes(
 
 \item{lambda}{value of ridge regression for inverting a matrix.}
 
-\item{outfreq}{frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.}
+\item{printfreq}{frequency of printing iterative details on console.}
 
 \item{seed}{seed for random sample.}
 
@@ -90,7 +99,7 @@ bayes(
 \item{verbose}{whether to print the iteration information on console.}
 }
 \value{
-the function returns a list containing
+the function returns a 'blrMod' object containing
 \describe{
 \item{$mu}{the regression intercept}
 \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
@@ -113,37 +122,52 @@ Bayes linear regression model using individual level data
 \deqn{y = X \beta + R r + M \alpha + e}
 where \eqn{\beta} is a vector of estimated coefficient for covariates, and \eqn{r} is a vector of environmental random effects. \eqn{M} is a matrix of genotype covariate, \eqn{\alpha} is a vector of estimated marker effect size. \eqn{e} is a vector of residuals.
 }
+\details{
+\itemize{
+\item{the fixed effects and covariates in 'formula' must be in factors and numeric, respectively. if not, please remember to use 'as.factor' and 'as.numeric' to transform.}
+\item{the package has the automatical function of taking the intersection and adjusting the order of id between 'data' and the genotype 'M', thus the first column in 'data' should be the individual id.}
+\item{if any one of the options 'windsize' and 'windnum' is specified, the GWAS results will be returned, and the 'map' information must be provided, in which the physical positions should be all in digital values.}
+\item{the 'windsize' or 'windnum' option only works for the methods of which the assumption has a proportion of zero effect markers, e.g., BayesB, BayesBpi, BayesC, BayesCpi, BSLMM, and BayesR.}
+}
+}
 \examples{
 # Load the example data attached in the package
-pheno_file_path = system.file("extdata", "pheno.txt", package = "hibayes")
+pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 pheno = read.table(pheno_file_path, header=TRUE)
-bfile_path = system.file("extdata", "geno", package = "hibayes")
-data = read_plink(bfile_path, out=tempfile())
-fam = data$fam
-geno = data$geno
-map = data$map
 
-# Adjust the order of phenotype by genotype id
-geno.id = fam[, 2]
-pheno = pheno[match(geno.id, pheno[, 1]), ]
-
-# Add fixed effects, covariates, and random effect
-X <- model.matrix.lm(~as.numeric(scale)+as.factor(sex), data=pheno, na.action = "na.pass")
-X <- X[, -1] #remove the intercept
-# then fit the model as: fit = bayes(..., X=X, R=pheno[,c("group")], ...)
+bfile_path = system.file("extdata", "demo", package = "hibayes")
+bin = read_plink(bfile_path)
+fam = bin$fam
+geno = bin$geno
+map = bin$map
 
 # For GS/GP
-fit = bayes(y=pheno[, 2], M=geno, model="BayesR", niter=200, nburn=100)
+## no environmental effects:
+fit = bayes(T1~1, data=pheno, M=geno, M.id=fam[,2], method="BayesCpi",
+	niter=2000, nburn=1200, thin=5)
+
+## overview of the returned results
+summary(fit)
+
 \donttest{
+
+## add fixed effects or covariates:
+fit = bayes(T1~sex+season+day+bwt, data=pheno, M=geno, M.id=fam[,2],
+	method="BayesCpi")
+ 
+## add environmental random effects:
+fit = bayes(T1~sex+(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+	method="BayesCpi")
+
 # For GWAS
-fit = bayes(y=pheno[, 2], M=geno, map=map, windsize=1e6, model="BayesCpi")
+fit = bayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+	method="BayesCpi", map=map, windsize=1e6)
 }
 
-# The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
 # get the SD of estimated SNP effects for markers
-snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-# get the prediction error variance (PEV) of estimated breeding values
-gebv_pev = apply(fit$MCMCsamples$g, 1, var)
+summary(fit)$alpha
+# get the SD of estimated breeding values
+summary(fit)$g
 
 }
 \references{

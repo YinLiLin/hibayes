@@ -69,9 +69,12 @@ Rcpp::List Bayes(
     const Nullable<arma::vec> fold = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> epsl_y_J = R_NilValue,
     const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
     const Nullable<arma::uvec> epsl_index = R_NilValue,
+    const Nullable<double> dfvr = R_NilValue,
+    const Nullable<double> s2vr = R_NilValue,
     const Nullable<double> vg = R_NilValue,
     const Nullable<double> dfvg = R_NilValue,
     const Nullable<double> s2vg = R_NilValue,
@@ -118,7 +121,7 @@ Rcpp::List Bayes(
     double vary = var(y);
     double h2 = 0.5;
 
-    int n_records = (niter - nburn) / outfreq;
+    int n_records = (niter - nburn) / thin;
 
     double* dci;
     int nc = 0;
@@ -154,8 +157,18 @@ Rcpp::List Bayes(
     vec r_RHS;
     vec diff;
     int qr;
-    int dfr = 5;
+    double dfr;
     double s2r;
+    if(dfvr.isNotNull()){
+        dfr = as<double>(dfvr);
+    }else{
+        dfr = -1;
+    }
+    if(s2vr.isNotNull()){
+        s2r = as<double>(s2vr);
+    }else{
+        s2r = 0;
+    }
     mat vr_store;
     mat estR_store;
     vector<sp_mat> Z;
@@ -171,7 +184,7 @@ Rcpp::List Bayes(
         R_idx.resize(nr + 1); R_idx[0] = -1;
         vr_store.resize(nr, n_records);
         vrtmp.fill(vary * (1 - h2) / (nr + 1));
-        s2r = vrtmp[0] * (dfr - 2) / dfr;
+        // s2r = vrtmp[0] * (dfr - 2) / dfr;
         int n_levels = 0;
         for(int i = 0; i < nr; i++){
             CharacterVector Ri = R_(_, i);
@@ -269,6 +282,7 @@ Rcpp::List Bayes(
     double doc = 1.0;
     double xx, oldgi, gi, gi_, rhs, lhs, logdetV, acceptProb, uhat, v;
     double vara_, dfvara_, s2vara_, vare_, dfvare_, s2vare_, vargi, hsq, s2varg_;
+    // double sumvg;
     vec snptracker;
     vec nzrate;
     if(model == "BayesRR" || model == "BayesA" || model == "BayesL"){
@@ -385,7 +399,7 @@ Rcpp::List Bayes(
             Rcpp::Rcout << "    Observations with genotype " << (n - ne) << std::endl;
             Rcpp::Rcout << "    Observations with imputed genotype " << ne << std::endl;
         }
-        Rcpp::Rcout << "    Number of covariates " << nc << std::endl;
+        Rcpp::Rcout << "    Number of covariates " << (nc + 1) << std::endl;
         Rcpp::Rcout << "    Number of envir-random effects " << nr << std::endl;
         Rcpp::Rcout << "    Number of markers " << m << std::endl;
         for(int i = 0; i < Pi.n_elem; i++){
@@ -409,7 +423,7 @@ Rcpp::List Bayes(
         }
         Rcpp::Rcout << "    Total number of iteration " << niter << std::endl;
         Rcpp::Rcout << "    Total number of burn-in " << nburn << std::endl;
-        Rcpp::Rcout << "    Frequency of collecting " << outfreq << std::endl;
+        Rcpp::Rcout << "    Frequency of collecting " << thin << std::endl;
         Rcpp::Rcout << "    Phenotypic var " << std::fixed << vary << std::endl;
         if(nr){
             Rcpp::Rcout << "    Environmental var ";
@@ -463,7 +477,7 @@ Rcpp::List Bayes(
     for(int iter = 0; iter < niter; iter++){
 
         // sample intercept
-        mu_ = - norm_sample(mean(yadj), sqrt(vare_ / n));
+        mu_ = - norm_sample(sum(yadj) / n, sqrt(vare_ / n));
         mu -= mu_;
 		daxpy_(&n, &mu_, one.memptr(), &inc, dyadj, &inc);
 
@@ -492,6 +506,7 @@ Rcpp::List Bayes(
             vrtmp[i] = (ddot_(&qr, estR_tmp.memptr(), &inc, estR_tmp.memptr(), &inc) + s2r * dfr) / (qr + dfr);
             vrtmp[i] = invchisq_sample(qr + dfr, vrtmp[i]);
             vr[i] = var(estR_tmp);
+            // vr[i] = vrtmp[i];
             estR.subvec(R_idx[i] + 1, R_idx[i + 1]) = estR_tmp;
         }
 
@@ -511,7 +526,8 @@ Rcpp::List Bayes(
             vbtmp += s2vara_ * dfvara_;
             vbtmp /= (dfvara_ + qk);
             vbtmp = invchisq_sample(qk + dfvara_, vbtmp);
-            vb = var(k_estR_tmp) / sumvx;
+            // vb = var(k_estR_tmp) / sumvx;
+            vb = vbtmp;
             k_estR = k_estR_tmp;
         }
 
@@ -532,6 +548,7 @@ Rcpp::List Bayes(
             epsl_RHS = epsl_Z.t() * epsl_yadj;
             epsl_RHS += epsl_ZZ * epsl_estR_tmp;
             Gibbs(epsl_LHS, epsl_estR_tmp, epsl_RHS, vare_);
+            // epsl_estR_tmp = spsolve(epsl_LHS, epsl_RHS, "lapack");
             gi_ = -1;
             daxpy_(&qe, &gi_, epsl_estR_tmp.memptr(), &inc, epsl_estR.memptr(), &inc);
             epsl_yadj = epsl_Z * epsl_estR;
@@ -542,7 +559,8 @@ Rcpp::List Bayes(
             vepstmp /= (dfvara_ + qe);
             vepstmp = invchisq_sample(qe + dfvara_, vepstmp);
             epsl_estR = epsl_estR_tmp;
-            veps = var(epsl_estR);
+            // veps = var(epsl_estR);
+            veps = vepstmp;
         }
         
         switch(model_index){
@@ -779,6 +797,7 @@ Rcpp::List Bayes(
 
         // genetic variance
         vara_ = var(u);
+        // vara_ = invchisq_sample(n + dfvara_, vara_);
     
         // sample residual variance from inv-chisq distribution
         vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
@@ -806,7 +825,7 @@ Rcpp::List Bayes(
         }
 
         // collect the parameters to obtain posterior estimation
-        if(iter >= nburn && (iter + 1 - nburn) % outfreq == 0){
+        if(iter >= nburn && (iter + 1 - nburn) % thin == 0){
             mu_store[count] = mu;
             if(!fixpi)  pi_store.col(count) = Pi;
             vara_store[count] = vara_;
@@ -1060,9 +1079,12 @@ Rcpp::List BayesK(
     const Nullable<arma::vec> fold = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> epsl_y_J = R_NilValue,
     const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
     const Nullable<arma::uvec> epsl_index = R_NilValue,
+    const Nullable<double> dfvr = R_NilValue,
+    const Nullable<double> s2vr = R_NilValue,
     const Nullable<double> vg = R_NilValue,
     const Nullable<double> dfvg = R_NilValue,
     const Nullable<double> s2vg = R_NilValue,
@@ -1076,10 +1098,10 @@ Rcpp::List BayesK(
 ){
     if(Rf_inherits(K, "dgCMatrix")){
         arma::sp_mat K_ = Rcpp::as<arma::sp_mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, dfvr, s2vr, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
     }else{
         arma::mat K_ = Rcpp::as<arma::mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
+        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, dfvr, s2vr, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
     }
 }
 
@@ -1094,9 +1116,12 @@ Rcpp::List Bayes(
     const Nullable<arma::vec> fold = R_NilValue,
     const int niter = 50000,
     const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> epsl_y_J = R_NilValue,
     const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
     const Nullable<arma::uvec> epsl_index = R_NilValue,
+    const Nullable<double> dfvr = R_NilValue,
+    const Nullable<double> s2vr = R_NilValue,
     const Nullable<double> vg = R_NilValue,
     const Nullable<double> dfvg = R_NilValue,
     const Nullable<double> s2vg = R_NilValue,
@@ -1110,6 +1135,5 @@ Rcpp::List Bayes(
 ){
     arma::mat K;
     arma::uvec K_index;
-    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, epsl_y_J, epsl_Gi, epsl_index, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
+    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, dfvr, s2vr, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
 }
-

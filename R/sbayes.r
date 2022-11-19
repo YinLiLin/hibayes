@@ -4,7 +4,7 @@
 #'
 #' @param sumstat matrix of summary data, details refer to https://cnsgenomics.com/software/gcta/#COJO.
 #' @param ldm dense or sparse matrix, ld for reference panel (m * m, m is the number of SNPs). NOTE that the order of SNPs should be consistent with summary data.
-#' @param model bayes model including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG".
+#' @param method bayes methods including: "BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG".
 #' \itemize{
 #' \item "BayesRR": Bayes Ridge Regression, all SNPs have non-zero effects and share the same variance, equals to RRBLUP or GBLUP. 
 #' \item "BayesA": all SNPs have non-zero effects, and take different variance which follows an inverse chi-square distribution. 
@@ -22,6 +22,7 @@
 #' @param fold percentage of variance explained for groups of SNPs, the default is c(0, 0.0001, 0.001, 0.01).
 #' @param niter the number of MCMC iteration.
 #' @param nburn the number of iterations to be discarded.
+#' @param thin the number of thinning after burn-in. Note that smaller thinning frequency may have higher accuracy of estimated parameters, but would result in more memory for collecting process, on contrary, bigger frequency may have negative effect on accuracy of estimations.
 #' @param windsize window size in bp for GWAS, the default is 1e6.
 #' @param windnum fixed number of SNPs in a window for GWAS, if it is specified, 'windsize' will be invalid, the default is NULL.
 #' @param vg prior value of genetic variance.
@@ -30,13 +31,19 @@
 #' @param ve prior value of residual variance.
 #' @param dfve the number of degrees of freedom for the distribution of residual variance.
 #' @param s2ve scale parameter for the distribution of residual variance.
-#' @param outfreq frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.
+#' @param printfreq frequency of collecting the estimated parameters and printing on console. Note that smaller frequency may have higher accuracy of estimated parameters, but would result in more time and memory for collecting process, on contrary, bigger frequency may have an negative effect on accuracy of estimations.
 #' @param seed seed for random sample.
 #' @param threads number of threads used for OpenMP.
 #' @param verbose whether to print the iteration information on console.
 #'
+#' @details
+#' \itemize{
+#' 	   \item{if any one of the options 'windsize' and 'windnum' is specified, the GWAS results will be returned, and the 'map' information must be provided, in which the physical positions should be all in digital values.}
+#'     \item{the 'windsize' or 'windnum' option only works for the methods of which the assumption has a proportion of zero effect markers, e.g., BayesB, BayesBpi, BayesC, BayesCpi, BSLMM, and BayesR.}
+#' }
+#'
 #' @return
-#' the function returns a list containing
+#' the function returns a 'blrMod' object containing
 #' \describe{
 #' \item{$pi}{estimated proportion of zero effect and non-zero effect SNPs}
 #' \item{$Vg}{estimated genetic variance}
@@ -52,18 +59,26 @@
 #' Lloyd-Jones, Luke R., et al. "Improved polygenic prediction by Bayesian multiple regression on summary statistics." Nature communications 10.1 (2019): 1-11.
 #' 
 #' @examples
-#' bfile_path = system.file("extdata", "geno", package = "hibayes")
-#' data = read_plink(bfile_path, out=tempfile())
-#' geno = data$geno
-#' map = data$map
-#' head(map)
-#' sumstat_path = system.file("extdata", "geno.ma", package = "hibayes")
+#' bfile_path = system.file("extdata", "demo", package = "hibayes")
+#' bin = read_plink(bfile_path)
+#' fam = bin$fam
+#' geno = bin$geno
+#' map = bin$map
+#' 
+#' sumstat_path = system.file("extdata", "demo.ma", package = "hibayes")
 #' sumstat = read.table(sumstat_path, header=TRUE)
 #' head(sumstat)
 #' 
 #' \donttest{
 #' # computate ld variance covariance matrix
-#' ldm1 = ldmat(geno, threads=4)   #chromosome wide full ld matrix
+#' ## construct genome wide full variance-covariance matrix
+#' ldm1 <- ldmat(geno, threads=4)	
+#' ## construct genome wide sparse variance-covariance matrix
+#' # ldm2 <- ldmat(geno, chisq=5, threads=4)	
+#' ## construct chromosome wide full variance-covariance matrix
+#' # ldm3 <- ldmat(geno, map, ldchr=FALSE, threads=4)	
+#' ## construct chromosome wide sparse variance-covariance matrix
+#' # ldm4 <- ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)
 #' 
 #' # if the order of SNPs in genotype is not consistent with the order in sumstat file, 
 #' # prior adjusting is necessary.
@@ -71,12 +86,14 @@
 #' sumstat = sumstat[indx, ]
 #' 
 #' # fit model
-#' fit = sbayes(sumstat=sumstat, ldm=ldm1, model="BayesR")
+#' fit = sbayes(sumstat=sumstat, ldm=ldm1, method="BayesCpi", Pi = c(0.95, 0.05), 
+#' 	niter=20000, nburn=12000, seed=666666, map=map, windsize=1e6)
 #' 
-#' # The standard deviation of unknow parameters can be obtained from the list 'MCMCsamples':
+#' # overview of the returned results
+#' summary(fit)
+#' 
 #' # get the SD of estimated SNP effects for markers
-#' snp_effect_sd = apply(fit$MCMCsamples$alpha, 1, sd)
-#' 
+#' summary(fit)$alpha
 #' }
 #'
 #' @export
@@ -85,13 +102,14 @@ sbayes <-
 function(
     sumstat,
     ldm,
-    model = c("BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG"),
+    method = c("BayesB", "BayesA", "BayesL", "BayesRR", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG"),
     map = NULL,
     Pi = NULL,
     lambda = NULL,
     fold = NULL,
     niter = 20000,
     nburn = 12000,
+	thin = 5,
     windsize = NULL,
 	windnum = NULL,
     vg = NULL,
@@ -100,7 +118,7 @@ function(
     ve = NULL,
     dfve = NULL,
     s2ve = NULL,
-    outfreq = NULL,
+    printfreq = 100,
     seed = 666666,
 	threads = 4,
     verbose = TRUE
@@ -113,10 +131,10 @@ function(
 		stop("Unrecognized type of ldm.")
 	}
 	set.seed(seed)
-	model <- match.arg(model)
+	method <- match.arg(method)
 	if(!is.null(windsize) || !is.null(windnum)){
-		if(model == "BayesA" || model == "BayesRR" || model == "BayesL")
-			stop(paste0("can not implement GWAS analysis for the method: ", model))
+		if(method == "BayesA" || method == "BayesRR" || method == "BayesL")
+			stop(paste0("can not implement GWAS analysis for the method: ", method))
 		if(is.null(map)){
 			stop("map information must be provided.")
 		}else{
@@ -169,12 +187,10 @@ function(
 	}else{
 		windindx <- NULL
 	}
-	if(is.null(outfreq) || outfreq <= 0){
-		outfreq <- ifelse(niter > 1000, niter %/% 1000, 1)
-	}
-	if(outfreq >= (niter - nburn))	stop("bad setting for out frequency.")
+	if(thin >= (niter - nburn))	stop("bad setting for collecting frequency 'thin'.")
+	if(printfreq <= 0)	verbose <- FALSE
 	if(is.null(Pi)){
-		if(match.arg(model) == "BayesR"){
+		if(match.arg(method) == "BayesR"){
 			Pi <- c(0.95, 0.02, 0.02, 0.01)
 			if(is.null(fold))	fold <- c(0, 0.0001, 0.001, 0.01)
 		}else{
@@ -186,30 +202,32 @@ function(
 	# if(any(is.na(sumstat[, c(4, 5, 6)])))	stop("'NA' is not allowed for BETA and SE.")
 	sumstat <- sumstat[, c(4, 5, 6, 8)]
 	sumstat <- data.matrix(sumstat)
-	if(model != "CG"){
+	if(method != "CG"){
 		if(sparse){
-			res <- SBayesS(sumstat=sumstat, ldm=ldm, model=model, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+			res <- SBayesS(sumstat=sumstat, ldm=ldm, model=method, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 		}else{
-			res <- SBayesD(sumstat=sumstat, ldm=ldm, model=model, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=outfreq, threads=threads, verbose=verbose)
+			res <- SBayesD(sumstat=sumstat, ldm=ldm, model=method, Pi=Pi, fold=fold, niter=niter, nburn=nburn, windindx=windindx, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 		}
 	}else{
 		if(!is.null(lambda)){
 			if(length(lambda) == 1){
 				lambda = rep(lambda, nrow(sumstat))
 			}else if(length(lambda) != nrow(sumstat)){
-				stop("length of lambda should equal to the length of SNPs.")
+				stop("length of lambda should be equal to the number of SNPs.")
 			}
 		}
 		if(sparse){
-			res <- conjgt_spa(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=outfreq, verbose=verbose)
+			res <- conjgt_spa(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=printfreq, verbose=verbose)
 		}else{
-			res <- conjgt_den(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=outfreq, verbose=verbose)
+			res <- conjgt_den(sumstat=sumstat, ldm=ldm, lambda = lambda, outfreq=printfreq, verbose=verbose)
 		}
 	}
-	if((!is.null(windsize) | !is.null(windnum)) & match.arg(model) != "CG"){
+	if((!is.null(windsize) | !is.null(windnum)) & match.arg(method) != "CG"){
 		WPPA <- res$gwas
 		res$gwas <- data.frame(windinfo, WPPA)
 	}
-
+	res$call <- paste0("b ~ nD","\U207b\U00b9", "V", "\U03b1", " + e")
+	attr(res$call, "model") <- paste0("Summary level Bayesian model fit by [", method, "]")
+	class(res) <- "blrMod"
 	return(res)
 }

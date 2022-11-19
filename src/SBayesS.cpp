@@ -25,6 +25,7 @@ Rcpp::List SBayesS(
 	arma::vec Pi,
 	const int niter = 50000,
 	const int nburn = 20000,
+    const int thin = 5,
     const Nullable<arma::vec> fold = R_NilValue,
 	const Nullable<arma::uvec> windindx = R_NilValue,
     const Nullable<double> vg = R_NilValue,
@@ -68,7 +69,7 @@ Rcpp::List SBayesS(
         throw Rcpp::exception("length of Pi and fold not equals.");
     }
 
-    int n_records = (niter - nburn) / outfreq;
+    int n_records = (niter - nburn) / thin;
 
     int count = 0;
     int nzct = 0;
@@ -534,7 +535,7 @@ Rcpp::List SBayesS(
         // vare_ = (yy - sum(g * (xy + r_hat)) + s2vare_ * dfvare_) / (n + dfvare_);
         tmp = (xy + r_hat);
 		vare_ = (yy - ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vare_ * dfvare_) / (n + dfvare_);
-		if(vare_ < 0)	vare_ = 0;
+		if(vare_ < 0)	vare_ = vara_ * 0.5;
 		vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
@@ -560,7 +561,7 @@ Rcpp::List SBayesS(
             nzct++;
         }
 
-        if(iter >= nburn && (iter + 1 - nburn) % outfreq == 0){
+        if(iter >= nburn && (iter + 1 - nburn) % thin == 0){
             
             if(!fixpi)  pi_store.col(count) = Pi;
             vara_store[count] = vara_;
