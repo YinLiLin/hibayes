@@ -74,13 +74,13 @@
 #' pheno = read.table(pheno_file_path, header=TRUE)
 #' 
 #' bfile_path = system.file("extdata", "demo", package = "hibayes")
-#' bin = read_plink(bfile_path)
+#' bin = read_plink(bfile_path, threads=1)
 #' fam = bin$fam
 #' geno = bin$geno
 #' map = bin$map
 #' 
 #' pedigree_file_path = system.file("extdata", "demo.ped", package = "hibayes")
-#' ped = read.table(pedigree_file_path, header=TRUE, threads=1)
+#' ped = read.table(pedigree_file_path, header=TRUE)
 #' 
 #' # For GS/GP
 #' ## no environmental effects:
