@@ -27,7 +27,7 @@ read_plink(
 \item{threads}{number, the number of used threads for parallel process}
 }
 \value{
-four files will be generated in the directed folder: *.desc, *.bin, \emph{.id, \emph{.map, where '}' is the prefix of the argument 'out', the memory-mapping files can be fast loaded into memory by 'geno = attach.big.matrix("}.desc")'. Note that hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is the first allele of each marker in *.bim file, therefore the estimated effect size is on A1 allele, users should pay attention to it when a process involves marker effect.
+four files will be generated in the directed folder: "xx.desc", "xx.bin", "xx.id, "xx.map", where 'xx' is the prefix of the argument 'out', the memory-mapping files can be fast loaded into memory by 'geno = attach.big.matrix("xx.desc")'. Note that hibayes will code the genotype A1A1 as 2, A1A2 as 1, and A2A2 as 0, where A1 is the first allele of each marker in ".bim" file, therefore the estimated effect size is on A1 allele, users should pay attention to it when a process involves marker effect.
 }
 \description{
 To load plink binary data

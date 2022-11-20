@@ -110,7 +110,7 @@ Bayes linear regression model using summary level data
 }
 \examples{
 bfile_path = system.file("extdata", "demo", package = "hibayes")
-bin = read_plink(bfile_path)
+bin = read_plink(bfile_path, threads=1)
 fam = bin$fam
 geno = bin$geno
 map = bin$map
@@ -137,7 +137,7 @@ sumstat = sumstat[indx, ]
 
 # fit model
 fit = sbayes(sumstat=sumstat, ldm=ldm1, method="BayesCpi", Pi = c(0.95, 0.05), 
-	niter=20000, nburn=12000, seed=666666, map=map, windsize=1e6)
+	niter=20000, nburn=12000, seed=666666, map=map, windsize=1e6, threads=1)
 
 # overview of the returned results
 summary(fit)

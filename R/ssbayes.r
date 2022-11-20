@@ -80,12 +80,12 @@
 #' map = bin$map
 #' 
 #' pedigree_file_path = system.file("extdata", "demo.ped", package = "hibayes")
-#' ped = read.table(pedigree_file_path, header=TRUE)
+#' ped = read.table(pedigree_file_path, header=TRUE, threads=1)
 #' 
 #' # For GS/GP
 #' ## no environmental effects:
 #' fit = ssbayes(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
-#' 	method="BayesCpi", niter=1000, nburn=600, thin=5, printfreq=100)
+#' 	method="BayesCpi", niter=1000, nburn=600, thin=5, printfreq=100, threads=1)
 #' 
 #' ## overview of the returned results
 #' summary(fit)

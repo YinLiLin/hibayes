@@ -136,7 +136,7 @@ pheno_file_path = system.file("extdata", "demo.phe", package = "hibayes")
 pheno = read.table(pheno_file_path, header=TRUE)
 
 bfile_path = system.file("extdata", "demo", package = "hibayes")
-bin = read_plink(bfile_path)
+bin = read_plink(bfile_path, threads=1)
 fam = bin$fam
 geno = bin$geno
 map = bin$map
@@ -144,7 +144,7 @@ map = bin$map
 # For GS/GP
 ## no environmental effects:
 fit = bayes(T1~1, data=pheno, M=geno, M.id=fam[,2], method="BayesCpi",
-	niter=2000, nburn=1200, thin=5)
+	niter=2000, nburn=1200, thin=5, threads=1)
 
 ## overview of the returned results
 summary(fit)
