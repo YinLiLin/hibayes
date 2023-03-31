@@ -1,5 +1,5 @@
 # hibayes 
-[![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-2.0.0-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
+[![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-3.0.0-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FYinLiLin%2Fhibayes"/></a>
 ## Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies
 
 **```hibayes```** (say 'Hi' to Bayes) is an user-friendly [R](https://www.r-project.org) package to fit 3 types of Bayesian models using **[individual-level](#1-individual-level-bayesian-model)**, **[summary-level](#2-summary-level-bayesian-model)**, and **[individual plus pedigree-level](#3-single-step-bayesian-model)** (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:  
@@ -49,14 +49,15 @@ The latest version of **```hibayes```**  in development can be installed from Gi
 Yin LL, Zhang HH, Li XY, Zhao SH, Liu XL. [hibayes: An R Package to Fit Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies](https://www.biorxiv.org/content/10.1101/2022.02.12.480230v2), ***bioRxiv*** (2022), doi: 10.1101/2022.02.12.480230.
 ## Usage
 ### 1. Individual level Bayesian model
-To fit individual level Bayesian model (*```bayes```*), at least the phenotype(***n***), numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that are coded from other software by *```read.table```* to fit model, note that 'NA' is not allowed in genotype data:
+To fit individual level Bayesian model (*```ibrm()```*), at least the phenotype, numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that are coded from other software by *```read.table()```* to fit model, note that 'NA' is not allowed in genotype data:
 ```r
 > pheno = read.table("your_pheno.txt")
-> geno = read.table("your_geno.txt") # genotype should be coded in digits (either 0, 1, 2 or -1, 0, 1 is acceptable)
+> # genotype should be coded in digits (either 0, 1, 2 or -1, 0, 1 is acceptable)
+> geno = read.table("your_geno.txt") 
 > geno.id = read.table("your_genoid.txt")
 ```
 the genotype and the names of genotyped individuals in the same order with genotype should be prepared separately, and the genotype matrix should be coded in digits, either in c(0, 1, 2) or c(-1, 0, 1) is acceptable.<br>
-Additionally, we pertinently provide a function *```read_plink```* to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory, and three memory-mapping files named "*.map", "*.desc", "*.id" and "*.bin" will be generated. For example, load the attached tutorial data in **```hibayes```**:
+Additionally, we pertinently provide a function *```read_plink()```* to load [PLINK binary files](http://zzz.bwh.harvard.edu/plink/binary.shtml) into memory, and three memory-mapping files named "*.map", "*.desc", "*.id" and "*.bin" will be generated. For example, load the attached tutorial data in **```hibayes```**:
 ```r
 > bfile_path <- system.file("extdata", "demo", package = "hibayes")
 > bin <- read_plink(bfile = bfile_path, mode = "A", threads = 4)
@@ -122,17 +123,17 @@ Following methods are available currently, including:
  - ***"BSLMM":*** all SNPs have non-zero effects, and take the same variance, but a small proportion of SNPs have additional shared variance. 
  - ***"BayesR":*** only a small proportion of SNPs have non-zero effects, and the SNPs are allocated into different groups, each group has the same variance. 
 
-Type *```?bayes```* to see details of all parameters.
+Type *```?ibrm()```* to see details of all parameters.
 
 #### (a) Gemonic prediction/selection
 ```r
-> fitCpi <- bayes(T1 ~ season + bwt + (1 | loc) + (1 | dam), data = pheno, 
+> fitCpi <- ibrm(T1 ~ season + bwt + (1 | loc) + (1 | dam), data = pheno, 
 	M = geno, M.id = geno.id, method = "BayesCpi", printfreq = 100,  
 	Pi = c(0.98, 0.02), niter = 20000, nburn = 16000, thin = 5,
 	seed = 666666, verbose = TRUE)
 ```
 the first argument is the model formula for fixed effects and environmental random effects, the environmental random effects are distinguished by vertical bars (1|’) separating expressions as it is implemented in package **```lme4```**, the fixed effects should be in factors, fixed covariates should be in numeric, users can convert the columns of data into corresponding format, or convert it in the model formula, e.g., ```T1~as.factor(season)+as.numeric(bwt)+(1|loc)+(1|dam)```.<br>
-The returned list is a class of `blrMod' object, which stores all the estimated parameters, use *```str(fitCpi)*``` to get the details. The list doesn't report the standard deviations, we provide a summary function to calculate this statistics, it can be summarized by the *```summary()```* function as follows:
+The returned list is a class of `blrMod' object, which stores all the estimated parameters, use *```str(fitCpi)```* to get the details. The list doesn't report the standard deviations, we provide a summary function to calculate this statistics, it can be summarized by the *```summary()```* function as follows:
 ```r
 > sumfit <- summary(fitCpi)
 > print(sumfit)
@@ -174,7 +175,6 @@ Marker effects:
 ```
 View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 ```r
-> source("https://raw.githubusercontent.com/YinLiLin/R-CMplot/master/R/CMplot.r")
 > CMplot(cbind(map[, 1:3], SNPeffect), type = "h", plot.type = "m", 
     LOG10 = FALSE, ylim = c(-2, 2), ylab = "SNP effect")
 ```
@@ -200,7 +200,7 @@ View the results by [CMplot](https://github.com/YinLiLin/R-CMplot) package:
 #### (b) Gemone-Wide association study
 **WPPA** is defined to be the window posterior probability of association, it is estimated by counting the number of MCMC samples in which the effect size is nonzero for at least one SNP in the window. To run GWAS, *```map```* should be provided, every marker should have clear physical position for the downstream genome cutting, and also the argument *```windsize```* or *```windnum```* should be specified, the argument *```windsize```* is used to control the size of the windows, the number  of markers in a window is not fixed. Contrarily, the argument *```windnum```*, e.g. windnum = 10, can be used to control the fixed number of markers in a window, the size for the window is not fixed for this case.
 ```r
-> fitCpi <- bayes(T1 ~ season + bwt + (1 | loc) + (1 | dam), data = pheno, 
+> fitCpi <- ibrm(T1 ~ season + bwt + (1 | loc) + (1 | dam), data = pheno, 
 	M = geno, M.id = geno.id, method = "BayesCpi", printfreq = 100,  
 	map = map, windsize = 1e6, verbose = TRUE)
 > gwas <- fitCpi[["gwas"]]
@@ -245,9 +245,9 @@ One can also derive the association significance from the posterior inclusive pr
 -----
 
 ### 2. Summary level Bayesian model
-To fit summary level data based Bayesian model (*```sbayes```*), the variance-covariance matrix calculated from the reference panel (can be done by **```hibayes```**), and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided. Specially, if the summary data is derived from reference panel, means that all data come from the same population, then summary data level based Bayesian model equals to the individual level Bayesian model. 
+To fit summary level data based Bayesian model (*```sbrm()```*), the variance-covariance matrix calculated from the reference panel (can be done by **```hibayes```**), and summary data in [COJO](https://cnsgenomics.com/software/gcta/#COJO) file format should be provided. Specially, if the summary data is derived from reference panel, means that all data come from the same population, then summary data level based Bayesian model equals to the individual level Bayesian model. 
 
-The available methods for *```sbayes```* include ***"BayesRR", "BayesA", "BayesLASSO", "BayesB", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG" (conjuction gradient)***. For 'CG' method, parameter *```lambda```* should be assigned with *```m * (1 / h2 - 1)```*, where ***m*** is the total number of SNPs and ***h2*** is the heritability that can be estimated from LD score regression analysis using the summary data.
+The available methods for *```sbrm()```* include ***"BayesRR", "BayesA", "BayesLASSO", "BayesB", "BayesBpi", "BayesC", "BayesCpi", "BayesR", "CG" (conjuction gradient)***. For 'CG' method, parameter *```lambda```* should be assigned with *```m * (1 / h2 - 1)```*, where ***m*** is the total number of SNPs and ***h2*** is the heritability that can be estimated from LD score regression analysis using the summary data.
 
 #### Step1: construct full/sparse LD variance-covariance matrix
 Sparse matrix could significantly reduce the memory cost by setting some of elements of full matrix to zero, on condition that *```n*r^2 < chisq```*, where ***n*** is the number of individuals, ***r*** is the LD correlation of pairs of SNPs, some low LD values would be replaced by 0.
@@ -263,7 +263,7 @@ Sparse matrix could significantly reduce the memory cost by setting some of elem
 > ldm3 = ldmat(geno, map, ldchr=FALSE, threads=4)   #chromosome block ld matrix
 > ldm4 = ldmat(geno, map, ldchr=FALSE, chisq=5, threads=4)   #chromosome block + sparse ld matrix
 ```
-From ```ldm1``` to ```ldm4```, the memory cost less, but the model stability of *```sbayes```* would be worse.
+From ```ldm1``` to ```ldm4```, the memory cost less, but the model stability of *```sbrm```* would be worse.
 
 #### Step2: fit SBayes model
 If the order of SNPs in variance-covariance matrix is not consistent with the order in summary data file, prior adjusting is necessary:
@@ -279,14 +279,14 @@ If the order of SNPs in variance-covariance matrix is not consistent with the or
 > sumstat <- sumstat[match(map[, 1], sumstat[, 1]), ]  # match the order of SNPs
 ```
 Note that **```hibayes```** only use the 'BETA', 'SE' and 'NMISS' columns.  
-Type *```?sbayes```* to see details of all parameters.
+Type *```?sbrm()```* to see details of all parameters.
 #### (a) Gemonic prediction/selection
 ```r
-> fitCpi <- sbayes(sumstat=sumstat, ldm=ldm1, model="BayesCpi", niter=20000, nburn=12000)
+> fitCpi <- sbrm(sumstat=sumstat, ldm=ldm1, model="BayesCpi", niter=20000, nburn=12000)
 ```
 #### (b) Gemone-Wide association study
 ```r
-> fitCpi <- sbayes(sumstat=sumstat, ldm=ldm1, map=map, model="BayesCpi", windsize=1e6, niter=20000, nburn=12000)
+> fitCpi <- sbrm(sumstat=sumstat, ldm=ldm1, map=map, model="BayesCpi", windsize=1e6, niter=20000, nburn=12000)
 ```
 Overview of results for the fitted model:
 ```r
@@ -313,7 +313,7 @@ Marker effects:
 -----
 
 ### 3. Single-step Bayesian model
-To fit single-step Bayesian model (*```ssbayes```*), at least the phenotype(***n1***, the number of phenotypic individuals), numeric genotype (***n2*** * ***m***, ***n2*** is the number of genotyped individuals, ***m*** is the number of SNPs), and pedigree information (***n3*** * ***3***, the three columns are "id" "sir" "dam" orderly) should be provided, ***n1***, ***n2***, ***n3*** can be different, all the individuals in pedigree will be predicted, including genotyped and non-genotyped, therefore the total number of predicted individuals depends on the number of unique individuals in pedigree.  
+To fit single-step Bayesian model (*```ssbrm()```*), at least the phenotype(***n1***, the number of phenotypic individuals), numeric genotype (***n2*** * ***m***, ***n2*** is the number of genotyped individuals, ***m*** is the number of SNPs), and pedigree information (***n3*** * ***3***, the three columns are "id" "sir" "dam" orderly) should be provided, ***n1***, ***n2***, ***n3*** can be different, all the individuals in pedigree will be predicted, including genotyped and non-genotyped, therefore the total number of predicted individuals depends on the number of unique individuals in pedigree.  
 For example, load the attached tutorial data in **```hibayes```**:
 ```r
 > pheno_file_path <- system.file("extdata", "demo.phe", package = "hibayes")
@@ -339,11 +339,11 @@ the above data and its file format are quite consistent with individual level Ba
 4 IND0004   0   0
 ```
 missing values in pedigree should be marked as "NA", the columns must exactly follow the order of "id", "sir", and "dam".<br>
-The available methods for *```ssbayes```* model are consistent with *```bayes```* model, except for "BSLMM". Type *```?ssbayes```* to see details of all parameters.
+The available methods for *```ssbrm()```* model are consistent with *```ibrm()```* model, except for "BSLMM". Type *```?ssbrm()```* to see details of all parameters.
 
 #### Gemonic prediction/selection and Gemone-Wide association study
 ```r
-> fitR <- ssbayes(T1 ~ sex + bwt + (1 | dam), data = pheno, M = geno,
+> fitR <- ssbrm(T1 ~ sex + bwt + (1 | dam), data = pheno, M = geno,
     M.id = geno.id, pedigree = ped, method = "BayesR", niter = 20000, 
     nburn = 12000, printfreq = 100, Pi = c(0.95, 0.02, 0.02, 0.01), 
     fold = c(0, 0.0001, 0.001, 0.01), seed = 666666, map = map, windsize = 1e6)
@@ -385,11 +385,11 @@ Marker effects:
 ```
 #### (b) Gemone-Wide association study
 ```r
-> fit = ssbayes(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
+> fit = ssbrm(y=pheno[, 2], y.id=pheno.id, M=geno, M.id=geno.id, P=ped, 
 				X=X, R=R, map=map, windsize=1e6, model="BayesCpi")
 ```
 ## Citing the methods in package
-For *```bayes```* model, please cite following papers:
+For *```ibrm()```* model, please cite following papers:
 ```
 1. Meuwissen, Theo HE, Ben J. Hayes, and Michael E. Goddard. "Prediction of total genetic value using genome-wide dense marker maps." Genetics 157.4 (2001): 1819-1829.
 2. de los Campos, G., Hickey, J. M., Pong-Wong, R., Daetwyler, H. D., and Calus, M. P. (2013). Whole-genome regression and prediction methods applied to plant and animal breeding. Genetics, 193(2), 327-345.
@@ -398,11 +398,11 @@ For *```bayes```* model, please cite following papers:
 5. Zhou, Xiang, Peter Carbonetto, and Matthew Stephens. "Polygenic modeling with Bayesian sparse linear mixed models." PLoS genetics 9.2 (2013): e1003264.
 6. Moser, Gerhard, et al. "Simultaneous discovery, estimation and prediction analysis of complex traits using a Bayesian mixture model." PLoS genetics 11.4 (2015): e1004969.
 ```
-For *```sbayes```* model, please cite following papers:
+For *```sbrm()```* model, please cite following papers:
 ```
 Lloyd-Jones, Luke R., et al. "Improved polygenic prediction by Bayesian multiple regression on summary statistics." Nature communications 10.1 (2019): 1-11.
 ```
-For *```ssbayes```* model, please cite following papers:
+For *```ssbrm()```* model, please cite following papers:
 ```
 1. Fernando, Rohan L., Jack CM Dekkers, and Dorian J. Garrick. "A class of Bayesian methods to combine large numbers of genotyped and non-genotyped animals for whole-genome analyses." Genetics Selection Evolution 46.1 (2014): 1-13.
 2. Henderson, C.R.: A simple method for computing the inverse of a numerator relationship matrix used in prediction of breeding values. Biometrics 32(1), 69-83 (1976).

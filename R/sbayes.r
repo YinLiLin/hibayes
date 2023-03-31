@@ -86,7 +86,7 @@
 #' sumstat = sumstat[indx, ]
 #' 
 #' # fit model
-#' fit = sbayes(sumstat=sumstat, ldm=ldm1, method="BayesCpi", Pi = c(0.95, 0.05), 
+#' fit = sbrm(sumstat=sumstat, ldm=ldm1, method="BayesCpi", Pi = c(0.95, 0.05), 
 #' 	niter=20000, nburn=12000, seed=666666, map=map, windsize=1e6, threads=1)
 #' 
 #' # overview of the returned results
@@ -98,7 +98,7 @@
 #'
 #' @export
 
-sbayes <- 
+sbrm <- 
 function(
     sumstat,
     ldm,

@@ -3,6 +3,7 @@
 \docType{import}
 \name{reexports}
 \alias{reexports}
+\alias{CMplot}
 \alias{new}
 \alias{packageVersion}
 \alias{read.delim}
@@ -15,6 +16,8 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
+  \item{CMplot}{\code{\link[CMplot:CMplot-package]{CMplot}}}
+
   \item{methods}{\code{\link[methods]{new}}}
 
   \item{utils}{\code{\link[utils:packageDescription]{packageVersion}}, \code{\link[utils:read.table]{read.delim}}, \code{\link[utils]{read.table}}, \code{\link[utils]{write.table}}}

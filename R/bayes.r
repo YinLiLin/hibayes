@@ -90,7 +90,7 @@
 #' 
 #' # For GS/GP
 #' ## no environmental effects:
-#' fit = bayes(T1~1, data=pheno, M=geno, M.id=fam[,2], method="BayesCpi",
+#' fit = ibrm(T1~1, data=pheno, M=geno, M.id=fam[,2], method="BayesCpi",
 #' 	niter=2000, nburn=1200, thin=5, threads=1)
 #' 
 #' ## overview of the returned results
@@ -99,15 +99,15 @@
 #' \donttest{
 #'
 #' ## add fixed effects or covariates:
-#' fit = bayes(T1~sex+season+day+bwt, data=pheno, M=geno, M.id=fam[,2],
+#' fit = ibrm(T1~sex+season+day+bwt, data=pheno, M=geno, M.id=fam[,2],
 #' 	method="BayesCpi")
 #'  
 #' ## add environmental random effects:
-#' fit = bayes(T1~sex+(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' fit = ibrm(T1~sex+(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	method="BayesCpi")
 #' 
 #' # For GWAS
-#' fit = bayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' fit = ibrm(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	method="BayesCpi", map=map, windsize=1e6)
 #' }
 #' 
@@ -118,7 +118,7 @@
 #' 
 #' @export
 
-bayes <- 
+ibrm <- 
 function(
 	formula,
 	data = NULL,

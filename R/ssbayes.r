@@ -84,7 +84,7 @@
 #' 
 #' # For GS/GP
 #' ## no environmental effects:
-#' fit = ssbayes(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
+#' fit = ssbrm(T1~1, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
 #' 	method="BayesCpi", niter=1000, nburn=600, thin=5, printfreq=100, threads=1)
 #' 
 #' ## overview of the returned results
@@ -93,15 +93,15 @@
 #' \donttest{
 #' 
 #' ## add fixed effects or covariates:
-#' fit = ssbayes(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
+#' fit = ssbrm(T1~sex+bwt, data=pheno, M=geno, M.id=fam[,2], pedigree=ped,
 #' 	method="BayesCpi")
 #' 
 #' ## add environmental random effects:
-#' fit = ssbayes(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' fit = ssbrm(T1~(1|loc)+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	pedigree=ped, method="BayesCpi")
 #' 
 #' # For GWAS
-#' fit = ssbayes(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
+#' fit = ssbrm(T1~sex+bwt+(1|dam), data=pheno, M=geno, M.id=fam[,2],
 #' 	pedigree=ped, method="BayesCpi", map=map, windsize=1e6)
 #' }
 #' 
@@ -112,7 +112,7 @@
 #' 
 #' @export
 
-ssbayes <- 
+ssbrm <- 
 function(
 	formula,
 	data = NULL,
