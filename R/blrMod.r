@@ -9,20 +9,20 @@ summary.blrMod <- function(object, ...) {
     res$call <- object$call
 
     if(is_bayes || is_ssbayes){
-        fixed <- matrix(NA, length(object$beta) + length(object[["J"]]) + 1, 2)
-        rownames(fixed) <- c("(Intercept)", 
+        coef <- matrix(NA, length(object$beta) + length(object[["J"]]) + 1, 2)
+        rownames(coef) <- c("(Intercept)", 
             if(is.null(object[["J"]])) NULL else {"J"},
             names(object$beta)
         )
-        # colnames(fixed) <- c("Estimate", "Std. Error", "t value")
-        colnames(fixed) <- c("Estimate", "SD")
-        fixed[, 1] <- c(object$mu, object[["J"]], object$beta)
-        fixed[, 2] <- c(apply(object$MCMCsamples$mu, 1, sd), 
+        # colnames(coef) <- c("Estimate", "Std. Error", "t value")
+        colnames(coef) <- c("Estimate", "SD")
+        coef[, 1] <- c(object$mu, object[["J"]], object$beta)
+        coef[, 2] <- c(apply(object$MCMCsamples$mu, 1, sd), 
             if(is.null(object$MCMCsamples[["J"]])) NULL else {apply(object$MCMCsamples[["J"]], 1, sd)},
             if(is.null(object$MCMCsamples$beta)) NULL else {apply(object$MCMCsamples$beta, 1, sd)}
         )
-        # fixed[, 3] <- fixed[, 1] / fixed[, 2]
-        res$fixed <- fixed
+        # coef[, 3] <- coef[, 1] / coef[, 2]
+        res$beta <- coef
     }
 
     envirR <- matrix(NA, length(object[["Vr"]]) + 1, 2)
@@ -33,7 +33,7 @@ summary.blrMod <- function(object, ...) {
         if(is.null(object$MCMCsamples[["Vr"]])) NULL else {apply(object$MCMCsamples[["Vr"]], 1, sd)},
         apply(object$MCMCsamples$Ve, 1, sd)
     )
-    res$envirR <- envirR
+    res$VER <- envirR
     if(!is.null(object[["r"]])){
         res[["r"]] <- object[["r"]]
         res[["r"]]$SD <- apply(object$MCMCsamples[["r"]], 1, sd)
@@ -51,7 +51,7 @@ summary.blrMod <- function(object, ...) {
                     apply(object$MCMCsamples$h2, 1, sd),
                     if(is.null(object$MCMCsamples$Veps)) NULL else {apply(object$MCMCsamples$Veps, 1, sd)},
                     apply(object$MCMCsamples[["pi"]], 1, sd))
-    res$geneR <- geneR
+    res$VGR <- geneR
 
     if(!is.null(object[["g"]])){
         res[["g"]] <- object[["g"]]
@@ -60,7 +60,7 @@ summary.blrMod <- function(object, ...) {
 
     res$alpha <- data.frame(Effect = object$alpha, SD = apply(object$MCMCsamples$alpha, 1, sd))
 
-    if(!is.null(object[["e"]]))  res$residuals <- object[["e"]]
+    if(!is.null(object[["e"]]))  res$e <- object[["e"]]
 
     class(res) <- "summary.blrMod"
     res
@@ -71,34 +71,34 @@ print.summary.blrMod <- function(x, ...) {
     cat(attr(x$call, "model"), "\n")
     cat("Formula:", x$call, "\n")
 
-    if(!is.null(x$residuals)){
-        cat("\nResiduals:\n")
-        print(summary(x$residuals[, 2], digits=5)[-4])
+    if(!is.null(x$e)){
+        cat("\nResiduals ($e):\n")
+        print(summary(x$e[, 2], digits=5)[-4])
     }
 
     digits <- max(3, getOption("digits") - 3)
 
-    if(!is.null(x$fixed)){
-        cat("\nFixed effects:\n")
-        printCoefmat(x$fixed, digits=digits)
+    if(!is.null(x$beta)){
+        cat("\nFixed effects ($beta):\n")
+        printCoefmat(x$beta, digits=digits)
     }
 
-    cat("\nEnvironmental random effects:\n")
-    printCoefmat(x$envirR, digits=digits)
-    if(!is.null(x$residuals)){
-        cat("Number of obs:", nrow(x$residuals))
-        if(nrow(x$envirR) > 1){
+    cat("\nEnvironmental random effects ($VER, $r):\n")
+    printCoefmat(x$VER, digits=digits)
+    if(!is.null(x$e)){
+        cat("Number of obs:", nrow(x$e))
+        if(nrow(x$VER) > 1){
             cat(", group: ")
-            cat(paste(rownames(x$envirR)[-nrow(x$envirR)], attr(x[["r"]], "nlevel"), sep = ", ", collapse="; "))
+            cat(paste(rownames(x$VER)[-nrow(x$VER)], attr(x[["r"]], "nlevel"), sep = ", ", collapse="; "))
         }
         cat("\n")
     }
 
-    cat("\nGenetic random effects:\n")
-    printCoefmat(x$geneR, digits=digits)
+    cat("\nGenetic random effects ($VGR, $g):\n")
+    printCoefmat(x$VGR, digits=digits)
     cat("Number of markers:", nrow(x$alpha), ", predicted individuals:", ifelse(is.null(x[["g"]]), 0, nrow(x[["g"]])), "\n")
 
-    cat("\nMarker effects:\n")
+    cat("\nMarker effects ($alpha):\n")
     print(summary(x$alpha[, 1], digits=6)[-4])
 
     invisible(x)

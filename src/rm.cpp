@@ -6,31 +6,50 @@ SEXP make_grm(
     arma::mat &Z,
     double lambda = 0.0,
     bool inverse = false,
+    bool eigen = false,
     bool verbose = true
 ){
 
-    // int n = Z.n_rows;
+    int n = Z.n_rows;
     int m = Z.n_cols;
     if(verbose) Rcpp::Rcout << "Start construct G matrix for " <<  Z.n_rows << " individuals using " << m << " markers" << std::endl;
     
-    rowvec means(m);
     if(verbose) Rcpp::Rcout << "Calculate mean for all markers" << std::endl;
-    for(int i = 0; i < m; i++){
-        means[i] = mean(Z.col(i));
-    }
+    rowvec means = mean(Z);
 
     if(verbose) Rcpp::Rcout << "Center genotype matrix" << std::endl;
     Z.each_row() -= means;
 
     if(verbose) Rcpp::Rcout << "Compute Z * Z'" << std::endl;
-    arma::mat G = Z * Z.t();
+	double alp = 1.0;
+	double beta = 1.0;
+	char uplo = 'L';
+    arma::mat G = zeros<arma::mat>(n, n);
+	double* C = G.memptr();
+	double* A = Z.memptr();
+    // G = Z * Z.t();
+	dsyrk_(&uplo, "N", &n, &m, &alp, A, &n, &beta, C, &n);
+    for (size_t j = 0; j < n; j++) {
+		for (size_t i = (j + 1); i < n; i++) {
+			G(j, i) = G(i, j);
+		}
+	}
     G /= mean(G.diag());
 
     if(inverse){
         if(verbose) Rcpp::Rcout << "Invert the G matrix" << std::endl;
         solve(G, lambda);
     }
-    return wrap(G);
+
+    if(eigen){
+        if(verbose) Rcpp::Rcout << "Eigen decomposition on G matrix" << std::endl;
+        if(lambda)  G.diag() += lambda;
+        arma::vec ev;
+        eigen_sym_dc(G, ev);
+        return List::create(wrap(ev), wrap(G));
+    }else{
+        return wrap(G);
+    }
 }
 
 // [[Rcpp::export]]

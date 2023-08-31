@@ -15,7 +15,7 @@
 **(10)** posterior inclusive probability (*PIP*)  
 The functions are not limited, we will keep on going in enriching **```hibayes```** with more features.
 
-**```hibayes```** is written in C++ by aid of Rcpp and RcppArmadillo, some time-consuming functions are enhanced with [LAPACK](http://www.netlib.org/lapack/) package, it is recommended to run **```hibayes```** in [**MRO**](https://mran.microsoft.com) instead of **R**, as the BLAS/LAPACK library can be accelerated automatically in multi-threads by MKL library, which would significantly reduce computation time. 
+**```hibayes```** is written in C++ by aid of Rcpp and RcppArmadillo, some time-consuming functions are enhanced with [LAPACK](http://www.netlib.org/lapack/) package, it is recommended to link MKL (Math Kernel Library) with R for fast computing with big data (see [how to link MKL with R](https://www.intel.com/content/www/us/en/developer/articles/technical/quick-linking-intel-mkl-blas-lapack-to-r.html)), because the BLAS/LAPACK library can be accelerated automatically in multi-threads by MKL library, which would significantly reduce computational time. 
 
 ***If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/YinLiLin/hibayes/issues/new):point_left:.***
 
@@ -133,7 +133,7 @@ Type *```?ibrm()```* to see details of all parameters.
 	seed = 666666, verbose = TRUE)
 ```
 the first argument is the model formula for fixed effects and environmental random effects, the environmental random effects are distinguished by vertical bars (1|’) separating expressions as it is implemented in package **```lme4```**, the fixed effects should be in factors, fixed covariates should be in numeric, users can convert the columns of data into corresponding format, or convert it in the model formula, e.g., ```T1~as.factor(season)+as.numeric(bwt)+(1|loc)+(1|dam)```.<br>
-The returned list is a class of `blrMod' object, which stores all the estimated parameters, use *```str(fitCpi)```* to get the details. The list doesn't report the standard deviations, we provide a summary function to calculate this statistics, it can be summarized by the *```summary()```* function as follows:
+The returned list is a class of 'blrMod' object, which stores all the estimated parameters, use *```str(fitCpi)```* to get the details. The list doesn't report the standard deviations, we provide a summary function to calculate this statistics, it can be summarized by the *```summary()```* function as follows:
 ```r
 > sumfit <- summary(fitCpi)
 > print(sumfit)

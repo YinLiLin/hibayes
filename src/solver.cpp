@@ -257,3 +257,43 @@ void solve(
 		solver_lu(A, lambda);
 	}
 }
+
+void eigen_sym_dc(
+	arma::mat &A,
+	arma::vec &eigval
+)
+{
+	int n = A.n_cols;
+	int info = 0, liwork = 0, iwkopt = 0, lwork = 0;
+	int* iwork;
+    double wkopt;
+	double* work;
+	char uplo = 'L';
+	
+	eigval.zeros(n);
+	double* w = eigval.memptr();
+	double* Aiptr = A.memptr();
+
+	lwork = -1;
+	liwork = -1;
+	dsyevd_( (char*)"Vectors", &uplo, &n, Aiptr, &n, w, &wkopt, &lwork, &iwkopt, &liwork, &info );
+
+	if(info > 0){
+		std::ostringstream str;
+    	str << "error code (" << info << ") from Lapack routine '_syevd'";
+    	throw Rcpp::exception(str.str().c_str());
+	}
+
+	lwork = (int)wkopt;
+	work = new double[lwork];
+	liwork = iwkopt;
+	iwork = new int[liwork];
+
+	dsyevd_( (char*)"Vectors", &uplo, &n, Aiptr, &n, w, work, &lwork, iwork, &liwork, &info);
+	delete[] work;
+	delete[] iwork;
+	
+	if( info > 0 ) {
+		throw Rcpp::exception("The algorithm failed to compute eigenvalues.");
+	}
+}

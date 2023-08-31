@@ -11,9 +11,6 @@ NULL
 #' @import methods
 NULL
 
-#' @import Rcpp
-NULL
-
 #' @import CMplot
 NULL
 

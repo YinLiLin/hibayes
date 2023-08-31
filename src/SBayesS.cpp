@@ -296,8 +296,8 @@ Rcpp::List SBayesS(
 	   				}
                     g[i] = gi;
                 }
-                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / (dfvara_ + count_y);
-                varg = invchisq_sample(count_y + dfvara_, varg);
+                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / chisq_sample(dfvara_ + count_y);
+                // varg = invchisq_sample(count_y + dfvara_, varg);
                 break;
             case 2:
                 for(int i = 0; i < m; i++){
@@ -305,8 +305,8 @@ Rcpp::List SBayesS(
                     xx = xpx[i];
                     gi = g[i];
                     varei = varediff[i] * vara_ + vare_;
-                    varg = (gi * gi + s2varg_ * dfvara_) / (dfvara_ + 1);
-                    varg = invchisq_sample(1 + dfvara_, varg);
+                    varg = (gi * gi + s2varg_ * dfvara_) / chisq_sample(dfvara_ + 1);
+                    // varg = invchisq_sample(1 + dfvara_, varg);
                     rhs = r_hat[i];
                     if(gi){rhs += xx * gi;}
                     lhs = xx / varei;
@@ -329,8 +329,8 @@ Rcpp::List SBayesS(
                     xx = xpx[i];
                     gi = g[i];
                     varei = varediff[i] * vara_ + vare_;
-                    varg = (gi * gi + s2varg_ * dfvara_) / (dfvara_ + 1);
-                    varg = invchisq_sample(1 + dfvara_, varg);
+                    varg = (gi * gi + s2varg_ * dfvara_) / chisq_sample(dfvara_ + 1);
+                    // varg = invchisq_sample(1 + dfvara_, varg);
                     rhs = r_hat[i];
                     if(gi){rhs += xx * gi;}
                     lhs = xx / varei;
@@ -411,8 +411,8 @@ Rcpp::List SBayesS(
                 fold_snp_num[1] = sum(snptracker);
                 fold_snp_num[0] = m - nvar0 - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
-                varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
-                varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                varg = (vargi + s2varg_ * dfvara_) / chisq_sample(dfvara_ + NnzSnp);
+                // varg = invchisq_sample(NnzSnp + dfvara_, varg);
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
             case 5:
@@ -513,8 +513,8 @@ Rcpp::List SBayesS(
                     fold_snp_num[j] = sum(snptracker == j);
                 }
                 NnzSnp = m - fold_snp_num[0];
-                varg = (varg + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
-                varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                varg = (varg + s2varg_ * dfvara_) / chisq_sample(dfvara_ + NnzSnp);
+                // varg = invchisq_sample(NnzSnp + dfvara_, varg);
                 for(int j = 0; j < n_fold; j++){
                     vara_fold[j] = varg * fold_[j]; 
                     // vara_fold[j] = vara_ * fold_[j]; 
@@ -528,15 +528,15 @@ Rcpp::List SBayesS(
         // vara_ = sum(g * (xy - r_hat)) / (n - 1);
         tmp = (xy - r_hat);
 		// vara_ = ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) / (n - 1);
-        vara_ = (ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vara_ * dfvara_) / (n + dfvara_);
-        vara_ = invchisq_sample(n + dfvara_, vara_);
+        vara_ = (ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vara_ * dfvara_) / chisq_sample(n + dfvara_);
+        // vara_ = invchisq_sample(n + dfvara_, vara_);
     
         // sample residual variance from inv-chisq distribution
         // vare_ = (yy - sum(g * (xy + r_hat)) + s2vare_ * dfvare_) / (n + dfvare_);
         tmp = (xy + r_hat);
-		vare_ = (yy - ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vare_ * dfvare_) / (n + dfvare_);
+		vare_ = (yy - ddot_(&m, g.memptr(), &inc, tmp.memptr(), &inc) + s2vare_ * dfvare_) / chisq_sample(n + dfvare_);
 		if(vare_ < 0)	vare_ = vara_ * 0.5;
-		vare_ = invchisq_sample(n + dfvare_, vare_);
+		// vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
             

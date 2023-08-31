@@ -284,9 +284,8 @@ function(
 		Mp <- NULL;
 	}
 	if(method == "BSLMM"){
-		G <- make_grm(M, lambda=lambda, inverse=TRUE, verbose=verbose)
-		indx <- c(1:nrow(M))
-		res <- BayesK(y=y, X=M, model=method, Pi=Pi, K=G, K_index=indx, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, dfvr=dfvr, s2vr=s2vr, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
+		eigG <- make_grm(M, lambda=lambda, eigen=TRUE, verbose=verbose)
+		res <- Bayes(y=y, X=M, model=method, Pi=Pi, Kival=eigG[[1]], Ki=eigG[[2]], fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, dfvr=dfvr, s2vr=s2vr, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	}else{
 		res <- Bayes(y=y, X=M, model=method, Pi=Pi, fold=fold, C=X, R=R, niter=niter, nburn=nburn, thin=thin, windindx=windindx, dfvr=dfvr, s2vr=s2vr, vg=vg, dfvg=dfvg, s2vg=s2vg, ve=ve, dfve=dfve, s2ve=s2ve, outfreq=printfreq, threads=threads, verbose=verbose)
 	}

@@ -20,4 +20,5 @@ void Gibbs(arma::mat &A, arma::vec &x, arma::vec &b, double ve);
 void Gibbs(arma::sp_mat &A, arma::vec &x, arma::vec &b, double ve);
 void Gibbs(arma::sp_mat &A, arma::vec &x, arma::vec &b, double ve, int iter);
 void solve(arma::mat &A, double lambda = 0.0);
+void eigen_sym_dc(arma::mat &A, arma::vec &eigval);
 #endif

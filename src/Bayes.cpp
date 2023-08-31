@@ -56,14 +56,14 @@ Rcpp::List makeZ(
     return List::create(Named("z") = z, Named("levels") = levels);
 }
 
-template <typename T>
+// [[Rcpp::export]]
 Rcpp::List Bayes(
     arma::vec &y,
     arma::mat &X,
     std::string model,
     arma::vec Pi,
-    T &K,
-    arma::uvec &K_index,
+    const Nullable<arma::vec> Kival = R_NilValue,
+    const Nullable<arma::mat> Ki = R_NilValue,
     const Nullable<arma::mat> C = R_NilValue,
     const Nullable<CharacterMatrix> R = R_NilValue,
     const Nullable<arma::vec> fold = R_NilValue,
@@ -150,12 +150,11 @@ Rcpp::List Bayes(
     vec vr;
     vec vrsd;
     vec vrtmp;
-    sp_mat r_LHS;
     vec estR;
     vec estR_tmp;
     vec R_idx;
     vec r_RHS;
-    vec diff;
+    vec r_LHS;
     int qr;
     double dfr;
     double s2r;
@@ -207,29 +206,30 @@ Rcpp::List Bayes(
     double vasd, vbsd;
     vec va_store;
     vec vb_store;
-    sp_mat k_Z, k_ZZ;
+    // sp_mat k_Z, k_ZZ;
+    mat K;
+    vec Kval;
     vec k_estR;
     vec k_estR_store;
-    T k_LHS;
+    mat k_LHS;
     vec k_estR_tmp;
     vec k_RHS;
     // mat ghat;
-    int qk = 0;
-    if(!K_index.is_empty()){
-        if(K.is_empty())    throw Rcpp::exception("variance-covariance matrix should be provided for K term.");
+    if(Ki.isNotNull()){
+        K = as<arma::mat>(Ki);
+        Kval = as<arma::vec>(Kival);
         if(K.n_cols != K.n_rows) throw Rcpp::exception("variance-covariance matrix should be in square.");
         nk = K.n_cols;
-        K_index -= 1;
+        // K_index -= 1;
         va_store.resize(n_records);
         vb_store.resize(n_records);
         // ghat.resize(m, n_records);
-        k_Z.resize(K_index.n_elem, nk);
+        // k_Z.resize(K_index.n_elem, nk);
         k_estR.zeros(nk);
         k_estR_store.zeros(nk);
         k_estR_tmp.zeros(nk);
-        qk = nk;
-        for(int i = 0; i < K_index.n_elem; i++){k_Z(i, K_index[i]) = 1.0;}
-        k_ZZ = k_Z.t() * k_Z;
+        // for(int i = 0; i < K_index.n_elem; i++){k_Z(i, K_index[i]) = 1.0;}
+        // k_ZZ = k_Z.t() * k_Z;
     }
 
     int ne = 0;
@@ -494,38 +494,58 @@ Rcpp::List Bayes(
         }
 
         for(int i = 0; i < nr; i++){
-            r_LHS = ZZ[i];
-            r_LHS.diag() += vare_ / vrtmp[i];
             estR_tmp = estR.subvec(R_idx[i] + 1, R_idx[i + 1]);
+            qr = estR_tmp.n_elem;
             r_RHS = Z[i].t() * yadj;
             r_RHS += ZZ[i] * estR_tmp;
-            Gibbs(r_LHS, estR_tmp, r_RHS, vare_);
-            diff = Z[i] * (estR.subvec(R_idx[i] + 1, R_idx[i + 1]) - estR_tmp);
+
+            r_LHS = diagvec(ZZ[i]) + vare_ / vrtmp[i];
+            
+            for(int qi = 0; qi < qr; qi++){
+                estR_tmp[qi] = norm_sample(r_RHS[qi] / r_LHS[qi], sqrt(vare_ / r_LHS[qi]));
+            }
+            // estR_tmp = (r_RHS / r_LHS) + (randn(qr) % sqrt(vare_ / r_LHS));
+
+            vec diff = Z[i] * (estR.subvec(R_idx[i] + 1, R_idx[i + 1]) - estR_tmp);
             daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
-            qr = estR_tmp.n_elem;
-            vrtmp[i] = (ddot_(&qr, estR_tmp.memptr(), &inc, estR_tmp.memptr(), &inc) + s2r * dfr) / (qr + dfr);
-            vrtmp[i] = invchisq_sample(qr + dfr, vrtmp[i]);
+            vrtmp[i] = (ddot_(&qr, estR_tmp.memptr(), &inc, estR_tmp.memptr(), &inc) + s2r * dfr) / chisq_sample(qr + dfr);
+            // vrtmp[i] = invchisq_sample(qr + dfr, vrtmp[i]);
             vr[i] = var(estR_tmp);
             // vr[i] = vrtmp[i];
             estR.subvec(R_idx[i] + 1, R_idx[i + 1]) = estR_tmp;
         }
 
         if(nk){
-            k_LHS = (K * (vare_ / vbtmp));
-            k_LHS += k_ZZ;
-            k_RHS = k_Z.t() * yadj;
-            vec zzk = k_ZZ * k_estR_tmp;
-            daxpy_(&qk, &doc, zzk.memptr(), &inc, k_RHS.memptr(), &inc);
-            Gibbs(k_LHS, k_estR_tmp, k_RHS, vare_);
+            k_RHS  = yadj + k_estR_tmp;
+
+            // single-site Gibbs sampler
+            // k_LHS = (K * (vare_ / vbtmp));
+            // //k_LHS += k_ZZ;
+            // k_LHS.diag() += 1;
+            // // k_RHS = k_Z.t() * yadj;
+            // // vec zzk = k_ZZ * k_estR_tmp;
+            // // daxpy_(&nk, &doc, zzk.memptr(), &inc, k_RHS.memptr(), &inc);
+            // Gibbs(k_LHS, k_estR_tmp, k_RHS, vare_);
+            
+            // block Gibbs sampler
+            vec eval = (Kval * vare_) / (Kval + vare_ / vbtmp);
+            k_estR_tmp = K * ((eval / vare_)  % (K.t() * k_RHS));
+            if (!all(eval >= -1e-06 * max(abs(eval))))  throw Rcpp::exception("matrix is not positive definite, try to specify parameter 'lambda' with a small value, eg: 0.001 or bigger");
+            eval.elem( find(eval < 0) ).zeros();
+            k_estR_tmp += (K * (sqrt(eval) % randn(nk)));
+
             gi_ = -1;
-            daxpy_(&qk, &gi_, k_estR_tmp.memptr(), &inc, k_estR.memptr(), &inc);
-            diff = k_Z * k_estR;
-            daxpy_(&n, &doc, diff.memptr(), &inc, dyadj, &inc);
-            daxpy_(&n, &gi_, diff.memptr(), &inc, u.memptr(), &inc);
-            vbtmp = as_scalar(k_estR_tmp.t() * K * k_estR_tmp);
+            daxpy_(&nk, &gi_, k_estR_tmp.memptr(), &inc, k_estR.memptr(), &inc);
+            daxpy_(&n, &doc, k_estR.memptr(), &inc, dyadj, &inc);
+            daxpy_(&n, &gi_, k_estR.memptr(), &inc, u.memptr(), &inc);
+            
+            // vbtmp = as_scalar(k_estR_tmp.t() * K * k_estR_tmp);
+            vec Kg = K.t() * k_estR_tmp;
+            vbtmp = as_scalar(Kg.t() * (1 / Kval % Kg));
+            
             vbtmp += s2vara_ * dfvara_;
-            vbtmp /= (dfvara_ + qk);
-            vbtmp = invchisq_sample(qk + dfvara_, vbtmp);
+            vbtmp /= chisq_sample(dfvara_ + nk);
+            // vbtmp = invchisq_sample(nk + dfvara_, vbtmp);
             // vb = var(k_estR_tmp) / sumvx;
             vb = vbtmp;
             k_estR = k_estR_tmp;
@@ -556,8 +576,8 @@ Rcpp::List Bayes(
             u.tail(ne) -= epsl_yadj;
             vepstmp = as_scalar(epsl_estR_tmp.t() * epsl_Gi_ * epsl_estR_tmp);
             vepstmp += s2vara_ * dfvara_;
-            vepstmp /= (dfvara_ + qe);
-            vepstmp = invchisq_sample(qe + dfvara_, vepstmp);
+            vepstmp /= chisq_sample(dfvara_ + qe);
+            // vepstmp = invchisq_sample(qe + dfvara_, vepstmp);
             epsl_estR = epsl_estR_tmp;
             // veps = var(epsl_estR);
             veps = vepstmp;
@@ -580,8 +600,8 @@ Rcpp::List Bayes(
                     daxpy_(&n, &gi_, dxi, &inc, u.memptr(), &inc);
                     g[i] = gi;
                 }
-                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / (dfvara_ + m - nvar0);
-                varg = invchisq_sample(m - nvar0 + dfvara_, varg);
+                varg = (ddot_(&m, g.memptr(), &inc, g.memptr(), &inc) + s2varg_ * dfvara_) / chisq_sample(dfvara_ + m - nvar0);
+                // varg = invchisq_sample(m - nvar0 + dfvara_, varg);
                 // sumvg = sum(vx * varg);
                 break;
             case 2:
@@ -590,8 +610,8 @@ Rcpp::List Bayes(
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
-                    varg = (oldgi * oldgi + s2varg_ * dfvara_) / (dfvara_ + 1);
-                    varg = invchisq_sample(1 + dfvara_, varg);
+                    varg = (oldgi * oldgi + s2varg_ * dfvara_) / chisq_sample(dfvara_ + 1);
+                    // varg = invchisq_sample(1 + dfvara_, varg);
                     rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
                     rhs += xx * oldgi;
                     v = xx + vare_ / varg;
@@ -613,8 +633,8 @@ Rcpp::List Bayes(
                     dxi = X.colptr(i);
                     xx = xpx[i];
                     oldgi = g[i];
-                    varg = (oldgi * oldgi + s2varg_ * dfvara_) / (dfvara_ + 1);
-                    varg = invchisq_sample(1 + dfvara_, varg);
+                    varg = (oldgi * oldgi + s2varg_ * dfvara_) / chisq_sample(dfvara_ + 1);
+                    // varg = invchisq_sample(1 + dfvara_, varg);
                     rhs = ddot_(&n, dxi, &inc, dyadj, &inc);
                     if(oldgi)   rhs += xx * oldgi;
                     lhs = xx / vare_;
@@ -690,8 +710,8 @@ Rcpp::List Bayes(
                 fold_snp_num[1] = sum(snptracker);
                 fold_snp_num[0] = m - nvar0 - fold_snp_num[1];
                 NnzSnp = fold_snp_num[1];
-                varg = (vargi + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
-                varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                varg = (vargi + s2varg_ * dfvara_) / chisq_sample(dfvara_ + NnzSnp);
+                // varg = invchisq_sample(NnzSnp + dfvara_, varg);
                 if(nk) va = varg;
                 if(!fixpi)  Pi = rdirichlet_sample(n_fold, (fold_snp_num + 1));
                 break;
@@ -784,8 +804,8 @@ Rcpp::List Bayes(
                     fold_snp_num[j] = sum(snptracker == j);
                 }
                 NnzSnp = m - fold_snp_num[0];
-                varg = (varg + s2varg_ * dfvara_) / (dfvara_ + NnzSnp);
-                varg = invchisq_sample(NnzSnp + dfvara_, varg);
+                varg = (varg + s2varg_ * dfvara_) / chisq_sample(dfvara_ + NnzSnp);
+                // varg = invchisq_sample(NnzSnp + dfvara_, varg);
                 for(int j = 0; j < n_fold; j++){
                     vara_fold[j] = varg * fold_[j]; 
                     // vara_fold[j] = vara_ * fold_[j]; 
@@ -800,8 +820,8 @@ Rcpp::List Bayes(
         // vara_ = invchisq_sample(n + dfvara_, vara_);
     
         // sample residual variance from inv-chisq distribution
-        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / (n + dfvare_);
-        vare_ = invchisq_sample(n + dfvare_, vare_);
+        vare_ = (ddot_(&n, dyadj, &inc, dyadj, &inc) + s2vare_ * dfvare_) / chisq_sample(n + dfvare_);
+        // vare_ = invchisq_sample(n + dfvare_, vare_);
 
         if(iter >= nburn){
             if(!snptracker.is_empty()){
@@ -835,7 +855,7 @@ Rcpp::List Bayes(
                 va_store[count] = va;
                 vb_store[count] = vb;
                 // k_estR_store += k_estR;
-                daxpy_(&qk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
+                daxpy_(&nk, &doc, k_estR.memptr(), &inc, k_estR_store.memptr(), &inc);
             }
 
             g_store.col(count) = g;
@@ -933,7 +953,14 @@ Rcpp::List Bayes(
     }
 
     if(nk){
-        vec ghat = X.t() * (k_Z * (K * k_estR_store  / count)) / sumvx;
+        k_estR_store /= count;
+        vec Kg = K.t() * k_estR_store;
+        Kg /= Kval;
+        Kg /= sumvx;
+        // X.each_col( [](vec& a){ a-=mean(a); } );
+        vec ghat = X.t() * (K * Kg);
+        ghat -= mean(ghat);
+        // vec ghat = X.t() * (K * k_estR_store  / count) / sumvx;
         g_store.each_col() += ghat;
         va = mean(va_store);
         vasd = stddev(va_store);
@@ -1064,76 +1091,4 @@ Rcpp::List Bayes(
     if(verbose){Rprintf("Finished within total run time: %02dh%02dm%02ds \n", hor, min, sec);}
     
     return results;
-}
-
-// [[Rcpp::export]]
-Rcpp::List BayesK(
-    arma::vec &y,
-    arma::mat &X,
-    std::string model,
-    arma::vec Pi,
-    SEXP &K,
-    arma::uvec &K_index,
-    const Nullable<arma::mat> C = R_NilValue,
-    const Nullable<CharacterMatrix> R = R_NilValue,
-    const Nullable<arma::vec> fold = R_NilValue,
-    const int niter = 50000,
-    const int nburn = 20000,
-    const int thin = 5,
-    const Nullable<arma::vec> epsl_y_J = R_NilValue,
-    const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
-    const Nullable<arma::uvec> epsl_index = R_NilValue,
-    const Nullable<double> dfvr = R_NilValue,
-    const Nullable<double> s2vr = R_NilValue,
-    const Nullable<double> vg = R_NilValue,
-    const Nullable<double> dfvg = R_NilValue,
-    const Nullable<double> s2vg = R_NilValue,
-    const Nullable<double> ve = R_NilValue,
-    const Nullable<double> dfve = R_NilValue,
-    const Nullable<double> s2ve = R_NilValue,
-    const Nullable<arma::uvec> windindx = R_NilValue,
-    const int outfreq = 100,
-    const int threads = 0,
-    const bool verbose = true
-){
-    if(Rf_inherits(K, "dgCMatrix")){
-        arma::sp_mat K_ = Rcpp::as<arma::sp_mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, dfvr, s2vr, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
-    }else{
-        arma::mat K_ = Rcpp::as<arma::mat>(K);
-        return Bayes(y, X, model, Pi, K_, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, dfvr, s2vr, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
-    }
-}
-
-// [[Rcpp::export]]
-Rcpp::List Bayes(
-    arma::vec &y,
-    arma::mat &X,
-    std::string model,
-    arma::vec Pi,
-    const Nullable<arma::mat> C = R_NilValue,
-    const Nullable<CharacterMatrix> R = R_NilValue,
-    const Nullable<arma::vec> fold = R_NilValue,
-    const int niter = 50000,
-    const int nburn = 20000,
-    const int thin = 5,
-    const Nullable<arma::vec> epsl_y_J = R_NilValue,
-    const Nullable<arma::sp_mat> epsl_Gi = R_NilValue,
-    const Nullable<arma::uvec> epsl_index = R_NilValue,
-    const Nullable<double> dfvr = R_NilValue,
-    const Nullable<double> s2vr = R_NilValue,
-    const Nullable<double> vg = R_NilValue,
-    const Nullable<double> dfvg = R_NilValue,
-    const Nullable<double> s2vg = R_NilValue,
-    const Nullable<double> ve = R_NilValue,
-    const Nullable<double> dfve = R_NilValue,
-    const Nullable<double> s2ve = R_NilValue,
-    const Nullable<arma::uvec> windindx = R_NilValue,
-    const int outfreq = 100,
-    const int threads = 0,
-    const bool verbose = true
-){
-    arma::mat K;
-    arma::uvec K_index;
-    return Bayes(y, X, model, Pi, K, K_index, C, R, fold, niter, nburn, thin, epsl_y_J, epsl_Gi, epsl_index, dfvr, s2vr, vg, dfvg, s2vg, ve, dfve, s2ve, windindx, outfreq, threads, verbose);
 }
