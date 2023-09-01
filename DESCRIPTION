@@ -34,5 +34,4 @@ LinkingTo: Rcpp, RcppArmadillo (>= 0.9.600.0.0), RcppProgress, BH,
         bigmemory, Matrix
 RoxygenNote: 7.2.3
 Roxygen: list(markdown = TRUE)
-SystemRequirements: C++11
 NeedsCompilation: yes

@@ -28,7 +28,6 @@ extern "C"
 void arma_fortran(arma_daxpy)(int* n, double* da, double* dx, int* incx, double* dy, int* incy);
 #endif
 
-// [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace std;

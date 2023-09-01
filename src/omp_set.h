@@ -8,7 +8,6 @@
 #endif
 
 #include <Rcpp.h>
-// [[Rcpp::plugins(cpp11)]]
 
 static inline int omp_setup(int threads=0) {
     int t = 1;

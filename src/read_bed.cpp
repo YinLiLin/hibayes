@@ -4,7 +4,6 @@
 #include <bigmemory/BigMatrix.h>
 #include <bigmemory/MatrixAccessor.hpp>
 
-// [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(Rcpp)]]
 // [[Rcpp::depends(bigmemory, BH)]]
 
