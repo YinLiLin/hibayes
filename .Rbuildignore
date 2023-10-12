@@ -2,3 +2,5 @@
 ^figure$
 ^LICENSE$
 ^.vscode$
+^.*\.Rproj$
+^\.Rproj\.user$

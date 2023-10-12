@@ -53,3 +53,6 @@ bin/*
 
 # VSCode
 .vscode/*
+*.Rproj
+.Rproj.user
+.Rhistory
