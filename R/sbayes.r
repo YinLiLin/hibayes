@@ -107,8 +107,8 @@ function(
     Pi = NULL,
     lambda = NULL,
     fold = NULL,
-    niter = 20000,
-    nburn = 12000,
+    niter = NULL,
+    nburn = NULL,
 	thin = 5,
     windsize = NULL,
 	windnum = NULL,
@@ -186,6 +186,12 @@ function(
 		colnames(windinfo) <- c("WIND", "CHR", "NUM", "START", "END")
 	}else{
 		windindx <- NULL
+	}
+	if(is.null(niter)){
+		niter <- ifelse(method == "BayesR", 50000, 20000)
+	}
+	if(is.null(nburn)){
+		niter <- ifelse(method == "BayesR", 30000, 12000)
 	}
 	if(thin >= (niter - nburn))	stop("bad setting for collecting frequency 'thin'.")
 	if(printfreq <= 0)	verbose <- FALSE
