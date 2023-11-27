@@ -9,7 +9,7 @@
 
 class MinimalProgressBar: public ProgressBar{
     public:
-    MinimalProgressBar(const char *str = "Calculating in process")  {
+    MinimalProgressBar(const string str = "Calculating in process")  {
         _finalized = false;
         _str = str;
     }
@@ -21,21 +21,21 @@ class MinimalProgressBar: public ProgressBar{
         if(point[pi]){
             point[pi] = false;
             REprintf("\r");
-            REprintf(_str);
-            REprintf("...finished %u%", (int)(progress * 100));
+            REprintf(_str.c_str());
+            REprintf("...finished %u%%", (int)(progress * 100));
         }
     }
     void end_display() {
     if (_finalized) return;
         REprintf("\r");
-        REprintf(_str);
-        REprintf("...[finished 100%]");
+        REprintf(_str.c_str());
+        REprintf("...[finished 100%%]");
         REprintf("\n");
         _finalized = true;
     }
     private:
     bool _finalized;
-    const char *_str;
+    string _str;
     int point_length = 100;
     LogicalVector point = rep(true, point_length);
 };
