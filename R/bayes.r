@@ -265,7 +265,7 @@ function(
 		niter <- ifelse(method == "BayesR", 50000, 20000)
 	}
 	if(is.null(nburn)){
-		niter <- ifelse(method == "BayesR", 30000, 12000)
+		nburn <- ifelse(method == "BayesR", 30000, 12000)
 	}
 	if(thin >= (niter - nburn))	stop("bad setting for collecting frequency 'thin'.")
 	if(printfreq <= 0)	verbose <- FALSE
