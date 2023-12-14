@@ -1,4 +1,4 @@
-/* 
+                         /* 
  * This file is part of the hibayes (https://github.com/YinLiLin/hibayes).
  * Copyright (c) 2023 Haohao Zhang.
  * 
@@ -32,10 +32,8 @@ Rcpp::List VariationalBayes(
     const Nullable<arma::vec> fold = R_NilValue,
     const Nullable<double> dfvr = R_NilValue,
     const Nullable<double> s2vr = R_NilValue,
-    const Nullable<double> vg = R_NilValue,     // additive gentic variance
     const Nullable<double> dfvg = R_NilValue,   // Nu of Inv-Chi2 distribution of additive gentic variance
     const Nullable<double> s2vg = R_NilValue,   // S2 of Inv-Chi2 distribution of additive gentic variance
-    const Nullable<double> ve = R_NilValue,     // residual variance
     const Nullable<double> dfve = R_NilValue,   // Nu of Inv-Chi2 distribution of residual variance
     const Nullable<double> s2ve = R_NilValue,   // S2 of Inv-Chi2 distribution of residual variance
     const int threads = 0,
@@ -99,6 +97,7 @@ Rcpp::List VariationalBayes(
     // Check random effects
     // TODO: check random effects
 
+    Rcpp::Rcout << "Initialize." << std::endl;
     // Initialize =================================================================
     uword n = y.n_elem;     // Number of individuals
     uword m = X.n_cols;     // Number of markers
@@ -120,59 +119,60 @@ Rcpp::List VariationalBayes(
 
     // Gentic marker ======================
     // Cache feature of markers
-    vec xpx = zeros(m);     // Vector of (X_p * X_p)
+    vec xtx = zeros(m);     // Vector of (X_p * X_p)
     vec vx = zeros(m);      // Vector of variance of X_p
     // #pragma omp parallel for
     for(uword p = 0; p < m; p++) {
         auto Xp = X.col(p);
-        xpx[p] = accu(Xp % Xp);
+        xtx[p] = dot(Xp, Xp);
         vx[p] = var(Xp);
     }
     double sumvx = sum(vx);
 
     // parameters of the additive gentic effect distribution
-    double dfvg_ = dfvg.isNotNull() ? as<double>(dfvg) : 4;                           // Nu of Inv-Chi2 distribution
-    double vg_ = vg.isNotNull()? as<double>(vg) : ((dfvg_ - 2) / dfvg_) * vary * h2;  
-    double s2vg_ = s2vg.isNotNull()? as<double>(s2vg) : vg_ * (dfvg_ - 2) / dfvg_;    // S2 of Inv-Chi2 distribution
+    double dfvg_ = dfvg.isNotNull()? as<double>(dfvg) : 4;                           // Nu of Inv-Chi2 distribution
+    // double vg_   = vg.isNotNull()? as<double>(vg) : ((dfvg_ - 2) / dfvg_) * vary * h2;  
+    double s2vg_ = s2vg.isNotNull()? as<double>(s2vg) : h2 * (dfvg_ - 2) / (dfvg_ * (1 - Pi[0]) * sumvx);    // S2 of Inv-Chi2 distribution
 
     // parameters of the marker effect distribution
-    double vp_ = vg_ / ((1 - Pi[0]) * sumvx);
-    double s2vp_ = s2vg_ / ((1 - Pi[0]) * sumvx);
+    // double vp_   = vg_   / ((1 - Pi[0]) * sumvx);
+    // double s2vp_ = s2vg_ / ((1 - Pi[0]) * sumvx);
 
-    vec alpha_exp;      // marker effects expectation
-    vec alpha_var;      // marker effects variance
-    vec alpha_exp2;     // marker effects expectation^2
+    vec beta_exp;      // E[β]
+    vec beta_var;      // V[β]
+    vec beta_exp2;     // E[β^2]
 
-    vec alpha_sigma2;   // marker effects ??
-    vec alpha_S2;       // marker effects S2 of the Inverse-Chi2 distribution
+    vec sigma2_g;       // E[σ^2_g]: σ^2_g parameter of marker effects distribution β ~ N(0, σ^2)
+    vec S2_g;           // S^2 parameter of σ^2_g ~ X^{-2}(v, S^2)
     
-    double sigma2;      // 
-    double S2;          // S2 of the Inverse-Chi2 distribution
-
-    vec gamma_exp;      // probability of marker have effect
-    vec gamme_exp2;     // probability of marker have effect^2
+    vec gamma_exp;      // E[γ]: probability of marker have effect
+    vec gamma_exp2;     // E[γ^2]
 
     // Initialize - model
     switch (model_index) {
     case Model::BayesA:
-        alpha_exp = zeros(m);
-        alpha_var = zeros(m);
-        alpha_exp2 = zeros(m);  // square(alpha_exp) + alpha_var;
+        beta_exp  = zeros(m);  // E[β] 
+        beta_var  = zeros(m);  // V[β]
+        beta_exp2 = zeros(m);  // E[β^2] = E[β]^2 + V[β]
 
-        alpha_sigma2 = vec(m, fill::value(1.0 / m));
-        alpha_S2 = vec(m, fill::value(m));
+        sigma2_g = vec(m, fill::value(1.0 / m));    // E[σ^2_g]
+        S2_g = vec(m, fill::value(m));              // S'^2_p = (vS2 + E[β^2]) / v'
         break;
     case Model::BayesB:
     case Model::BayesBpi:
-    case Model::BayesC:
-        alpha_exp = zeros(m);
-        alpha_var = zeros(m);
-        alpha_exp2 = zeros(m);
-
-        gamma_exp = vec(m, fill::value(0.5));
-        gamme_exp2 = vec(m, fill::value(0.5));      // gamma_exp ^ 2 + gamma_exp * (1 - gamma_exp)
         break;
+    case Model::BayesC:
     case Model::BayesCpi:
+        beta_exp  = zeros(m);  // E[β] 
+        beta_var  = zeros(m);  // V[β] 
+        beta_exp2 = zeros(m);  // E[β^2] 
+
+        gamma_exp  = vec(m, fill::value(0.5));      // E[γ]
+        gamma_exp2 = vec(m, fill::value(0.5));      // E[γ^2]: gamma_exp ^ 2 + gamma_exp * (1 - gamma_exp)
+
+        sigma2_g = vec(1, fill::value(1.0 / m));    // E[σ^2_g]
+        S2_g = vec(1, fill::value(m));
+        break;
     case Model::BayesL:
     case Model::BayesR:
     case Model::BayesRR:
@@ -184,12 +184,12 @@ Rcpp::List VariationalBayes(
     vec y_res = y - mu_exp;  // residual
 
     // parameters of the residual distribution
-    double dfve_ = dfve.isNotNull()? as<double>(dfve) : -2;     // Nu of Inv-Chi2 distribution     
-    double s2ve_ = s2ve.isNotNull()? as<double>(s2ve) : 0;      // S2 of Inv-Chi2 distribution
-    double ve_ = ve.isNotNull()? as<double>(ve) : vary * (1 - h2); //TODO: / (nr + 1); 
+    double dfve_ = dfve.isNotNull()? as<double>(dfve) : -2;        // Nu of Inv-Chi2 distribution     
+    double s2ve_ = s2ve.isNotNull()? as<double>(s2ve) : 0;         // S2 of Inv-Chi2 distribution
+    // double ve_ = ve.isNotNull()? as<double>(ve) : vary * (1 - h2); //TODO: / (nr + 1); 
     
-    double tau_exp = 1.0 / ve_;
-    double tau_exp_, tau_var_;
+    double sigma2_e = 1.0 / (vary * (1 - h2));
+    double sigma2_e_;
 
 
     if(verbose){
@@ -210,13 +210,7 @@ Rcpp::List VariationalBayes(
         Rcpp::Rcout << endl;
         Rcpp::Rcout << "    Phenotypic var " << std::fixed << vary << std::endl;
 
-        Rcpp::Rcout << "MCMC started: " << std::endl;
-        Rcpp::Rcout << " Iter" << "  ";
-        Rcpp::Rcout << "NumNZSnp" << "  ";
-        Rcpp::Rcout << "Vg" << "  ";
-        Rcpp::Rcout << "Ve" << "  ";
-        Rcpp::Rcout << "h2" << "  ";
-        Rcpp::Rcout << "Timeleft" << std::endl;
+        Rcpp::Rcout << "Inference started: " << std::endl;
     }
 
     MyTimer timer;
@@ -229,151 +223,166 @@ Rcpp::List VariationalBayes(
         double Check2 = 0.0;        // sum((new_para)^2)
 
         /* Probability of gamma */
-        double sumGammaB2 = 0.0;
-        double sumGamma   = 0.0;
+        double sumGammaB2 = 0.0;    // Σ(γ * E[β^2]) 
+        double sumGamma   = 0.0;    // Σ(γ) : probability of marker have effect
 	    double gamma_constant;
 
         double sumGammaB2_ = 0.0;
         double sumGamma_   = 0.0;
-        double S2_ = 0.0;
+        double S2_g_ = 0.0;
 
 		// For update of residual variance
         double a1, b1;
-		double sumVarB = 0.0;
+		double sumVarB = 0.0;   // V[fm(x; θ)]
 
         uvec order = linspace<uvec>(0, m - 1, m);     // order of snp {1 ... m}, used to update SNP Effect in random order
 
-		// Update of alpha
-        switch(model_index) {
-        case Model::BayesA:
-        //#region BayesA
-            s2vp_ = pow((dfvg_ - 2) / dfvg_, 2.0) * vary * h2 / ((1 - Pi[0]) * sumvx); 
+		// Update of beta
+        if (model_index == Model::BayesA) {
+            // s2vp_ = pow((dfvg_ - 2) / dfvg_, 2.0) * vary * h2 / ((1 - Pi[0]) * sumvx); 
 
-            vS2 = dfvg_ * s2vp_;
-
-            order = shuffle(order);     // update SNP Effect in random order
-            for (uword o = 0; o < m; o++) {
-                uword p = order[o];     // index of snp
-                double alpha_exp_;      // new value of alpha_exp[p]
-                double alpha_exp2_;     // new value of alpha_exp2[p]
-                double alpha_var_;      // new value of alpha_var[p]
-                double alpha_S2_;       // new value of alpha_S2[p]
-
-                alpha_var_ = 1.0 / (xpx[p] * tau_exp + 1.0 / alpha_S2[p]);
-                alpha_exp_  = alpha_var_ * (dot(X.col(p), y_res) + xpx[p] * alpha_exp[p]) * tau_exp;
-                alpha_exp2_ = pow(alpha_exp_, 2.0) + alpha_var_;
-
-                /* update residuals */
-                y_res   += (X.col(p) * (alpha_exp[p] - alpha_exp_));
-                sumVarB += (xpx[p] * alpha_var[p]);     // ??
-
-                Check1 += pow(alpha_exp_ - alpha_exp[p], 2.0);
-                Check2 += pow(alpha_exp_, 2.0);
-
-                alpha_exp[p]  = alpha_exp_;
-                alpha_exp2[p] = alpha_exp2_;
-                alpha_var[p]  = alpha_var_;
-
-                /* update of Sigma2 */
-                alpha_sigma2[p] = (alpha_exp2[p] + vS2) / (dfvg_ - 1.0);
-                alpha_S2_ = (alpha_exp2[p] + vS2) / (dfvg_ + 1.0);
-                Check1 += pow(alpha_S2_ - alpha_S2[p], 2.0); 
-                Check2 += pow(alpha_S2_, 2.0);
-                alpha_S2[p] = alpha_S2_;
-            }
-        break;
-        //#endregion
-        case Model::BayesB:
-            throw Rcpp::exception("Not implemented yet");
-        break;
-        case Model::BayesBpi:
-            throw Rcpp::exception("Not implemented yet");
-        break;
-        case Model::BayesC:
-            s2vp_ = pow((dfvg_ - 2) / dfvg_, 2.0) * vary * h2 / ((1 - Pi[0]) * sumvx); 
             vS2 = dfvg_ * s2vg_;
 
-            gamma_constant = 0.5 * R::digamma(0.5 * (dfvg_ + sumGamma)) - 0.5 * log(0.5 * (sumGammaB2 + vS2)) + log(datum::pi);
+            order = shuffle(order);     // update SNP Effect in random order
+            for (uword o = 0; o < m; o++) {
+                uword p = order[o];    // index of snp
+                double beta_exp_;      // new value of beta_exp[p]
+                double beta_exp2_;     // new value of beta_exp2[p]
+                double beta_var_;      // new value of beta_var[p]
+                double S2_g_;          // new value of S2_g[p]
+
+
+                // beta_var_ = 1.0 / (xtx[p] * tau_exp + 1.0 / S2_g[p]);
+                beta_var_  = (sigma2_e * S2_g[p]) / (xtx[p] * S2_g[p] + sigma2_e);
+                beta_exp_  = beta_var_ * (dot(X.col(p), y_res) + xtx[p] * beta_exp[p]) / sigma2_e;
+                beta_exp2_ = pow(beta_exp_, 2.0) + beta_var_;
+
+                /* update residuals */
+                y_res   += (X.col(p) * (beta_exp[p] - beta_exp_));
+                sumVarB += (xtx[p] * beta_var[p]);     // sum(V[β_p])
+
+                Check1 += pow(beta_exp_ - beta_exp[p], 2.0);
+                Check2 += pow(beta_exp_, 2.0);
+
+                beta_exp[p]  = beta_exp_;
+                beta_exp2[p] = beta_exp2_;
+                beta_var[p]  = beta_var_;
+
+                /* update of Sigma2 */
+                sigma2_g[p] = (beta_exp2[p] + vS2) / (dfvg_ - 2.0);
+                S2_g_       = (beta_exp2[p] + vS2) / (dfvg_ + 1.0);
+
+                Check1 += pow(S2_g_ - S2_g[p], 2.0); 
+                Check2 += pow(S2_g_, 2.0);
+
+                S2_g[p] = S2_g_;
+            }
+        } else if (model_index == Model::BayesB || model_index == Model::BayesBpi) {
+            throw Rcpp::exception("Not implemented yet");
+        } else if (model_index == Model::BayesC || model_index == Model::BayesCpi) {
+            // s2vp_ = pow((dfvg_ - 2) / dfvg_, 2.0) * vary * h2 / ((1 - Pi[0]) * sumvx); 
+            vS2 = dfvg_ * s2vg_;
+
+            gamma_constant = 0.5 * R::digamma(0.5 * (dfvg_ + sumGamma)) - 0.5 * log(0.5 * (sumGammaB2 + vS2));
 
             order = shuffle(order);     // update SNP Effect in random order
-
             for (uword o = 0; o < m; o++) {
                 uword p = order[o];     // index of snp
-                double alpha_exp_;      // new value of alpha_exp[p]
-                double alpha_exp2_;     // new value of alpha_exp2[p]
-                double alpha_var_;      // new value of alpha_var[p]
+                double beta_exp_;       // new value of beta_exp[p]
+                double beta_exp2_;      // new value of beta_exp2[p]
+                double beta_var_;       // H_p
                 double gamma_exp_;      // new value of gamma_exp[p]
 
-                double temp = (dot(X.col(p), y_res) + xpx[p] * alpha_exp[p] * gamma_exp[p]) * tau_exp;
+                // double temp = tau_exp * (dot(X.col(p), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]);
+                double temp = (dot(X.col(p), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
 
-                alpha_var_ = 1.0 / (xpx[p] * tau_exp + 1.0 / S2);
-                alpha_exp_  = alpha_var_ * temp;
-                alpha_exp2_ = pow(alpha_exp_, 2.0) + alpha_var_;
+                // beta_var_  = 1.0 / (xtx[p] / sigma2_e + 1.0 / S2_g[0]);
+                beta_var_  = (sigma2_e * S2_g[0]) / (xtx[p] * S2_g[0] + sigma2_e);
+                beta_exp_  = beta_var_ * temp;
+                beta_exp2_ = pow(beta_exp_, 2.0) + beta_var_;
 
                 /* update Gamma */
-                gamma_exp_ = 0.5 * alpha_var_ * temp * temp + 0.5 * log(alpha_var_);
+                gamma_exp_  = 0.5 * beta_var_ * temp * temp + 0.5 * log(beta_var_);
                 gamma_exp_ += gamma_constant;
                 
                 // to avoid overflow
                 if (gamma_exp_ < 20.0) {
-                    gamma_exp_ = exp(gamma_exp_);
-                    gamma_exp_ = gamma_exp_ / (1.0 + gamma_exp_ - Pi[0]);
+                    gamma_exp_ = Pi[1] * exp(gamma_exp_);
+                    gamma_exp_ = gamma_exp_ / (gamma_exp_ + Pi[0]);
                 } else {
                     gamma_exp_ = 1.0;   // exp(20) / (exp(20) + 1) ≈ 1 - 2.06e-9
                 }
 
                 /* update residuals */
-                y_res += (X.col(p) * (alpha_exp[p] * gamma_exp[p] - alpha_exp_ * gamma_exp_));
+                y_res += (X.col(p) * (beta_exp[p] * gamma_exp[p] - beta_exp_ * gamma_exp_));
 
-                Check1 += pow(alpha_exp_ - alpha_exp[p], 2.0);
-                Check2 += pow(alpha_exp_, 2.0);
+                Check1 += pow(beta_exp_ - beta_exp[p], 2.0);
+                Check2 += pow(beta_exp_, 2.0);
 
-                alpha_exp[p]  = alpha_exp_;
-                alpha_exp2[p] = alpha_exp2_;
-                alpha_var[p]  = alpha_var_;
+                beta_exp[p]  = beta_exp_;
+                beta_exp2[p] = beta_exp2_;
+                beta_var[p]  = beta_var_;
 
                 gamma_exp[p]  = gamma_exp_;
-                gamme_exp2[p] = pow(gamma_exp_, 2.0) + gamma_exp_ * (1.0 - gamma_exp_);
+                gamma_exp2[p] = pow(gamma_exp_, 2.0) + gamma_exp_ * (1.0 - gamma_exp_);
 
-                sumVarB     += (xpx[p] * gamma_exp_ * (alpha_exp2_ - gamma_exp_ * alpha_exp_ * alpha_exp_));
-                sumGammaB2_ += alpha_exp2_ * gamma_exp_;
+                sumVarB     += (xtx[p] * gamma_exp_ * (beta_exp2_ - gamma_exp_ * beta_exp_ * beta_exp_));
+                sumGammaB2_ += beta_exp2_ * gamma_exp_;
                 sumGamma_   += gamma_exp_;
             }
 
             /* update of Sigma2 */
-            // sumGammaB2[0] = sumGammaB2[1];
-            // sumGamma[0] = sumGamma[1];
-            // X[0].expSigma2[0] = (sumGammaB2[0] + vS2) / (H[0].v + sumGamma[0] - 2.0);
-            // X[0].S2[0] = prop = (sumGammaB2[0] + vS2) / (H[0].v + sumGamma[0]);
-            sigma2 = (sumGammaB2 + vS2) / (dfvg_ + sumGamma - 2.0);
-            S2_ = (sumGammaB2 + vS2) / (dfvg_ + sumGamma);
+            //   v' = v + sumGamma
+            //  S2' = (vS2 + sum(β^2)) / (v + sumGamma)
+            // mean = vS2 / (v - 2)
+
+            sigma2_g[0] = (sumGammaB2 + vS2) / (dfvg_ + sumGamma - 2.0);
+            S2_g_       = (sumGammaB2 + vS2) / (dfvg_ + sumGamma);       // S~ 
 
             sumGammaB2 = sumGammaB2_;
             sumGamma   = sumGamma_;
 
-            Check1 += pow(S2_ - S2, 2.0); 
-            Check2 += pow(S2_, 2.0);
-            S2 = S2_;
-        break;
-        case Model::BayesCpi:
-        case Model::BayesL:
-        case Model::BayesR:
-        case Model::BayesRR:
-        case Model::BSLMM:
-        default:
+            Check1 += pow(S2_g_ - S2_g[0], 2.0); 
+            Check2 += pow(S2_g_, 2.0);
+            S2_g[0] = S2_g_;
+
+            // Update π
+            if (model_index == Model::BayesCpi) {
+                Check1 += pow(sumGamma / m - Pi[1], 2.0); 
+                Check2 += pow(sumGamma / m, 2.0);
+
+                Pi[0] = 1 - sumGamma / m;
+                Pi[1] = sumGamma / m;
+            }
+        } else if (model_index == Model::BayesL) {
+            throw Rcpp::exception("Not implemented yet");
+        } else if (model_index == Model::BayesR) {
+            throw Rcpp::exception("Not implemented yet");
+        } else if (model_index == Model::BayesRR) {
+            throw Rcpp::exception("Not implemented yet");
+        } else if (model_index == Model::BSLMM) {
+        } else {
             throw Rcpp::exception("Not implemented yet");
         }
 
+        // Update mu
+        double mu_exp_;
+        mu_var = sigma2_e;
+        mu_exp_ = mean(y_res);
+
+        Check1 += pow(mu_exp_ - mu_exp, 2.0);
+        Check2 += pow(mu_exp_, 2.0);
+
+        y_res += (mu_exp - mu_exp_);
+        mu_exp = mu_exp_;
+        sumVarB += mu_var;
+
 		// Update of residual precision
-		a1 = 0.5 * n;
-		b1 = 0.5 * (accu(square(y_res)) + sumVarB);
+        sigma2_e_ = (dot(y_res, y_res) + sumVarB) / (n - 2.0);
 
-		tau_exp_ = a1 / b1;
-        tau_var_ = a1 / pow(b1, 2.0);
-
-		Check1 += pow(tau_exp_ - tau_exp, 2.0);
-		Check2 += pow(tau_exp_, 2.0);
-		tau_exp = tau_exp_;
+		Check1 += pow(sigma2_e_ - sigma2_e, 2.0);
+		Check2 += pow(sigma2_e_, 2.0);
+		sigma2_e = sigma2_e_;
 
 		// Lower bound
 		// Rmonitor[ite - 1] = 1.0 / Tau0[0];
@@ -387,16 +396,17 @@ Rcpp::List VariationalBayes(
 			break;
 		}
         Rcpp::Rcout << "Iteration: " << iter << " finished." << endl;
+        // Rcpp::Rcout << "π: " << Pi[1] << endl;
 	}
 
     List results;
         
-    results["Vg"] = dot(alpha_var, vx);
-    results["Ve"] = 1.0 / tau_exp;
-    results["h2"] = dot(alpha_var, vx) / (dot(alpha_var, vx) + 1.0 / tau_exp);
+    results["Vg"] = dot(beta_var, vx);
+    results["Ve"] = sigma2_e;
+    results["h2"] = dot(beta_var, vx) / (dot(beta_var, vx) + 1.0 / sigma2_e);
     results["mu"] = mu_exp;
-    results["Tau"] = tau_exp;
     results["vary"] = vary;
+    results["Pi"] = Pi;
     // if(nc){
     //     beta = conv_to<vec>::from(mean(beta_store, 1));
     //     betasd = conv_to<vec>::from(stddev(beta_store, 0, 1));
@@ -404,9 +414,10 @@ Rcpp::List VariationalBayes(
     //     results["beta"] = beta;
     // }
 
-    results["alpha"] = alpha_exp;
-    results["g"] = X * alpha_exp;
-    results["e"] = y - X * alpha_exp - mu_exp;
+    results["beta"] = beta_exp % gamma_exp;
+    results["gamma"] = gamma_exp;
+    results["g"] = X * beta_exp;
+    results["e"] = y - X * beta_exp - mu_exp;
 
     timer.step("end");
     NumericVector res(timer);

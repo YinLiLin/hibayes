@@ -1,6 +1,7 @@
 library(hibayes)
 
 DATASETS_ROOT <- '/Users/hyacz/Data/GS2019/'
+set.seed(1)
 
 runHibayes <- function(method, datasets, trait, fold) {
     fold <- as.numeric(fold)
@@ -19,13 +20,13 @@ runHibayes <- function(method, datasets, trait, fold) {
     X <- geno[]
 
     time1 <- Sys.time()
-
-    fit <- VariationalBayes(
+    print(paste0("Start ..."))
+    fit <- hibayes:::VariationalBayes(
         y = pheno[!mask, 6 + fold],
         X = X[!mask, ],
-        model_str = "BayesC",
+        model_str = method,
         Pi = c(0.95, 0.05),
-        threshold = 10e-6
+        max_iteration = 100,
     )
 
     time2 <- Sys.time()
@@ -34,12 +35,17 @@ runHibayes <- function(method, datasets, trait, fold) {
     # mask <- is.na(pheno[paste0('V', fold + 6)])
     
     p <- pheno["V6"][mask]
-    g <- X[mask, ] %*% fit$alpha
+    g <- X[mask, ] %*% fit$beta
 
+    boxplot(fit$gamma)
     fit$pcc <- cor(p, g)
     print(paste(trait, "Cor:", fit$pcc))
-    print(str(fit))
+
+    vigor_res <- readRDS(paste0('VIGoR/', paste("BayesC", datasets, trait, fold, sep='_'), '.rds'))
+    plot(fit$beta, vigor_res$ETA[[1]]$Beta)
+    abline(0, 1)
     # saveRDS(fit, file = paste0('hibayes/', paste(method, datasets, trait, fold, sep='_'), '.rds'))
+    return(str(fit))
 }
 
 args = commandArgs(trailingOnly=TRUE)
