@@ -53,6 +53,9 @@ bin/*
 
 # VSCode
 .vscode/*
+src/.cache/*
 *.Rproj
 .Rproj.user
 .Rhistory
+
+VIGoR/*
