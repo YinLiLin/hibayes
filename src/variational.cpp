@@ -23,7 +23,7 @@
 
 
 enum class Model { BayesA, BayesB, BayesBpi, BayesC, BayesCpi, BayesL, BayesR, BayesRR, BSLMM };
-typedef struct { uword start; uword end; } Block;
+typedef struct { uword start; uword end; } Block;  // snp block [a, b)
 
 vector<Block> createBlocks(const uword m, const uword block_size=64) {
     vector<Block> blocks;
@@ -34,7 +34,7 @@ vector<Block> createBlocks(const uword m, const uword block_size=64) {
 }
 
 
-void orth_augment(arma::mat &X, arma::vec &d, const arma::uword block_size) {
+void orth_augment(arma::mat &X, arma::vec &d, arma::vec &y,const arma::uword block_size) {
     uword n = X.n_rows;
     uword m = X.n_cols;
     X.resize(n + min(block_size, m), m);
@@ -47,26 +47,29 @@ void orth_augment(arma::mat &X, arma::vec &d, const arma::uword block_size) {
         auto X0 = X.submat(0, i, n - 1, i + p - 1);
         mat Xa = X0.t() * X0;
         d[b] = max(eig_sym(Xa));
-        Xa.diag() -= (d[b] + 0.001);
+        Xa.diag() -= (d[b] + 0.0001);
         X.submat(n, i, n + p - 1, i + p - 1) = chol(-Xa);
 
         b++;
     }
+
+    y.resize(n + min(block_size, m));
+    y.subvec(n, y.n_elem - 1) = zeros(min(block_size, m));
 }
 
-// [[Rcpp::export]]
-Rcpp::List orth_augment_test(){
-    mat A = randu<mat>(3, 5);
-    vec d;
-    orth_augment(A, d, 2);
+// // [[Rcpp::export]]
+// Rcpp::List orth_augment_test(){
+//     mat A = randu<mat>(3, 5);
+//     vec d;
+//     orth_augment(A, d, 2);
     
-    List results;
+//     List results;
         
-    results["A"] = A;
-    results["d"] = d;
+//     results["A"] = A;
+//     results["d"] = d;
 
-    return results;
-}
+//     return results;
+// }
 
 // [[Rcpp::export]]
 Rcpp::List VariationalBayes(
@@ -85,7 +88,7 @@ Rcpp::List VariationalBayes(
     const Nullable<double> s2ve = R_NilValue,   // S2 of Inv-Chi2 distribution of residual variance
     const int threads = 0,
     const int max_iteration = 1000,
-    const int block_size = 64,
+    const int block_size = 32,
     const int seed = 42,
     const double threshold = 1e-5,
     const bool random_init = false,
@@ -170,8 +173,10 @@ Rcpp::List VariationalBayes(
     // Gentic marker ======================
     // Orthogonal data augmentation
     vec xd;
-    orth_augment(X, xd, block_size);
-
+    if (block_size > 1) {
+        orth_augment(X, xd, y, block_size);
+    }
+    
     // Cache feature of markers
     vec xtx = zeros(m);     // Vector of (X_p * X_p)
     vec vx = zeros(m);      // Vector of variance of X_p
@@ -343,50 +348,69 @@ Rcpp::List VariationalBayes(
             std::shuffle(blocks.begin(), blocks.end(), rng);
 
             for (Block b: blocks) {
+                uword n_elem = b.end - b.start + 1;
+                vec beta_exp_(n_elem);       // new value of beta_exp[p]
+                vec beta_exp2_(n_elem);      // new value of beta_exp2[p]
+                vec beta_var_(n_elem);       // H_p
+                vec gamma_exp_(n_elem);      // new value of gamma_exp[p]
+                
+                
+                // Rcpp::Rcout << "[DEBUG]: Block(" << b.start << ", " << b.end << ")." << endl;
+                y_res.subvec(n, n + block_size - 1) = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b.start, b.end - 1) % gamma_exp.subvec(b.start, b.end - 1));
+                // y_res.subvec(n, n + block_size - 1) = zeros(block_size);
+                // Rcpp::Rcout << "[DEBUG]: y_a: " << mean(y_res.subvec(0, n + block_size - 1)) << endl;
                 // #pragma omp parallel for reduction(+:y_res,sumVarB,sumGamma_,sumGammaB2_)
                 for (uword p = b.start; p < b.end; p++) {   // index of snp
-                    double beta_exp_;       // new value of beta_exp[p]
-                    double beta_exp2_;      // new value of beta_exp2[p]
-                    double beta_var_;       // H_p
-                    double gamma_exp_;      // new value of gamma_exp[p]
+                    uword i = p - b.start;
 
-                    // double temp = tau_exp * (dot(X.col(p), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]);
+                    // double temp = ((dot(X.col(p).subvec(0, n - 1), y_res) + dot(X.col(p).subvec(n, X.n_rows-1), X.col(p).subvec(n, X.n_rows - 1) * beta_exp[p] * gamma_exp[p])) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
+                    // double temp = ((dot(X.col(p).subvec(0, n - 1), y_res) + dot(X.col(p).subvec(n, X.n_rows-1), y_block)) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
+                    // double temp = (dot(X.col(p).subvec(0, n - 1), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
                     double temp = (dot(X.col(p), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
 
-                    // beta_var_  = 1.0 / (xtx[p] / sigma2_e + 1.0 / S2_g[0]);
-                    beta_var_  = (sigma2_e * S2_g[0]) / (xtx[p] * S2_g[0] + sigma2_e);
-                    beta_exp_  = beta_var_ * temp;
-                    beta_exp2_ = pow(beta_exp_, 2.0) + beta_var_;
+                    beta_var_[i]  = (sigma2_e * S2_g[0]) / (xtx[p] * S2_g[0] + sigma2_e);
+                    beta_exp_[i]  = beta_var_[i] * temp;
+                    beta_exp2_[i] = pow(beta_exp_[i], 2.0) + beta_var_[i];
 
                     /* update Gamma */
-                    gamma_exp_  = 0.5 * beta_var_ * temp * temp + 0.5 * log(beta_var_);
-                    gamma_exp_ += gamma_constant;
+                    gamma_exp_[i]  = 0.5 * beta_var_[i] * temp * temp + 0.5 * log(beta_var_[i]);
+                    gamma_exp_[i] += gamma_constant;
                     
                     // to avoid overflow
-                    if (gamma_exp_ < 20.0) {
-                        gamma_exp_ = Pi[1] * exp(gamma_exp_);
-                        gamma_exp_ = gamma_exp_ / (gamma_exp_ + Pi[0]);
+                    if (gamma_exp_[i] < 20.0) {
+                        gamma_exp_[i] = Pi[1] * exp(gamma_exp_[i]);
+                        gamma_exp_[i] = gamma_exp_[i] / (gamma_exp_[i] + Pi[0]);
                     } else {
-                        gamma_exp_ = 1.0;   // exp(20) / (exp(20) + 1) ≈ 1 - 2.06e-9
+                        gamma_exp_[i] = 1.0;   // exp(20) / (exp(20) + 1) ≈ 1 - 2.06e-9
                     }
 
                     /* update residuals */
-                    y_res += (X.col(p) * (beta_exp[p] * gamma_exp[p] - beta_exp_ * gamma_exp_));
+                    // y_res += (X.col(p).subvec(0, n - 1) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
+                    
+                    // y_block += (X.col(p).subvec(n, n + block_size - 1) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
+                    // y_res += (X.col(p) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
 
-                    Check1 += pow(beta_exp_ - beta_exp[p], 2.0);
-                    Check2 += pow(beta_exp_, 2.0);
+                    Check1 += pow(beta_exp_[i] - beta_exp[p], 2.0);
+                    Check2 += pow(beta_exp_[i], 2.0);
 
-                    beta_exp[p]  = beta_exp_;
-                    beta_exp2[p] = beta_exp2_;
-                    beta_var[p]  = beta_var_;
-
-                    gamma_exp[p]  = gamma_exp_;
-                    gamma_exp2[p] = pow(gamma_exp_, 2.0) + gamma_exp_ * (1.0 - gamma_exp_);
-
-                    sumVarB     += (xtx[p] * gamma_exp_ * (beta_exp2_ - gamma_exp_ * beta_exp_ * beta_exp_));
-                    sumGammaB2_ += beta_exp2_ * gamma_exp_;
-                    sumGamma_   += gamma_exp_;
+                    sumVarB     += (xtx[p] * gamma_exp_[i] * (beta_exp2_[i] - gamma_exp_[i] * beta_exp_[i] * beta_exp_[i])); // gamma_exp_[i] *
+                    sumGammaB2_ += beta_exp2_[i] * gamma_exp_[i];
+                    sumGamma_   += gamma_exp_[i];
+                    // y_res.subvec(n, n + block_size - 1) = zeros(block_size);
                 }
+
+                for (uword p = b.start; p < b.end; p++) {   // index of snp
+                    uword i = p - b.start;
+                    y_res += (X.col(p) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
+                    beta_exp[p]  = beta_exp_[i];
+                    beta_exp2[p] = beta_exp2_[i];
+                    beta_var[p]  = beta_var_[i];
+
+                    gamma_exp[p]  = gamma_exp_[i];
+                    gamma_exp2[p] = pow(gamma_exp_[i], 2.0) + gamma_exp_[i] * (1.0 - gamma_exp_[i]);
+                }
+                // y_res.subvec(n, n + block_size - 1).t().print("y_a =");
+                // y_res.subvec(n, n + block_size - 1) = zeros(block_size);
             }
 
             /* update of Sigma2 */
@@ -407,6 +431,7 @@ Rcpp::List VariationalBayes(
             // Update π
             if (model_index == Model::BayesCpi) {
                 double Pi1_ =  (sumGamma + 1) / (m + 2); // E[π], π ~ Beta(m - k + 1, k + 1)
+                // double Pi1_ =  sumGamma / m;
                 Check1 += pow(Pi1_ - Pi[1], 2.0);
                 Check2 += pow(Pi1_, 2.0);
 
@@ -425,16 +450,16 @@ Rcpp::List VariationalBayes(
         }
 
         // Update mu
-        double mu_exp_;
-        mu_var = sigma2_e;
-        mu_exp_ = mean(y_res);
+        // double mu_exp_;
+        // mu_var = sigma2_e;
+        // mu_exp_ = mean(y_res);
 
-        Check1 += pow(mu_exp_ - mu_exp, 2.0);
-        Check2 += pow(mu_exp_, 2.0);
+        // Check1 += pow(mu_exp_ - mu_exp, 2.0);
+        // Check2 += pow(mu_exp_, 2.0);
 
-        y_res += (mu_exp - mu_exp_);
-        mu_exp = mu_exp_;
-        sumVarB += mu_var;
+        // y_res += (mu_exp - mu_exp_);
+        // mu_exp = mu_exp_;
+        // sumVarB += mu_var;
 
 		// Update of residual precision
         sigma2_e_ = (dot(y_res, y_res) + sumVarB) / (n - 2.0);
@@ -456,6 +481,7 @@ Rcpp::List VariationalBayes(
         // Rcpp::Rcout << "π: " << Pi[1] << endl;
 	}
 
+    Rcpp::Rcout << "Iteration finished." << endl;
     List results;
         
     results["Vg"] = dot(beta_var, vx);
@@ -473,8 +499,8 @@ Rcpp::List VariationalBayes(
 
     results["beta"] = beta_exp % gamma_exp;
     results["gamma"] = gamma_exp;
-    results["g"] = X * beta_exp;
-    results["e"] = y - X * beta_exp - mu_exp;
+    results["g"] = X.rows(0, n - 1) * beta_exp;
+    results["e"] = y.rows(0, n - 1) - X.rows(0, n - 1) * beta_exp - mu_exp;
 
     timer.step("end");
     NumericVector res(timer);
