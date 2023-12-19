@@ -73,11 +73,7 @@ tXXmat_Chr_gwas <- function(pBigMat, chr, gwasgeno, gwaschr, refindx, gwasindx, 
     .Call(`_hibayes_tXXmat_Chr_gwas`, pBigMat, chr, gwasgeno, gwaschr, refindx, gwasindx, chisq, threads, verbose)
 }
 
-orth_augment_test <- function() {
-    .Call(`_hibayes_orth_augment_test`)
-}
-
-VariationalBayes <- function(y, X, model_str, Pi, C = NULL, R = NULL, fold = NULL, dfvr = NULL, s2vr = NULL, dfvg = NULL, s2vg = NULL, dfve = NULL, s2ve = NULL, threads = 0L, max_iteration = 1000L, block_size = 64L, seed = 42L, threshold = 1e-5, random_init = FALSE, verbose = TRUE) {
-    .Call(`_hibayes_VariationalBayes`, y, X, model_str, Pi, C, R, fold, dfvr, s2vr, dfvg, s2vg, dfve, s2ve, threads, max_iteration, block_size, seed, threshold, random_init, verbose)
+VariationalBayes <- function(y, X, model_str, Pi, C = NULL, R = NULL, fold = NULL, dfvr = NULL, s2vr = NULL, dfvg = NULL, s2vg = NULL, dfve = NULL, s2ve = NULL, block_size = 64L, threads = 0L, max_iteration = 1000L, seed = 42L, threshold = 1e-5, random_init = FALSE, verbose = TRUE) {
+    .Call(`_hibayes_VariationalBayes`, y, X, model_str, Pi, C, R, fold, dfvr, s2vr, dfvg, s2vg, dfve, s2ve, block_size, threads, max_iteration, seed, threshold, random_init, verbose)
 }
 

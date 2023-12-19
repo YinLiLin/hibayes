@@ -321,19 +321,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// orth_augment_test
-Rcpp::List orth_augment_test();
-RcppExport SEXP _hibayes_orth_augment_test() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(orth_augment_test());
-    return rcpp_result_gen;
-END_RCPP
-}
 // VariationalBayes
-Rcpp::List VariationalBayes(arma::vec& y, arma::mat& X, std::string model_str, arma::vec Pi, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const Nullable<double> dfvr, const Nullable<double> s2vr, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> dfve, const Nullable<double> s2ve, const int threads, const int max_iteration, const int block_size, const int seed, const double threshold, const bool random_init, const bool verbose);
-RcppExport SEXP _hibayes_VariationalBayes(SEXP ySEXP, SEXP XSEXP, SEXP model_strSEXP, SEXP PiSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP dfvrSEXP, SEXP s2vrSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP threadsSEXP, SEXP max_iterationSEXP, SEXP block_sizeSEXP, SEXP seedSEXP, SEXP thresholdSEXP, SEXP random_initSEXP, SEXP verboseSEXP) {
+Rcpp::List VariationalBayes(arma::vec& y, arma::mat& X, std::string model_str, arma::vec Pi, const Nullable<arma::mat> C, const Nullable<CharacterMatrix> R, const Nullable<arma::vec> fold, const Nullable<double> dfvr, const Nullable<double> s2vr, const Nullable<double> dfvg, const Nullable<double> s2vg, const Nullable<double> dfve, const Nullable<double> s2ve, arma::uword block_size, const int threads, const int max_iteration, const int seed, const double threshold, const bool random_init, const bool verbose);
+RcppExport SEXP _hibayes_VariationalBayes(SEXP ySEXP, SEXP XSEXP, SEXP model_strSEXP, SEXP PiSEXP, SEXP CSEXP, SEXP RSEXP, SEXP foldSEXP, SEXP dfvrSEXP, SEXP s2vrSEXP, SEXP dfvgSEXP, SEXP s2vgSEXP, SEXP dfveSEXP, SEXP s2veSEXP, SEXP block_sizeSEXP, SEXP threadsSEXP, SEXP max_iterationSEXP, SEXP seedSEXP, SEXP thresholdSEXP, SEXP random_initSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -350,14 +340,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2vg(s2vgSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type dfve(dfveSEXP);
     Rcpp::traits::input_parameter< const Nullable<double> >::type s2ve(s2veSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type block_size(block_sizeSEXP);
     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const int >::type max_iteration(max_iterationSEXP);
-    Rcpp::traits::input_parameter< const int >::type block_size(block_sizeSEXP);
     Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< const double >::type threshold(thresholdSEXP);
     Rcpp::traits::input_parameter< const bool >::type random_init(random_initSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(VariationalBayes(y, X, model_str, Pi, C, R, fold, dfvr, s2vr, dfvg, s2vg, dfve, s2ve, threads, max_iteration, block_size, seed, threshold, random_init, verbose));
+    rcpp_result_gen = Rcpp::wrap(VariationalBayes(y, X, model_str, Pi, C, R, fold, dfvr, s2vr, dfvg, s2vg, dfve, s2ve, block_size, threads, max_iteration, seed, threshold, random_init, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -381,7 +371,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hibayes_tXXmat_Geno_gwas", (DL_FUNC) &_hibayes_tXXmat_Geno_gwas, 7},
     {"_hibayes_tXXmat_Chr", (DL_FUNC) &_hibayes_tXXmat_Chr, 5},
     {"_hibayes_tXXmat_Chr_gwas", (DL_FUNC) &_hibayes_tXXmat_Chr_gwas, 9},
-    {"_hibayes_orth_augment_test", (DL_FUNC) &_hibayes_orth_augment_test, 0},
     {"_hibayes_VariationalBayes", (DL_FUNC) &_hibayes_VariationalBayes, 20},
     {NULL, NULL, 0}
 };

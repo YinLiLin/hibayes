@@ -26,7 +26,8 @@ runHibayes <- function(method, datasets, trait, fold) {
         X = X[!mask, ],
         model_str = method,
         Pi = c(0.95, 0.05),
-        max_iteration = 100,
+        max_iteration = 500,
+        block_size = 50000,
     )
 
     time2 <- Sys.time()

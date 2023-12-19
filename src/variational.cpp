@@ -179,8 +179,8 @@ Rcpp::List VariationalBayes(
     if (block_size > 1) {
         block_size = min(block_size, m);
         orth_augment(X, xd, block_size);
-        y.resize(n + min(block_size, m));
-        y.subvec(n, y.n_elem - 1) = zeros(min(block_size, m));
+        y.resize(n + block_size);
+        y.subvec(n, y.n_elem - 1) = zeros(block_size);
     }
     
     // Cache feature of markers
@@ -253,7 +253,7 @@ Rcpp::List VariationalBayes(
     double s2ve_ = s2ve.isNotNull()? as<double>(s2ve) : 0;         // S2 of Inv-Chi2 distribution
     // double ve_ = ve.isNotNull()? as<double>(ve) : vary * (1 - h2); //TODO: / (nr + 1); 
     
-    double sigma2_e = 1.0 / (vary * (1 - h2));
+    double sigma2_e = vary;
     double sigma2_e_;
 
 
@@ -294,7 +294,7 @@ Rcpp::List VariationalBayes(
 
         double sumGammaB2_ = 0.0;
         double sumGamma_   = 0.0;
-        double S2_g_ = 0.0;
+        double sigma2_g_   = 0.0;
         
         // double yty_a = 0.0;
         vec y_a = zeros(block_size);
@@ -354,22 +354,22 @@ Rcpp::List VariationalBayes(
             // order = shuffle(order);     
             std::shuffle(blocks.begin(), blocks.end(), rng);
             
+            if (block_size > 1) {
+                // y_res.subvec(n, n + block_size - 1) = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b) % gamma_exp.subvec(b));
+                y_res.subvec(n, n + block_size - 1).fill(0.0);
+            }
+
             for (span b: blocks) {
                 uword n_elem = b.b - b.a + 1;
                 vec beta_exp_(n_elem);       // new value of beta_exp[p]
                 vec beta_exp2_(n_elem);      // new value of beta_exp2[p]
                 vec beta_var_(n_elem);       // H_p
                 vec gamma_exp_(n_elem);      // new value of gamma_exp[p]
-                
-                // yty_a = 0.0;
-                if (block_size > 1) {
-                    // y_res.subvec(n, n + block_size - 1) = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b) % gamma_exp.subvec(b));
-                    y_res.subvec(n, n + block_size - 1).fill(0.0);
-                }
 
                 vec temp = (X.cols(b).t() * y_res + xtx.subvec(b) % beta_exp.subvec(b) % gamma_exp.subvec(b)) / sigma2_e;
-                beta_var_ = (sigma2_e * S2_g[0]) / (xtx.subvec(b) * S2_g[0] + sigma2_e);
+                beta_var_ = (sigma2_e * sigma2_g[0]) / (xtx.subvec(b) * sigma2_g[0] + sigma2_e);
                 beta_exp_ = beta_var_ % temp;
+                beta_exp2_ = square(beta_exp_) + beta_var_;
 
                 /* update Gamma */
                 gamma_exp_ = 0.5 * beta_var_ % temp % temp + 0.5 * log(beta_var_);
@@ -402,17 +402,18 @@ Rcpp::List VariationalBayes(
             /* update of Sigma2 */
             //   v' = v + sumGamma
             //  S2' = (vS2 + sum(β^2)) / (v + sumGamma)
-            // mean = vS2 / (v - 2)
+            // mean = vS2 / (v' - 2)
 
-            sigma2_g[0] = (sumGammaB2 + vS2) / (dfvg_ + sumGamma - 2.0);
-            S2_g_       = (sumGammaB2 + vS2) / (dfvg_ + sumGamma);       // S~ 
+            sigma2_g_ = (sumGammaB2 + vS2) / (dfvg_ + sumGamma - 2.0);
+            // S2_g_       = (sumGammaB2 + vS2) / (dfvg_ + sumGamma);       // S~ 
 
             sumGammaB2 = sumGammaB2_;
             sumGamma   = sumGamma_;
 
-            Check1 += pow(S2_g_ - S2_g[0], 2.0); 
-            Check2 += pow(S2_g_, 2.0);
-            S2_g[0] = S2_g_;
+            Check1 += pow(sigma2_g_ - sigma2_g[0], 2.0);
+            Check2 += pow(sigma2_g_, 2.0);
+            sigma2_g[0] = sigma2_g_;
+            // S2_g[0] = S2_g_;
 
             // Update π
             if (model_index == Model::BayesCpi) {
@@ -435,10 +436,10 @@ Rcpp::List VariationalBayes(
             throw Rcpp::exception("Not implemented yet");
         }
 
-        if (block_size > 1) {
-            y_res.subvec(n, y_res.n_elem - 1) = y_a;
-            Rcpp::Rcout << "Debug: " << y_a.t();
-        }
+        // if (block_size > 1) {
+        //     y_res.subvec(n, y_res.n_elem - 1) = y_a;
+        //     Rcpp::Rcout << "Debug: " << y_a.t();
+        // }
 
         // Update mu
         double mu_exp_;
@@ -451,7 +452,7 @@ Rcpp::List VariationalBayes(
         mu_exp = mu_exp_;
 
 		// Update of residual precision
-        sigma2_e_ = dot(y_res, y_res) / (y_res.n_elem - 2.0);
+        sigma2_e_ = (dot(y_res, y_res) + dfve_ * s2ve_)/ (y_res.n_elem + dfve_ - 2.0);
 
 		Check1 += pow(sigma2_e_ - sigma2_e, 2.0);
 		Check2 += pow(sigma2_e_, 2.0);
