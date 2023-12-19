@@ -23,18 +23,23 @@
 
 
 enum class Model { BayesA, BayesB, BayesBpi, BayesC, BayesCpi, BayesL, BayesR, BayesRR, BSLMM };
-typedef struct { uword start; uword end; } Block;  // snp block [a, b)
 
-vector<Block> createBlocks(const uword m, const uword block_size=64) {
-    vector<Block> blocks;
-    for (uword i = 0; i < m; i += block_size) {
-        blocks.push_back({i, min(i + block_size, m)});
+vector<arma::span> createBlocks(const uword m, const uword block_size=64) {
+    vector<span> blocks;
+    if (block_size == 1) {
+        for (uword i = 0; i < m; i ++) {
+            blocks.push_back(span(i));
+        }
+    } else {
+        for (uword i = 0; i < m; i += block_size) {
+            blocks.push_back(span(i, min(i + block_size, m) - 1));
+        }
     }
     return blocks;
 }
 
 
-void orth_augment(arma::mat &X, arma::vec &d, arma::vec &y,const arma::uword block_size) {
+void orth_augment(arma::mat &X, arma::vec &d, const arma::uword block_size) {
     uword n = X.n_rows;
     uword m = X.n_cols;
     X.resize(n + min(block_size, m), m);
@@ -52,9 +57,6 @@ void orth_augment(arma::mat &X, arma::vec &d, arma::vec &y,const arma::uword blo
 
         b++;
     }
-
-    y.resize(n + min(block_size, m));
-    y.subvec(n, y.n_elem - 1) = zeros(min(block_size, m));
 }
 
 // // [[Rcpp::export]]
@@ -86,9 +88,9 @@ Rcpp::List VariationalBayes(
     const Nullable<double> s2vg = R_NilValue,   // S2 of Inv-Chi2 distribution of additive gentic variance
     const Nullable<double> dfve = R_NilValue,   // Nu of Inv-Chi2 distribution of residual variance
     const Nullable<double> s2ve = R_NilValue,   // S2 of Inv-Chi2 distribution of residual variance
+    arma::uword block_size = 64,
     const int threads = 0,
     const int max_iteration = 1000,
-    const int block_size = 32,
     const int seed = 42,
     const double threshold = 1e-5,
     const bool random_init = false,
@@ -173,8 +175,12 @@ Rcpp::List VariationalBayes(
     // Gentic marker ======================
     // Orthogonal data augmentation
     vec xd;
+    double yatya = 0.0;
     if (block_size > 1) {
-        orth_augment(X, xd, y, block_size);
+        block_size = min(block_size, m);
+        orth_augment(X, xd, block_size);
+        y.resize(n + min(block_size, m));
+        y.subvec(n, y.n_elem - 1) = zeros(min(block_size, m));
     }
     
     // Cache feature of markers
@@ -289,10 +295,11 @@ Rcpp::List VariationalBayes(
         double sumGammaB2_ = 0.0;
         double sumGamma_   = 0.0;
         double S2_g_ = 0.0;
+        
+        // double yty_a = 0.0;
+        vec y_a = zeros(block_size);
 
 		// For update of residual variance
-		double sumVarB = 0.0;   // V[fm(x; θ)]
-
         uvec order = linspace<uvec>(0, m - 1, m);     // order of snp {1 ... m}, used to update SNP Effect in random order
         auto blocks = createBlocks(m, block_size);
         
@@ -306,24 +313,24 @@ Rcpp::List VariationalBayes(
             for (uword o = 0; o < m; o++) {
                 uword p = order[o];    // index of snp
                 double beta_exp_;      // new value of beta_exp[p]
-                double beta_exp2_;     // new value of beta_exp2[p]
+                // double beta_exp2_;     // new value of beta_exp2[p]
                 double beta_var_;      // new value of beta_var[p]
                 double S2_g_;          // new value of S2_g[p]
 
                 // beta_var_ = 1.0 / (xtx[p] * tau_exp + 1.0 / S2_g[p]);
                 beta_var_  = (sigma2_e * S2_g[p]) / (xtx[p] * S2_g[p] + sigma2_e);
                 beta_exp_  = beta_var_ * (dot(X.col(p), y_res) + xtx[p] * beta_exp[p]) / sigma2_e;
-                beta_exp2_ = pow(beta_exp_, 2.0) + beta_var_;
+                // beta_exp2_ = pow(beta_exp_, 2.0) + beta_var_;
 
                 /* update residuals */
                 y_res   += (X.col(p) * (beta_exp[p] - beta_exp_));
-                sumVarB += (xtx[p] * beta_var[p]);     // sum(V[β_p])
+                // sumVarB += (xtx[p] * beta_var[p]);     // sum(V[β_p])
 
                 Check1 += pow(beta_exp_ - beta_exp[p], 2.0);
                 Check2 += pow(beta_exp_, 2.0);
 
                 beta_exp[p]  = beta_exp_;
-                beta_exp2[p] = beta_exp2_;
+                // beta_exp2[p] = beta_exp2_;
                 beta_var[p]  = beta_var_;
 
                 /* update of Sigma2 */
@@ -346,70 +353,49 @@ Rcpp::List VariationalBayes(
             // update SNP Effect in random order
             // order = shuffle(order);     
             std::shuffle(blocks.begin(), blocks.end(), rng);
-
-            for (Block b: blocks) {
-                uword n_elem = b.end - b.start + 1;
+            
+            for (span b: blocks) {
+                uword n_elem = b.b - b.a + 1;
                 vec beta_exp_(n_elem);       // new value of beta_exp[p]
                 vec beta_exp2_(n_elem);      // new value of beta_exp2[p]
                 vec beta_var_(n_elem);       // H_p
                 vec gamma_exp_(n_elem);      // new value of gamma_exp[p]
                 
+                // yty_a = 0.0;
+                if (block_size > 1) {
+                    // y_res.subvec(n, n + block_size - 1) = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b) % gamma_exp.subvec(b));
+                    y_res.subvec(n, n + block_size - 1).fill(0.0);
+                }
+
+                vec temp = (X.cols(b).t() * y_res + xtx.subvec(b) % beta_exp.subvec(b) % gamma_exp.subvec(b)) / sigma2_e;
+                beta_var_ = (sigma2_e * S2_g[0]) / (xtx.subvec(b) * S2_g[0] + sigma2_e);
+                beta_exp_ = beta_var_ % temp;
+
+                /* update Gamma */
+                gamma_exp_ = 0.5 * beta_var_ % temp % temp + 0.5 * log(beta_var_);
+                gamma_exp_ += gamma_constant;
+                gamma_exp_.elem(find(gamma_exp_ > 20.0)).fill(20.0);    // to avoid overflow
+                gamma_exp_ = Pi[1] * exp(gamma_exp_);
+                gamma_exp_ /= (gamma_exp_ + Pi[0]);
                 
-                // Rcpp::Rcout << "[DEBUG]: Block(" << b.start << ", " << b.end << ")." << endl;
-                y_res.subvec(n, n + block_size - 1) = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b.start, b.end - 1) % gamma_exp.subvec(b.start, b.end - 1));
-                // y_res.subvec(n, n + block_size - 1) = zeros(block_size);
-                // Rcpp::Rcout << "[DEBUG]: y_a: " << mean(y_res.subvec(0, n + block_size - 1)) << endl;
-                // #pragma omp parallel for reduction(+:y_res,sumVarB,sumGamma_,sumGammaB2_)
-                for (uword p = b.start; p < b.end; p++) {   // index of snp
-                    uword i = p - b.start;
+                Check1 += accu(square(beta_exp_ - beta_exp.subvec(b)));
+                Check2 += accu(square(beta_exp_));
 
-                    // double temp = ((dot(X.col(p).subvec(0, n - 1), y_res) + dot(X.col(p).subvec(n, X.n_rows-1), X.col(p).subvec(n, X.n_rows - 1) * beta_exp[p] * gamma_exp[p])) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
-                    // double temp = ((dot(X.col(p).subvec(0, n - 1), y_res) + dot(X.col(p).subvec(n, X.n_rows-1), y_block)) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
-                    // double temp = (dot(X.col(p).subvec(0, n - 1), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
-                    double temp = (dot(X.col(p), y_res) + xtx[p] * beta_exp[p] * gamma_exp[p]) / sigma2_e;
+                sumGammaB2_ += accu(beta_exp2_ % gamma_exp_);
+                sumGamma_   += accu(gamma_exp_);
 
-                    beta_var_[i]  = (sigma2_e * S2_g[0]) / (xtx[p] * S2_g[0] + sigma2_e);
-                    beta_exp_[i]  = beta_var_[i] * temp;
-                    beta_exp2_[i] = pow(beta_exp_[i], 2.0) + beta_var_[i];
+                // Update Residual
 
-                    /* update Gamma */
-                    gamma_exp_[i]  = 0.5 * beta_var_[i] * temp * temp + 0.5 * log(beta_var_[i]);
-                    gamma_exp_[i] += gamma_constant;
-                    
-                    // to avoid overflow
-                    if (gamma_exp_[i] < 20.0) {
-                        gamma_exp_[i] = Pi[1] * exp(gamma_exp_[i]);
-                        gamma_exp_[i] = gamma_exp_[i] / (gamma_exp_[i] + Pi[0]);
-                    } else {
-                        gamma_exp_[i] = 1.0;   // exp(20) / (exp(20) + 1) ≈ 1 - 2.06e-9
-                    }
-
-                    /* update residuals */
-                    // y_res += (X.col(p).subvec(0, n - 1) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
-                    
-                    // y_block += (X.col(p).subvec(n, n + block_size - 1) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
-                    // y_res += (X.col(p) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
-
-                    Check1 += pow(beta_exp_[i] - beta_exp[p], 2.0);
-                    Check2 += pow(beta_exp_[i], 2.0);
-
-                    sumVarB     += (xtx[p] * gamma_exp_[i] * (beta_exp2_[i] - gamma_exp_[i] * beta_exp_[i] * beta_exp_[i])); // gamma_exp_[i] *
-                    sumGammaB2_ += beta_exp2_[i] * gamma_exp_[i];
-                    sumGamma_   += gamma_exp_[i];
-                    // y_res.subvec(n, n + block_size - 1) = zeros(block_size);
-                }
-
-                for (uword p = b.start; p < b.end; p++) {   // index of snp
-                    uword i = p - b.start;
-                    y_res += (X.col(p) * (beta_exp[p] * gamma_exp[p] - beta_exp_[i] * gamma_exp_[i]));
-                    beta_exp[p]  = beta_exp_[i];
-                    beta_exp2[p] = beta_exp2_[i];
-                    beta_var[p]  = beta_var_[i];
-
-                    gamma_exp[p]  = gamma_exp_[i];
-                    gamma_exp2[p] = pow(gamma_exp_[i], 2.0) + gamma_exp_[i] * (1.0 - gamma_exp_[i]);
-                }
-                // y_res.subvec(n, n + block_size - 1).t().print("y_a =");
+                // vec y_res_a = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b) % gamma_exp.subvec(b) - beta_exp_ % gamma_exp_);
+                // yty_a += dot(y_res_a, y_res_a);
+                y_res += X.cols(b) * (beta_exp.subvec(b) % gamma_exp.subvec(b) - beta_exp_ % gamma_exp_);
+                // if (block_size > 1) {
+                //     y_a += y_res.subvec(n, y_res.n_rows - 1);
+                // }
+                beta_exp.subvec(b) = beta_exp_;
+                beta_var.subvec(b) = beta_var_;
+                gamma_exp.subvec(b) = gamma_exp_;
+                
                 // y_res.subvec(n, n + block_size - 1) = zeros(block_size);
             }
 
@@ -449,20 +435,23 @@ Rcpp::List VariationalBayes(
             throw Rcpp::exception("Not implemented yet");
         }
 
+        if (block_size > 1) {
+            y_res.subvec(n, y_res.n_elem - 1) = y_a;
+            Rcpp::Rcout << "Debug: " << y_a.t();
+        }
+
         // Update mu
-        // double mu_exp_;
-        // mu_var = sigma2_e;
-        // mu_exp_ = mean(y_res);
+        double mu_exp_;
+        mu_exp_ = mu_exp + mean(y_res);
 
-        // Check1 += pow(mu_exp_ - mu_exp, 2.0);
-        // Check2 += pow(mu_exp_, 2.0);
+        Check1 += pow(mu_exp_ - mu_exp, 2.0);
+        Check2 += pow(mu_exp_, 2.0);
 
-        // y_res += (mu_exp - mu_exp_);
-        // mu_exp = mu_exp_;
-        // sumVarB += mu_var;
+        y_res += (mu_exp - mu_exp_);
+        mu_exp = mu_exp_;
 
 		// Update of residual precision
-        sigma2_e_ = (dot(y_res, y_res) + sumVarB) / (n - 2.0);
+        sigma2_e_ = dot(y_res, y_res) / (y_res.n_elem - 2.0);
 
 		Check1 += pow(sigma2_e_ - sigma2_e, 2.0);
 		Check2 += pow(sigma2_e_, 2.0);
