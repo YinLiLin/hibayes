@@ -19,7 +19,7 @@
 
 #include "hibayes.h"
 #include "solver.h"
-#include "magic_enum.hpp"
+// #include "magic_enum.hpp"
 
 
 enum class Model { BayesA, BayesB, BayesBpi, BayesC, BayesCpi, BayesL, BayesR, BayesRR, BSLMM };
@@ -99,7 +99,26 @@ Rcpp::List VariationalBayes(
     omp_setup(threads);
     std::default_random_engine rng(seed);
 
-    Model model_index = magic_enum::enum_cast<Model>(model_str).value();
+    Model model_index; // = magic_enum::enum_cast<Model>(model_str).value();
+    if (model_str == "BayesA") {
+        model_index = Model::BayesA;
+    } else if (model_str == "BayesB") {
+        model_index = Model::BayesB;
+    } else if (model_str == "BayesBpi") {
+        model_index = Model::BayesBpi;
+    } else if (model_str == "BayesC") {
+        model_index = Model::BayesC;
+    } else if (model_str == "BayesCpi") {
+        model_index = Model::BayesCpi;
+    } else if (model_str == "BayesL") {
+        model_index = Model::BayesL;
+    } else if (model_str == "BayesR") {
+        model_index = Model::BayesR;
+    } else if (model_str == "BayesRR") {
+        model_index = Model::BayesRR;
+    } else {
+        model_index = Model::BayesA;
+    }
 
     // Check parameters
     if (model_index != Model::BayesR && Pi.n_elem != 2)
