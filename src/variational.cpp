@@ -39,23 +39,24 @@ vector<arma::span> createBlocks(const uword m, const uword block_size=64) {
 }
 
 
-void orth_augment(arma::mat &X, arma::vec &d, const arma::uword block_size) {
+void orth_augment(arma::mat &X, arma::vec &d, const std::vector<arma::span> blocks, const uword block_size=64) {
     uword n = X.n_rows;
     uword m = X.n_cols;
-    X.resize(n + min(block_size, m), m);
+    X.resize(n + block_size, m);
+    X.rows(n, n + block_size - 1).fill(0.0);
 
-    uword n_block = (m % block_size) == 0 ? m / block_size : m / block_size + 1;
+    uword n_block = blocks.size();
     d.set_size(n_block);
     
-    for (uword i = 0, b = 0; i < m; i += block_size) {
-        uword p = min(block_size, m - i);
-        auto X0 = X.submat(0, i, n - 1, i + p - 1);
+    uword i = 0;
+    for (span b: blocks) {
+        uword n_elem = b.b - b.a + 1;
+        auto X0 = X.submat(span(0, n - 1), b);
         mat Xa = X0.t() * X0;
-        d[b] = max(eig_sym(Xa));
-        Xa.diag() -= (d[b] + 0.0001);
-        X.submat(n, i, n + p - 1, i + p - 1) = chol(-Xa);
-
-        b++;
+        d[i] = max(eig_sym(Xa));
+        Xa.diag() -= (d[i] + 0.0001);
+        X.submat(span(n, n + n_elem - 1), b) = chol(-Xa);
+        i++;
     }
 }
 
@@ -122,20 +123,20 @@ Rcpp::List VariationalBayes(
 
     // Check parameters
     if (model_index != Model::BayesR && Pi.n_elem != 2)
-        throw Rcpp::exception("length of Pi should be 2, the first value is the proportion of non-effect markers.");
+        Rcpp::stop("length of Pi should be 2, the first value is the proportion of non-effect markers.");
         
     if (sum(Pi) != 1)
-        throw Rcpp::exception("sum of Pi should be 1.");
+        Rcpp::stop("sum of Pi should be 1.");
     if (Pi[0] == 1)
-        throw Rcpp::exception("all markers have no effect size.");
+        Rcpp::stop("all markers have no effect size.");
     for (int i = 0; i < Pi.n_elem; i++) {
         if(Pi[i] < 0 || Pi[i] > 1){
-            throw Rcpp::exception("elements of Pi should be at the range of [0, 1]");
+            Rcpp::stop("elements of Pi should be at the range of [0, 1]");
         }
     }
 
     if (dfvg.isNotNull() && as<double>(dfvg) <= 2)
-        throw Rcpp::exception("dfvg should not be less than 2.");
+        Rcpp::stop("dfvg should not be less than 2.");
 
     // Check model specific parameters
     vec fold_;
@@ -143,18 +144,18 @@ Rcpp::List VariationalBayes(
         if(fold.isNotNull()) {
             fold_ = as<arma::vec>(fold);
         } else {
-            throw Rcpp::exception("'fold' should be provided for BayesR model.");
+            Rcpp::stop("'fold' should be provided for BayesR model.");
         }
 
         if(fold_.n_elem != Pi.n_elem)
-            throw Rcpp::exception("length of Pi and fold not equals.");
+            Rcpp::stop("length of Pi and fold not equals.");
     }
 
     // Check input
     if (y.has_nan())
-        throw Rcpp::exception("NAs are not allowed in y.");
+        Rcpp::stop("NAs are not allowed in y.");
     if (y.n_elem != X.n_rows)
-        throw Rcpp::exception("Number of individuals not equals.");
+        Rcpp::stop("Number of individuals not equals.");
     
     // Check covariates
     // int nc = 0;             // number of covariates
@@ -162,9 +163,9 @@ Rcpp::List VariationalBayes(
     // if(C.isNotNull()){
     //     C_ = as<arma::mat>(C);
     //     if(C_.n_rows != X.n_rows)
-    //         throw Rcpp::exception("Number of individuals does not match for covariates.");
+    //         Rcpp::stop("Number of individuals does not match for covariates.");
     //     if(C_.has_nan())
-    //         throw Rcpp::exception("Individuals with phenotypic value should not have missing covariates.");
+    //         Rcpp::stop("Individuals with phenotypic value should not have missing covariates.");
     //     nc = C_.n_cols;
     // }
 
@@ -194,14 +195,21 @@ Rcpp::List VariationalBayes(
     // Gentic marker ======================
     // Orthogonal data augmentation
     vec xd;
-    double yatya = 0.0;
+
+    auto blocks = createBlocks(m, block_size);
     if (block_size > 1) {
         block_size = min(block_size, m);
-        orth_augment(X, xd, block_size);
+        orth_augment(X, xd, blocks, block_size);
         y.resize(n + block_size);
-        y.subvec(n, y.n_elem - 1) = zeros(block_size);
+        y.subvec(n, y.n_elem - 1).fill(0.0);
+
+        Rcpp::Rcout << "X1.t() * X2 = " << X.col(1).t() * X.col(2) << std::endl;
+        Rcpp::Rcout << "X2.t() * X3 = " << X.col(2).t() * X.col(3) << std::endl;
+        X.submat(span(n, n + block_size - 1), span(0, 63)).brief_print("Xa = ");
     }
     
+    // Rcpp::Rcout <<  << std::endl;
+
     // Cache feature of markers
     vec xtx = zeros(m);     // Vector of (X_p * X_p)
     vec vx = zeros(m);      // Vector of variance of X_p
@@ -261,7 +269,7 @@ Rcpp::List VariationalBayes(
     case Model::BayesR:
     case Model::BayesRR:
     case Model::BSLMM:
-        throw Rcpp::exception("Not implemented yet");
+        Rcpp::stop("Not implemented yet");
     }
     
     // Residual ===========================
@@ -320,7 +328,6 @@ Rcpp::List VariationalBayes(
 
 		// For update of residual variance
         uvec order = linspace<uvec>(0, m - 1, m);     // order of snp {1 ... m}, used to update SNP Effect in random order
-        auto blocks = createBlocks(m, block_size);
         
 		// Update of beta
         if (model_index == Model::BayesA) {
@@ -362,7 +369,7 @@ Rcpp::List VariationalBayes(
                 S2_g[p] = S2_g_;
             }
         } else if (model_index == Model::BayesB || model_index == Model::BayesBpi) {
-            throw Rcpp::exception("Not implemented yet");
+            Rcpp::stop("Not implemented yet");
         } else if (model_index == Model::BayesC || model_index == Model::BayesCpi) {
             // s2vp_ = pow((dfvg_ - 2) / dfvg_, 2.0) * vary * h2 / ((1 - Pi[0]) * sumvx); 
             vS2 = dfvg_ * s2vg_;
@@ -374,9 +381,9 @@ Rcpp::List VariationalBayes(
             std::shuffle(blocks.begin(), blocks.end(), rng);
             
             if (block_size > 1) {
-                // y_res.subvec(n, n + block_size - 1) = X.submat(n, b.start, n + block_size - 1, b.end - 1) * (beta_exp.subvec(b) % gamma_exp.subvec(b));
-                y_res.subvec(n, n + block_size - 1).fill(0.0);
+                y_res.subvec(n, n + block_size - 1).fill(0.0);    
             }
+            vec y_a = zeros(block_size);
 
             for (span b: blocks) {
                 uword n_elem = b.b - b.a + 1;
@@ -385,7 +392,13 @@ Rcpp::List VariationalBayes(
                 vec beta_var_(n_elem);       // H_p
                 vec gamma_exp_(n_elem);      // new value of gamma_exp[p]
 
+                // if (block_size > 1) {
+                //     y_res.subvec(n, n + block_size - 1) += X.submat(span(n, n + block_size - 1), b) * (beta_exp.subvec(b) % gamma_exp.subvec(b));
+                //     // y_res.subvec(n, n + block_size - 1).fill(0.0);
+                // }
+
                 vec temp = (X.cols(b).t() * y_res + xtx.subvec(b) % beta_exp.subvec(b) % gamma_exp.subvec(b)) / sigma2_e;
+                // vec temp = (X.cols(b).t() * y_res) / sigma2_e;
                 beta_var_ = (sigma2_e * sigma2_g[0]) / (xtx.subvec(b) * sigma2_g[0] + sigma2_e);
                 beta_exp_ = beta_var_ % temp;
                 beta_exp2_ = square(beta_exp_) + beta_var_;
@@ -445,14 +458,14 @@ Rcpp::List VariationalBayes(
                 Pi[1] = Pi1_;
             }
         } else if (model_index == Model::BayesL) {
-            throw Rcpp::exception("Not implemented yet");
+            Rcpp::stop("Not implemented yet");
         } else if (model_index == Model::BayesR) {
-            throw Rcpp::exception("Not implemented yet");
+            Rcpp::stop("Not implemented yet");
         } else if (model_index == Model::BayesRR) {
-            throw Rcpp::exception("Not implemented yet");
+            Rcpp::stop("Not implemented yet");
         } else if (model_index == Model::BSLMM) {
         } else {
-            throw Rcpp::exception("Not implemented yet");
+            Rcpp::stop("Not implemented yet");
         }
 
         // if (block_size > 1) {
@@ -471,7 +484,12 @@ Rcpp::List VariationalBayes(
         mu_exp = mu_exp_;
 
 		// Update of residual precision
-        sigma2_e_ = (dot(y_res, y_res) + dfve_ * s2ve_)/ (y_res.n_elem + dfve_ - 2.0);
+        // if (block_size > 1) {
+        //     // y_res.subvec(n, n + block_size - 1) = X.submat(span(n, n + block_size - 1), b) * (beta_exp.subvec(b) % gamma_exp.subvec(b));
+        //     y_res.subvec(n, n + block_size - 1).fill(0.0);
+        //     // y_res.subvec(n, n + block_size - 1) = y_a;
+        // }
+        sigma2_e_ = (dot(y_res, y_res) + dfve_ * s2ve_)/ (y_res.n_elem + dfve_);
 
 		Check1 += pow(sigma2_e_ - sigma2_e, 2.0);
 		Check2 += pow(sigma2_e_, 2.0);
@@ -507,6 +525,7 @@ Rcpp::List VariationalBayes(
     // }
 
     results["beta"] = beta_exp % gamma_exp;
+    // results["beta"] = beta_exp;
     results["gamma"] = gamma_exp;
     results["g"] = X.rows(0, n - 1) * beta_exp;
     results["e"] = y.rows(0, n - 1) - X.rows(0, n - 1) * beta_exp - mu_exp;
