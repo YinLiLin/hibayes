@@ -154,8 +154,12 @@ Rcpp::List VariationalBayes(
     // Check input
     if (y.has_nan())
         Rcpp::stop("NAs are not allowed in y.");
-    if (y.n_elem != X.n_rows)
+    if (y.n_elem != X.n_rows){
+        Rcpp::Rcout << "[DEBUG] 4"<< std::endl;
+        warning("abc");
         Rcpp::stop("Number of individuals not equals.");
+    }
+        
     
     // Check covariates
     // int nc = 0;             // number of covariates
@@ -379,6 +383,8 @@ Rcpp::List VariationalBayes(
             // update SNP Effect in random order
             // order = shuffle(order);     
             std::shuffle(blocks.begin(), blocks.end(), rng);
+
+            // Rcpp::Rcout << "[DEBUG] blocs: " << blocks[0].a << " " << blocks[1].a << " " << blocks[2].a << " " << std::endl;
             
             if (block_size > 1) {
                 y_res.subvec(n, n + block_size - 1).fill(0.0);    
