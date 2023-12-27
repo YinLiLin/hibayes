@@ -1,7 +1,7 @@
 Package: hibayes
 Title: Individual-Level, Summary-Level and Single-Step Bayesian Regression Model
-Version: 3.0.1
-Date: 2023-11-27
+Version: 3.0.2
+Date: 2023-12-27
 Authors@R: c(
     person("Lilin", "Yin", email = "ylilin@163.com", 
            role = c("aut", "cre", "cph")),
