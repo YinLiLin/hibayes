@@ -19,10 +19,21 @@
 
 #include "hibayes.h"
 #include "solver.h"
-#include "magic_enum.hpp"
 
 
 enum class Model { BayesA, BlockARR, BlockAA, BayesB, BayesBpi, BayesC, BayesCpi, BayesL, BayesR, BayesRR, BSLMM };
+std::map<std::string, Model> model_map{
+    {"BayesA",   Model::BayesA  },
+    {"BlockARR", Model::BlockARR},
+    {"BlockAA",  Model::BlockAA },
+    {"BayesB",   Model::BayesB  },
+    {"BayesBpi", Model::BayesBpi},
+    {"BayesC",   Model::BayesC  },
+    {"BayesCpi", Model::BayesCpi},
+    {"BayesL",   Model::BayesL  },
+    {"BayesR",   Model::BayesR  },
+    {"BayesRR",  Model::BayesRR }
+};
 
 vector<arma::span> createBlocks(const uword m, const uword block_size=64) {
     vector<span> blocks;
@@ -86,28 +97,7 @@ Rcpp::List VariationalBayes(
     omp_setup(threads);
     std::default_random_engine rng(seed);
 
-    Model model_index = magic_enum::enum_cast<Model>(model_str).value();
-    // if (model_str == "BayesA") {
-    //     model_index = Model::BayesA;
-    // } else if (model_str == "BlockBayesA") {
-    //     model_index = Model::BlockBayesA;
-    // } else if (model_str == "BayesB") {
-    //     model_index = Model::BayesB;
-    // } else if (model_str == "BayesBpi") {
-    //     model_index = Model::BayesBpi;
-    // } else if (model_str == "BayesC") {
-    //     model_index = Model::BayesC;
-    // } else if (model_str == "BayesCpi") {
-    //     model_index = Model::BayesCpi;
-    // } else if (model_str == "BayesL") {
-    //     model_index = Model::BayesL;
-    // } else if (model_str == "BayesR") {
-    //     model_index = Model::BayesR;
-    // } else if (model_str == "BayesRR") {
-    //     model_index = Model::BayesRR;
-    // } else {
-    //     model_index = Model::BayesA;
-    // }
+    Model model_index = model_map[model_str];
 
     // Check parameters
     if (model_index != Model::BayesR && Pi.n_elem != 2)
