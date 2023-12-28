@@ -19,10 +19,10 @@
 
 #include "hibayes.h"
 #include "solver.h"
-// #include "magic_enum.hpp"
+#include "magic_enum.hpp"
 
 
-enum class Model { BayesA, BlockBayesA, BayesB, BayesBpi, BayesC, BayesCpi, BayesL, BayesR, BayesRR, BSLMM };
+enum class Model { BayesA, BlockARR, BlockAA, BayesB, BayesBpi, BayesC, BayesCpi, BayesL, BayesR, BayesRR, BSLMM };
 
 vector<arma::span> createBlocks(const uword m, const uword block_size=64) {
     vector<span> blocks;
@@ -86,28 +86,28 @@ Rcpp::List VariationalBayes(
     omp_setup(threads);
     std::default_random_engine rng(seed);
 
-    Model model_index; // = magic_enum::enum_cast<Model>(model_str).value();
-    if (model_str == "BayesA") {
-        model_index = Model::BayesA;
-    } else if (model_str == "BlockBayesA") {
-        model_index = Model::BlockBayesA;
-    } else if (model_str == "BayesB") {
-        model_index = Model::BayesB;
-    } else if (model_str == "BayesBpi") {
-        model_index = Model::BayesBpi;
-    } else if (model_str == "BayesC") {
-        model_index = Model::BayesC;
-    } else if (model_str == "BayesCpi") {
-        model_index = Model::BayesCpi;
-    } else if (model_str == "BayesL") {
-        model_index = Model::BayesL;
-    } else if (model_str == "BayesR") {
-        model_index = Model::BayesR;
-    } else if (model_str == "BayesRR") {
-        model_index = Model::BayesRR;
-    } else {
-        model_index = Model::BayesA;
-    }
+    Model model_index = magic_enum::enum_cast<Model>(model_str).value();
+    // if (model_str == "BayesA") {
+    //     model_index = Model::BayesA;
+    // } else if (model_str == "BlockBayesA") {
+    //     model_index = Model::BlockBayesA;
+    // } else if (model_str == "BayesB") {
+    //     model_index = Model::BayesB;
+    // } else if (model_str == "BayesBpi") {
+    //     model_index = Model::BayesBpi;
+    // } else if (model_str == "BayesC") {
+    //     model_index = Model::BayesC;
+    // } else if (model_str == "BayesCpi") {
+    //     model_index = Model::BayesCpi;
+    // } else if (model_str == "BayesL") {
+    //     model_index = Model::BayesL;
+    // } else if (model_str == "BayesR") {
+    //     model_index = Model::BayesR;
+    // } else if (model_str == "BayesRR") {
+    //     model_index = Model::BayesRR;
+    // } else {
+    //     model_index = Model::BayesA;
+    // }
 
     // Check parameters
     if (model_index != Model::BayesR && Pi.n_elem != 2)
@@ -231,7 +231,7 @@ Rcpp::List VariationalBayes(
         sigma2_g = vec(m, fill::value(1.0 / m));    // E[σ^2_g]
         S2_g = vec(m, fill::value(m));              // S'^2_p = (vS2 + E[β^2]) / v'
         break;
-    case Model::BlockBayesA:
+    case Model::BlockARR:
         beta_exp  = zeros(m);  // E[β] 
         beta_var  = zeros(m);  // V[β]
         beta_exp2 = zeros(m);  // E[β^2] = E[β]^2 + V[β]
@@ -239,6 +239,12 @@ Rcpp::List VariationalBayes(
         sigma2_g = vec(blocks.size(), fill::value(1.0 / blocks.size()));    // E[σ^2_g]
         // S2_g = vec(m, fill::value(m));              // S'^2_p = (vS2 + E[β^2]) / v'
         break;
+    case Model::BlockAA:
+        beta_exp  = zeros(m);  // E[β] 
+        beta_var  = zeros(m);  // V[β]
+        beta_exp2 = zeros(m);  // E[β^2] = E[β]^2 + V[β]
+
+        sigma2_g = vec(m, fill::value(1.0 / m));
     case Model::BayesB:
     case Model::BayesBpi:
         break;
@@ -358,7 +364,7 @@ Rcpp::List VariationalBayes(
 
                 S2_g[p] = S2_g_;
             }
-        } else if (model_index == Model::BlockBayesA) {
+        } else if (model_index == Model::BlockARR) {
             vS2 = dfvg_ * s2vg_;
 
             order = shuffle(order);
@@ -392,6 +398,40 @@ Rcpp::List VariationalBayes(
                 Check1 += pow(sigma2_g_ - sigma2_g[o], 2.0);
                 Check2 += pow(sigma2_g_, 2.0);
                 sigma2_g[o] = sigma2_g_;
+            }
+        } else if (model_index == Model::BlockAA) {
+            vS2 = dfvg_ * s2vg_;
+
+            order = shuffle(order);
+            for (uword o = 0; o < blocks.size(); o++) {
+                span b = blocks[o];
+                uword bs = b.b - b.a + 1;
+                vec beta_exp_(bs);      // E[β], β ~ N(μ, Σ)
+                mat beta_var_(bs, bs);  // V[β], aka Σ 
+                vec beta_exp2_;         // sum(E[β^2]) of the block, sum(E[β^2]) = μ'μ + tr(Σ)
+                vec sigma2_g_;          // σ2_g, prior parameter of β, β ~ N(0, Iσ2_g)
+
+                beta_var_  = sigma2_e * inv_sympd(X.cols(b).t() * X.cols(b) + diagmat(sigma2_e / sigma2_g.subvec(b)));
+                beta_exp_  = beta_var_ * X.cols(b).t() * (y_res + X.cols(b) * beta_exp.subvec(b)) / sigma2_e;
+                beta_exp2_ = square(beta_exp_) + beta_var_.diag();  // sum(E[β^2]) = μ'μ + tr(Σ) , β ~ N(μ, Σ)
+
+                sumVarB += trace(X.cols(b).t() * X.cols(b) * beta_var_);
+
+                /* update residuals */
+                y_res -= X.cols(b) * (beta_exp_ - beta_exp.subvec(b));
+
+                Check1 += accu(square(beta_exp_ - beta_exp.subvec(b)));
+                Check2 += accu(square(beta_exp_));
+
+                beta_exp.subvec(b) = beta_exp_;
+                // beta_var.subvec(b) = beta_var_;
+
+                /* update of Sigma2 */
+                sigma2_g_ = (beta_exp2_ + vS2) / (dfvg_ + 1.0);
+
+                Check1 += accu(square(sigma2_g_ - sigma2_g.subvec(b)));
+                Check2 += accu(square(sigma2_g_));
+                sigma2_g.subvec(b) = sigma2_g_;
             }
         } else if (model_index == Model::BayesB || model_index == Model::BayesBpi) {
             Rcpp::stop("Not implemented yet");
@@ -553,7 +593,8 @@ Rcpp::List VariationalBayes(
     // }
     switch (model_index) {
         case Model::BayesA:
-        case Model::BlockBayesA:
+        case Model::BlockARR:
+        case Model::BlockAA:
             results["beta"] = beta_exp;
             break;
         case Model::BayesC:

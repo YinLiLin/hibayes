@@ -60,4 +60,4 @@ src/.cache/*
 
 VIGoR/*
 Rplots.pdf
-logs.txt
+logs/*
