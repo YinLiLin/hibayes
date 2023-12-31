@@ -24,7 +24,7 @@ runHibayes <- function(method, datasets, trait, fold) {
             y = pheno[!mask, 6 + f],
             X = X[!mask, ],
             model_str = method,
-            Pi = c(0.95, 0.05),
+            Pi = c(0, 1),
             max_iteration = 200,
             threads = 1,
             block_size = 500, # 1, 100, 500, 1000 3trait 

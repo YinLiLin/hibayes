@@ -414,7 +414,8 @@ Rcpp::List VariationalBayes(
                 Check2 += accu(square(beta_exp_));
 
                 beta_exp.subvec(b) = beta_exp_;
-                // beta_var.subvec(b) = beta_var_;
+                beta_var.subvec(b) = beta_var_.diag();
+                beta_exp2.subvec(b) = beta_exp2_;
 
                 /* update of Sigma2 */
                 sigma2_g_ = (beta_exp2_ + vS2) / (dfvg_ + 1.0);
@@ -546,7 +547,11 @@ Rcpp::List VariationalBayes(
         //     y_res.subvec(n, n + block_size - 1).fill(0.0);
         //     // y_res.subvec(n, n + block_size - 1) = y_a;
         // }
-        sigma2_e_ = (dot(y_res, y_res) + sumVarB + dfve_ * s2ve_)/ (y_res.n_elem + dfve_);
+        // sigma <- (norm2(y - Xr)^2 + dot(d,betavar(alpha,mu,s)) +
+        //         dot(alpha,(s + mu^2)/sa))/(n + sum(alpha))
+        // v = p*(s + mu^2) - (p*mu)^2 = p*(s + (1 - p)*mu^2)
+        // sigma2_e_ <- dot(y - Xr, y - Xr)^2 + dot( XtX.diag(), beta_var) + beta_exp2 / sigma2_g
+        sigma2_e_ = (dot(y_res, y_res) + dot(xtx, beta_var)  + sum(beta_exp2 * sigma2_e / sigma2_g) + dfve_ * s2ve_) / (y_res.n_elem + m + dfve_);
 
 		Check1 += pow(sigma2_e_ - sigma2_e, 2.0);
 		Check2 += pow(sigma2_e_, 2.0);
@@ -568,7 +573,7 @@ Rcpp::List VariationalBayes(
 
     Rcpp::Rcout << "Iteration finished." << endl;
     List results;
-        
+
     results["Vg"] = dot(beta_var, vx);
     results["Ve"] = sigma2_e;
     results["h2"] = dot(beta_var, vx) / (dot(beta_var, vx) + 1.0 / sigma2_e);
