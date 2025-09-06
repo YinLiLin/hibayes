@@ -10,8 +10,8 @@ SEXP make_grm(
     bool verbose = true
 ){
 
-    int n = Z.n_rows;
-    int m = Z.n_cols;
+    blas_int n = Z.n_rows;
+    blas_int m = Z.n_cols;
     if(verbose) Rcpp::Rcout << "Start construct G matrix for " <<  Z.n_rows << " individuals using " << m << " markers" << std::endl;
     
     if(verbose) Rcpp::Rcout << "Calculate mean for all markers" << std::endl;

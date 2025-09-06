@@ -117,8 +117,8 @@ template vec CG(const arma::sp_mat A, const arma::vec b, const Nullable<NumericV
 template vec CG(const arma::mat A, const arma::vec b, const Nullable<NumericVector> x0, const Nullable<NumericVector> lambda,  const double esp, const int outfreq, const bool verbose);
 
 void Gibbs(arma::mat &A, arma::vec &x, arma::vec &b, double ve){
-    int n = b.n_elem;
-	int inc = 1;
+    blas_int n = b.n_elem;
+	blas_int inc = 1;
     for(int i = 0; i < n; i++){
         double aii = A(i, i);
 		double invlhs  = 1.0 / aii;
@@ -162,7 +162,7 @@ bool solver_chol(
 )
 {
 	int n = A.n_cols;
-    int info = 0, int_n = (int) n;
+    blas_int info = 0, int_n = (blas_int) n;
     char uplo = 'L';
 	vec A_diag = diagvec(A);
 	if(lambda){
@@ -206,12 +206,12 @@ void solver_lu(
 	double lambda = 0.0
 )
 {
-	int n = A.n_cols;
-	int *IPIV = new int[n];
-    int LWORK;
+	blas_int n = A.n_cols;
+	blas_int *IPIV = new blas_int[n];
+    blas_int LWORK;
     double wkopt;
     double *WORK = new double[4 * n];
-    int INFO = 0;
+    blas_int INFO = 0;
 	if(lambda){
 		A.diag() += lambda;
 	}
@@ -224,7 +224,7 @@ void solver_lu(
     }else{
 		double rcond;
 		double anorm = dlange_("1", &n, &n, Aiptr, &n, WORK);
-		int *IPIVn = new int[n];
+		blas_int *IPIVn = new blas_int[n];
 		dgecon_("1", &n, Aiptr, &n, &anorm, &rcond, WORK, IPIVn, &INFO);
 		delete[] IPIVn;
 		if(rcond <= datum::eps){
@@ -234,7 +234,7 @@ void solver_lu(
 		}else{
 			LWORK = -1;
 			dgetri_(&n, Aiptr, &n, IPIV, &wkopt, &LWORK, &INFO);
-			LWORK = (int)wkopt;
+			LWORK = (blas_int)wkopt;
 			double *WORK1 = new double[LWORK];
 			dgetri_(&n, Aiptr, &n, IPIV, WORK1, &LWORK, &INFO);
 			if(INFO){
@@ -263,9 +263,9 @@ void eigen_sym_dc(
 	arma::vec &eigval
 )
 {
-	int n = A.n_cols;
-	int info = 0, liwork = 0, iwkopt = 0, lwork = 0;
-	int* iwork;
+	blas_int n = A.n_cols;
+	blas_int info = 0, liwork = 0, iwkopt = 0, lwork = 0;
+	blas_int* iwork;
     double wkopt;
 	double* work;
 	char uplo = 'L';
@@ -284,10 +284,10 @@ void eigen_sym_dc(
     	throw Rcpp::exception(str.str().c_str());
 	}
 
-	lwork = (int)wkopt;
+	lwork = (blas_int)wkopt;
 	work = new double[lwork];
 	liwork = iwkopt;
-	iwork = new int[liwork];
+	iwork = new blas_int[liwork];
 
 	dsyevd_( (char*)"Vectors", &uplo, &n, Aiptr, &n, w, work, &lwork, iwork, &liwork, &info);
 	delete[] work;

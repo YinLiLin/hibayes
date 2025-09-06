@@ -139,7 +139,7 @@ void read_bed(std::string bed_file, XPtr<BigMatrix> pMat, const long maxLine, co
 	int n_block = (length - 3) / buffer_size;
 	if ((length - 3) % buffer_size != 0) { n_block++; }
 	buffer = new char [3];
-	fread(buffer, 1, 3, fin);
+	size_t n_bytes_read = static_cast<size_t>(fread(buffer, 1, 3, fin));
 	
 	size_t r, c, x;
 	uint8_t p;
@@ -147,7 +147,7 @@ void read_bed(std::string bed_file, XPtr<BigMatrix> pMat, const long maxLine, co
 
 	for (int i = 0; i < n_block; i++) {
 		buffer = new char [buffer_size];
-		fread(buffer, 1, buffer_size, fin);
+		n_bytes_read = static_cast<size_t>(fread(buffer, 1, buffer_size, fin));
 		
 		int cond = min(buffer_size, (length - 3 - i * buffer_size));
 

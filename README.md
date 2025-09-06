@@ -1,5 +1,5 @@
 # hibayes 
-[![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-3.0.2-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <img alt="Hits" src="https://hits.sh/github.com/YinLiLin/hibayes.svg?view=today-total&label=Today%2FTotal%20Visitors&extraCount=11864"/>
+[![GitHub issues](https://img.shields.io/github/issues/YinLiLin/hibayes?color=green)](https://github.com/YinLiLin/hibayes/issues/new)  [![CRAN Version](https://www.r-pkg.org/badges/version/hibayes?color=yellow)](https://CRAN.R-project.org/package=hibayes) [![](https://img.shields.io/badge/GitHub-3.1.0-blueviolet.svg)]() ![](http://cranlogs.r-pkg.org/badges/grand-total/hibayes?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/hibayes)](https://CRAN.R-project.org/package=hibayes) <img alt="Hits" src="https://hits.sh/github.com/YinLiLin/hibayes.svg?view=today-total&label=Today%2FTotal%20Visitors&extraCount=11864"/>
 ## Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies
 
 **```hibayes```** (say 'Hi' to Bayes) is an user-friendly [R](https://www.r-project.org) package to fit 3 types of Bayesian models using **[individual-level](#1-individual-level-bayesian-model)**, **[summary-level](#2-summary-level-bayesian-model)**, and **[individual plus pedigree-level](#3-single-step-bayesian-model)** (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:  
@@ -46,7 +46,7 @@ The latest version of **```hibayes```**  in development can be installed from Gi
 > devtools::install_github("YinLiLin/hibayes")
 ```
 ## Citing the package
-Yin LL, Zhang HH, Li XY, Zhao SH, Liu XL. [hibayes: An R Package to Fit Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies](https://www.biorxiv.org/content/10.1101/2022.02.12.480230v2), ***bioRxiv*** (2022), doi: 10.1101/2022.02.12.480230.
+Yin LL, Zhang HH, Li XY, Zhao SH, Liu XL. "hibayes: An R Package to Fit Individual-Level, Summary-Level and Single-Step Bayesian Regression Models for Genomic Prediction and Genome-Wide Association Studies." ***Journal of Statistical Software***, ***114***(6), 1-37 (2025). doi:10.18637/jss.v114.i06
 ## Usage
 ### 1. Individual level Bayesian model
 To fit individual level Bayesian model (*```ibrm()```*), at least the phenotype, numeric genotype (***n*** * ***m***, ***n*** is the number of individuals, ***m*** is the number of SNPs) should be provided. Users can load the phenotype and genotype data that are coded from other software by *```read.table()```* to fit model, note that 'NA' is not allowed in genotype data:
