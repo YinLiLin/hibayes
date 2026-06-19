@@ -4,7 +4,7 @@
 
 **```hibayes```** (say 'Hi' to Bayes) is an user-friendly [R](https://www.r-project.org) package to fit 3 types of Bayesian models using **[individual-level](#1-individual-level-bayesian-model)**, **[summary-level](#2-summary-level-bayesian-model)**, and **[individual plus pedigree-level](#3-single-step-bayesian-model)** (single-step) data for both Genomic prediction/selection (GS) and Genome-Wide Association Study (GWAS), it was designed to estimate joint effects and genetic parameters for a complex trait, including:  
 **(1)** fixed effects and coefficients of covariates  
-**(2)** environmental random effects, and its corresponding variance  
+**(2)** environmental random effects, and its corresponding variance  <img src="https://raw.githubusercontent.com/YinLiLin/hibayes/master/figure/hibayes_logo.png" height="180" align="right" />
 **(3)** genetic variance  
 **(4)** residual variance  
 **(5)** heritability  
